@@ -14,9 +14,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form"; // ADDED
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, UserPlus } from "lucide-react";
+import { Eye, EyeOff, UserPlus, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -26,11 +26,12 @@ import {
 } from "@/components/ui/select";
 import { useState } from "react";
 import { useAuth } from "@/contexts/useAuth";
-import { useForm } from "react-hook-form"; // ADDED
-import { z } from "zod"; // ADDED
-import { zodResolver } from "@hookform/resolvers/zod"; // ADDED
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert,AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-// ADDED: Form validation schema
 const userSchema = z.object({
   id_number: z.string().min(3, "ID Number must be at least 3 characters"),
   first_name: z.string().min(2, "First name is required"),
@@ -41,9 +42,9 @@ const userSchema = z.object({
   cPassword: z.string().optional(),
   user_level: z.enum(["admin", "manager", "inspector"]),
   status: z.enum(["active", "inactive"]),
+  showPasswordFields: z.boolean(),
 }).refine(data => {
-  // Only validate password match if password is provided
-  if (data.password && data.password.length > 0) {
+  if (data.showPasswordFields && data.password && data.password.length > 0) {
     return data.password === data.cPassword;
   }
   return true;
@@ -56,13 +57,12 @@ export function AddUserForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const [open, setOpen] = useState(false); // ADDED: Dialog state
+  const [open, setOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showCPassword, setShowCPassword] = useState(false);
   
   const { register_user } = useAuth();
 
-  // ADDED: React Hook Form
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
     defaultValues: {
@@ -75,12 +75,12 @@ export function AddUserForm({
       cPassword: "",
       user_level: "inspector",
       status: "active",
+      showPasswordFields: false,
     },
   });
 
-  // ADDED: Form submit handler
   const onSubmit = async (values: z.infer<typeof userSchema>) => {
-    const { cPassword, ...userData } = values;
+    const { cPassword, showPasswordFields, ...userData } = values;
     
     try {
       await register_user(
@@ -89,10 +89,10 @@ export function AddUserForm({
         userData.last_name,
         userData.middle_name || "",
         userData.email,
-        userData.password || "",
+        showPasswordFields ? userData.password || "" : "",
         userData.user_level,
         userData.status,
-        cPassword || ""
+        showPasswordFields ? cPassword || "" : ""
       );
       form.reset();
       setOpen(false);
@@ -101,9 +101,11 @@ export function AddUserForm({
     }
   };
 
+  const showPasswordFields = form.watch("showPasswordFields");
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild >
+      <DialogTrigger asChild>
         <Button className={cn("w-full md:w-auto", className)} {...props}>
           <UserPlus className="mr-2 h-4 w-4" />
           Add New User
@@ -114,7 +116,7 @@ export function AddUserForm({
           <DialogTitle className="text-2xl font-bold">Add User</DialogTitle>
         </DialogHeader>
         
-        <Form {...form} >
+        <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* ID Number */}
@@ -212,65 +214,99 @@ export function AddUserForm({
                 )}
               />
 
-              {/* Password */}
+              {/* Show Password Fields Checkbox */}
               <FormField
                 control={form.control}
-                name="password"
+                name="showPasswordFields"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Password (Leave blank for auto-generated)
-                    </FormLabel>
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4">
                     <FormControl>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••"
-                        />
-                        <button
-                          type="button"
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Set custom password
+                      </FormLabel>
+                    </div>
                   </FormItem>
                 )}
               />
 
-              {/* Confirm Password */}
-              <FormField
-                control={form.control}
-                name="cPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Confirm Password (Required if setting password)
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Input
-                          {...field}
-                          type={showCPassword ? "text" : "password"}
-                          placeholder="••••••"
-                        />
-                        <button
-                          type="button"
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                          onClick={() => setShowCPassword(!showCPassword)}
-                        >
-                          {showCPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Default password message */}
+              {!showPasswordFields && (
+                <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
+                  <Info className="h-4 w-4 mb-2" />
+                  <AlertTitle>
+                    A default password will be automatically generated.
+                  </AlertTitle>
+                  <AlertDescription>
+                    Check the box above if you want to set a custom password.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Password (only shown when checkbox is checked) */}
+              {showPasswordFields && (
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                            onClick={() => setShowPassword(!showPassword)}
+                          >
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Confirm Password (only shown when checkbox is checked) */}
+              {showPasswordFields && (
+                <FormField
+                  control={form.control}
+                  name="cPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            type={showCPassword ? "text" : "password"}
+                            placeholder="••••••"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                            onClick={() => setShowCPassword(!showCPassword)}
+                          >
+                            {showCPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {/* User Level */}
               <FormField

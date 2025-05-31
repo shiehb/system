@@ -117,6 +117,22 @@ DATABASES = {
 }
 
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'db_system',      # Database name you created
+#         'USER': 'root',                   # Default XAMPP MySQL username
+#         'PASSWORD': '',                   # Default is empty for XAMPP
+#         'HOST': 'localhost',              # Or '127.0.0.1'
+#         'PORT': '3306',                   # Default MySQL port
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#             'charset': 'utf8mb4',
+#         }
+#     }
+# }
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 

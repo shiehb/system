@@ -91,7 +91,7 @@ const data = {
       items: [
         {
           title: "All Users",
-          url: "#",
+          url: "/user-management",
         },
         {
           title: "Add New User",
