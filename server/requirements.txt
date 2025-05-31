@@ -1,0 +1,53 @@
+# Core Django Packages
+Django==5.2.1
+djangorestframework==3.16.0
+asgiref==3.8.1
+sqlparse==0.5.3
+pytz==2025.1
+tzdata==2025.2
+
+# Database Drivers
+psycopg2-binary==2.9.10
+mysqlclient==2.2.7
+
+# API & Security
+djangorestframework_simplejwt==5.5.0
+PyJWT==2.9.0
+django-cors-headers==4.7.0
+fastapi==0.115.12
+starlette==0.46.2
+
+# Documentation
+drf-yasg==1.21.10
+uritemplate==4.1.1
+PyYAML==6.0.2
+
+# Development Utilities
+python-dotenv==1.1.0
+django-filter==24.1
+click==8.2.1
+colorama==0.4.6
+packaging==25.0
+
+# Async/Web Servers
+uvicorn==0.34.2
+gunicorn==23.0.0
+httptools==0.6.4
+websockets==15.0.1
+watchfiles==1.0.5
+anyio==4.9.0
+h11==0.16.0
+sniffio==1.3.1
+
+# Data Processing
+pydantic==2.11.5
+pydantic_core==2.33.2
+annotated-types==0.7.0
+typing_extensions==4.13.2
+typing-inspection==0.4.1
+inflection==0.5.1
+
+# File Handling
+pillow==11.2.1
+reportlab==4.1.0
+chardet==5.2.0
