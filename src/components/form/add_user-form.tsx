@@ -16,7 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, UserPlus, Info } from "lucide-react";
+import { Eye, EyeOff, UserPlus, Info, ShieldAlert } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -24,13 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/useAuth";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Alert,AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 const userSchema = z.object({
   id_number: z.string().min(3, "ID Number must be at least 3 characters"),
@@ -60,6 +61,7 @@ export function AddUserForm({
   const [open, setOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showCPassword, setShowCPassword] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
   
   const { register_user } = useAuth();
 
@@ -79,10 +81,31 @@ export function AddUserForm({
     },
   });
 
+  useEffect(() => {
+    if (!open) {
+      setFormErrors({});
+    } else {
+      form.reset({
+        id_number: "",
+        first_name: "",
+        last_name: "",
+        middle_name: "",
+        email: "",
+        password: "",
+        cPassword: "",
+        user_level: "inspector",
+        status: "active",
+        showPasswordFields: false,
+      });
+    }
+  }, [open, form]);
+
   const onSubmit = async (values: z.infer<typeof userSchema>) => {
     const { cPassword, showPasswordFields, ...userData } = values;
     
     try {
+      setFormErrors({});
+      
       await register_user(
         userData.id_number,
         userData.first_name,
@@ -94,10 +117,40 @@ export function AddUserForm({
         userData.status,
         showPasswordFields ? cPassword || "" : ""
       );
-      form.reset();
+      
+      toast.success("User added successfully");
       setOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding user:", error);
+      
+      if (error.message) {
+        try {
+          const errorData = JSON.parse(error.message);
+          if (errorData.errors) {
+            // Set form-level errors
+            setFormErrors(errorData.errors);
+            
+            // Set field-level errors
+            Object.keys(errorData.errors).forEach(field => {
+              form.setError(field as any, {
+                type: 'manual',
+                message: errorData.errors[field][0]
+              });
+            });
+            
+            toast.error("Validation failed", {
+              description: "Please correct the errors in the form",
+            });
+            return;
+          }
+        } catch (e) {
+          toast.error("Registration failed", {
+            description: error.message,
+          });
+        }
+      } else {
+        toast.error("An unknown error occurred");
+      }
     }
   };
 
@@ -106,10 +159,10 @@ export function AddUserForm({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className={cn("w-full md:w-auto", className)} {...props}>
-          <UserPlus className="mr-2 h-4 w-4" />
+        <div className={cn("w-full md:w-auto", className)} {...props}>
+          <UserPlus className="mr-2 h-4 w-4 " />
           Add New User
-        </Button>
+        </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -118,8 +171,23 @@ export function AddUserForm({
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {Object.keys(formErrors).length > 0 && (
+              <Alert variant="destructive" className="col-span-2">
+                <ShieldAlert className="h-4 w-4" />
+                <AlertTitle>Form Errors</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc pl-5">
+                    {Object.entries(formErrors).map(([field, errors]) => (
+                      errors.map((error, index) => (
+                        <li key={`${field}-${index}`}>{error}</li>
+                      ))
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* ID Number */}
               <FormField
                 control={form.control}
                 name="id_number"
@@ -131,6 +199,7 @@ export function AddUserForm({
                         {...field}
                         placeholder="123456789"
                         required
+                        className={form.formState.errors.id_number ? "border-destructive" : ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -138,7 +207,6 @@ export function AddUserForm({
                 )}
               />
 
-              {/* Email */}
               <FormField
                 control={form.control}
                 name="email"
@@ -151,6 +219,7 @@ export function AddUserForm({
                         type="email"
                         placeholder="user@example.com"
                         required
+                        className={form.formState.errors.email ? "border-destructive" : ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -158,7 +227,6 @@ export function AddUserForm({
                 )}
               />
 
-              {/* First Name */}
               <FormField
                 control={form.control}
                 name="first_name"
@@ -177,7 +245,6 @@ export function AddUserForm({
                 )}
               />
 
-              {/* Last Name */}
               <FormField
                 control={form.control}
                 name="last_name"
@@ -196,7 +263,6 @@ export function AddUserForm({
                 )}
               />
 
-              {/* Middle Name */}
               <FormField
                 control={form.control}
                 name="middle_name"
@@ -214,7 +280,6 @@ export function AddUserForm({
                 )}
               />
 
-              {/* Show Password Fields Checkbox */}
               <FormField
                 control={form.control}
                 name="showPasswordFields"
@@ -235,7 +300,6 @@ export function AddUserForm({
                 )}
               />
 
-              {/* Default password message */}
               {!showPasswordFields && (
                 <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
                   <Info className="h-4 w-4 mb-2" />
@@ -248,7 +312,6 @@ export function AddUserForm({
                 </Alert>
               )}
 
-              {/* Password (only shown when checkbox is checked) */}
               {showPasswordFields && (
                 <FormField
                   control={form.control}
@@ -278,7 +341,6 @@ export function AddUserForm({
                 />
               )}
 
-              {/* Confirm Password (only shown when checkbox is checked) */}
               {showPasswordFields && (
                 <FormField
                   control={form.control}
@@ -308,7 +370,6 @@ export function AddUserForm({
                 />
               )}
 
-              {/* User Level */}
               <FormField
                 control={form.control}
                 name="user_level"
@@ -332,7 +393,6 @@ export function AddUserForm({
                 )}
               />
 
-              {/* Status */}
               <FormField
                 control={form.control}
                 name="status"

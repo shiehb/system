@@ -8,6 +8,9 @@ import { Toaster } from 'sonner';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import UserManagementPage from './pages/UserManagementPage';
+import  ProfilePage  from './pages/ProfilePage';
+import  MapPage  from './pages/MapPage';
+import SchedulePage from './pages/SchedulePage';
 
 function App() {
   return (
@@ -20,7 +23,12 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
             <Route path="/user-management" element={<PrivateRoute><UserManagementPage /></PrivateRoute>} />
+            <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+            <Route path="/maps" element={<PrivateRoute><MapPage /></PrivateRoute>} />
+            <Route path="/schedule" element={<PrivateRoute><SchedulePage /></PrivateRoute>} />
+
             <Route path="*" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+            <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />   
           </Routes>
         </AuthProvider>
       </TooltipProvider>

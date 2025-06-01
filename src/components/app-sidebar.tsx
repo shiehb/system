@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useNavigate } from "react-router-dom"
 import {
   LayoutDashboard,
   User2,
@@ -10,11 +11,9 @@ import {
   LifeBuoy,
   Map,
   Frame
-} from "lucide-react"
+} from "lucide-react" 
 
 import { NavMain } from "@/components/nav-main"
-// import { NavProjects } from "@/components/nav-projects"
-// import { NavSecondary } from "@/components/nav-secondary"
 import {
   Sidebar,
   SidebarContent,
@@ -36,51 +35,56 @@ const data = {
     },
     {
       title: "Maps",
-      url: "#",
+      url: "/maps",
       icon: Map,
     },
     {
       title: "Establishments",
-      url: "#",
+      url: "/establishments",
       icon: Building2,
       items: [
         {
           title: "All Establishments",
-          url: "#",
+          url: "/establishments",
         },
         {
           title: "Add New Establishment",
-          url: "#",
+          url: "/establishments/new",
         }
       ],
     },
-        {
+    {
       title: "Inspection",
-      url: "#",
+      url: "/inspection",
       icon: MapPinHouse,
       items: [
         {
-          title: "",
-          url: "#",
+          title: "All Inspections",
+          url: "/inspection",
         },
         {
-          title: "",
-          url: "#",
+          title: "New Inspection",
+          url: "/inspection/new",
+        },
+        {
+          title: "Inspection Schedule",
+          url: "/schedule",
+          
         }
       ],
     },
     {
       title: "Reports",
-      url: "#",
+      url: "/reports",
       icon: FileLineChart,
       items: [
         {
-          title: "",
-          url: "#",
+          title: "View Reports",
+          url: "/reports",
         },
         {
-          title: "",
-          url: "#",
+          title: "Generate Report",
+          url: "/reports/generate",
         }
       ],
     },
@@ -95,22 +99,22 @@ const data = {
         },
         {
           title: "Add New User",
-          url: "#",
-        }
+          url: "/add-user",
+        },
+        {
+          title: "Profile",
+          url: "/profile",
+        }        
       ],
     },
     {
       title: "Settings",
-      url: "#",
+      url: "/settings",
       icon: Settings2,
       items: [
         {
           title: "General",
-          url: "#",
-        },
-        {
-          title: "Profile",
-          url: "#",
+          url: "/settings/general",
         }
       ],
     },
@@ -118,39 +122,49 @@ const data = {
   navSecondary: [
     {
       title: "Support",
-      url: "#",
+      url: "/support",
       icon: LifeBuoy,
     },
   ],
   projects: [
     {
       name: "Design Engineering",
-      url: "#",
+      url: "/projects/design-engineering",
       icon: Frame,
     },
     {
       name: "Sales & Marketing",
-      url: "#",
+      url: "/projects/sales-marketing",
       icon: PieChart,
     },
     {
       name: "Travel",
-      url: "#",
+      url: "/projects/travel",
       icon: Map,
     },
   ],
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const navigate = useNavigate();
+
+  const handleNavigation = (url: string) => {
+    navigate(url);
+  };
+
   return (
-    <Sidebar
+     <Sidebar collapsible="icon" {...props}
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
-      {...props}
     >
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        {/* <NavProjects projects={data.projects} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+        <NavMain items={data.navMain.map(item => ({
+          ...item,
+          onClick: () => handleNavigation(item.url),
+          items: item.items?.map(subItem => ({
+            ...subItem,
+            onClick: () => handleNavigation(subItem.url)
+          }))
+        }))} />
       </SidebarContent>
       <SidebarFooter>
         {/* <NavUser user={data.user} /> */}

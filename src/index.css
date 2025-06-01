@@ -204,3 +204,12 @@
 [data-collapsed="true"] .sidebar-menu-action {
   display: none;
 }
+
+/* Add to your global CSS */
+.border-red-500 {
+  border-color: #ef4444;
+}
+
+.focus-visible\:ring-red-500:focus-visible {
+  --tw-ring-color: #ef4444;
+}

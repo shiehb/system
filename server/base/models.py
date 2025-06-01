@@ -2,6 +2,10 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
 
+# Define the default avatar path using a regular function (not a lambda)
+def default_avatar():
+    return 'avatars/default.jpg'
+
 class UserManager(BaseUserManager):
     def create_user(self, id_number, email, first_name, last_name, password=None, **extra_fields):
         if not id_number:
@@ -52,22 +56,26 @@ class User(AbstractUser):
         ('active', 'Active'),
         ('inactive', 'Inactive'),
     ]
+
     username = models.CharField(max_length=150, null=True, blank=True, unique=False)
     id_number = models.CharField(max_length=50, unique=True)
     middle_name = models.CharField(max_length=150, blank=True)
     user_level = models.CharField(max_length=20, choices=USER_LEVEL_CHOICES, default='inspector')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    avatar = models.ImageField(
+        upload_to='avatars/',
+        null=True,
+        blank=True,
+        default=default_avatar
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Use id_number as the username field
     USERNAME_FIELD = 'id_number'
     REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
 
-    # Add custom manager
     objects = UserManager()
 
-    # Add these to resolve the conflicts
     groups = models.ManyToManyField(
         'auth.Group',
         verbose_name=_('groups'),
@@ -84,6 +92,7 @@ class User(AbstractUser):
         related_name="custom_user_set",
         related_query_name="user",
     )
+
     def save(self, *args, **kwargs):
         if not self.username:
             self.username = self.id_number

@@ -66,6 +66,8 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(str(e))
 
 class UserSerializer(serializers.ModelSerializer):
+    avatar_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
         fields = [
@@ -77,9 +79,23 @@ class UserSerializer(serializers.ModelSerializer):
             'email',
             'user_level',
             'status',
+            'avatar',  
+            'avatar_url', 
             'created_at',
             'updated_at'
         ]
+        extra_kwargs = {
+            'id_number': {'read_only': True},
+            'avatar': {'write_only': True} 
+        }
+    
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        return None
 
 class TodoSerializer(serializers.ModelSerializer):
     class Meta:

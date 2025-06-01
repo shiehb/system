@@ -39,21 +39,14 @@ export function NavMain({ items }: { items: NavItem[] }) {
           <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
             <SidebarMenuItem>
               <SidebarMenuButton asChild tooltip={item.title}>
-                {item.onClick ? (
-                  <button
-                    type="button"
-                    onClick={item.onClick}
-                    className="flex items-center gap-2 w-full text-left"
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </button>
-                ) : (
-                  <a href={item.url} className="flex items-center gap-2">
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </a>
-                )}
+                <button
+                  type="button"
+                  onClick={item.onClick}
+                  className="flex items-center gap-2 w-full text-left h-10"
+                >
+                  <item.icon className="size-8" />
+                  <span className=" text-md">{item.title}</span>
+                </button>
               </SidebarMenuButton>
 
               {item.items?.length ? (
@@ -69,17 +62,13 @@ export function NavMain({ items }: { items: NavItem[] }) {
                       {item.items.map((subItem) => (
                         <SidebarMenuSubItem key={subItem.title}>
                           <SidebarMenuSubButton asChild>
-                            {subItem.onClick ? (
-                              <button
-                                type="button"
-                                onClick={subItem.onClick}
-                                className="w-full text-left"
-                              >
-                                {subItem.title}
-                              </button>
-                            ) : (
-                              <a href={subItem.url}>{subItem.title}</a>
-                            )}
+                            <button
+                              type="button"
+                              onClick={subItem.onClick}
+                              className="w-full text-left h-10" 
+                            >
+                              {subItem.title}
+                            </button>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

@@ -1,4 +1,5 @@
 export interface User {
+  user_id: string;
   id: number;
   id_number: string;
   first_name: string;
@@ -10,3 +11,4 @@ export interface User {
   created_at: string;
   updated_at: string;
 }
+
