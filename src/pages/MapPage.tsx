@@ -1,6 +1,5 @@
-import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import {  SidebarProvider } from "@/components/ui/sidebar";
 import React, { useEffect, useState } from "react";
 import Map from "@/components/map/map";
 import { LayersControl, TileLayer } from "react-leaflet";
@@ -35,8 +34,6 @@ const MapPage: React.FC = () => {
       <SidebarProvider className="flex flex-col">
         <SiteHeader />
         <div className="flex flex-1">
-          <AppSidebar />
-          <SidebarInset>
             <div className="flex flex-1 flex-col gap-4 p-4">
               <h1 className="text-xl font-semibold mb-2">Map with Layers</h1>
               <p className="text-sm text-muted-foreground mb-1">
@@ -81,7 +78,6 @@ const MapPage: React.FC = () => {
                 </Map>
               </div>
             </div>
-          </SidebarInset>
         </div>
       </SidebarProvider>
     </div>

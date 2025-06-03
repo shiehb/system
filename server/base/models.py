@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
 
-# Define the default avatar path using a regular function (not a lambda)
 def default_avatar():
     return 'avatars/default.jpg'
 
@@ -100,6 +99,38 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.id_number})"
+
+class ActivityLog(models.Model):
+    ACTION_CHOICES = [
+        ('user_created', 'User Created'),
+        ('password_reset', 'Password Reset'),
+        ('status_changed', 'Status Changed'),
+        ('user_updated', 'User Updated'),
+        ('user_deleted', 'User Deleted'),
+        ('profile_updated', 'Profile Updated'),
+        ('avatar_updated', 'Avatar Updated'),
+        ('login', 'User Login'),
+        ('logout', 'User Logout'),
+    ]
+
+    admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='admin_actions')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='user_activities')
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES)
+    details = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Activity Log'
+        verbose_name_plural = 'Activity Logs'
+
+    def __str__(self):
+        if self.admin and self.user:
+            return f"{self.admin} {self.get_action_display()} for {self.user} at {self.created_at}"
+        elif self.user:
+            return f"{self.user} performed {self.get_action_display()} at {self.created_at}"
+        else:
+            return f"System: {self.get_action_display()} at {self.created_at}"
 
 class Todo(models.Model):
     name = models.CharField(max_length=200)

@@ -10,9 +10,8 @@ import {
   PieChart,
   LifeBuoy,
   Map,
-  Frame
+  Frame,
 } from "lucide-react" 
-
 import { NavMain } from "@/components/nav-main"
 import {
   Sidebar,
@@ -165,6 +164,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             onClick: () => handleNavigation(subItem.url)
           }))
         }))} />
+        
       </SidebarContent>
       <SidebarFooter>
         {/* <NavUser user={data.user} /> */}

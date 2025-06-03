@@ -17,7 +17,7 @@ function App() {
     <Router>
       <TooltipProvider>
         <AuthProvider>
-          <Toaster position="top-center" richColors />
+          <Toaster  position="top-center" richColors />
 
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -26,7 +26,6 @@ function App() {
             <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
             <Route path="/maps" element={<PrivateRoute><MapPage /></PrivateRoute>} />
             <Route path="/schedule" element={<PrivateRoute><SchedulePage /></PrivateRoute>} />
-
             <Route path="*" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
             <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />   
           </Routes>

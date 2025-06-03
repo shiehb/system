@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Todo
+from .models import User, Todo, ActivityLog
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('id_number', 'first_name', 'last_name', 'email', 'user_level', 'status')
@@ -26,3 +26,12 @@ class CustomUserAdmin(UserAdmin):
 
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Todo)
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = ('admin', 'action', 'user', 'created_at')
+    list_filter = ('action', 'created_at')
+    search_fields = ('admin__id_number', 'admin__first_name', 'admin__last_name', 
+                    'user__id_number', 'user__first_name', 'user__last_name')
+    readonly_fields = ('admin', 'user', 'action', 'details', 'created_at')
+    ordering = ('-created_at',)  # Ensures proper ordering in admin

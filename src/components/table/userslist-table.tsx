@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { getUsers } from "@/endpoints/api";
 import { useAuth } from "@/contexts/useAuth";
 import type { User } from "@/types";
-import { LoadingWave } from "@/components/ui/loading-wave";
 import { ResetPassword } from "@/components/form/reset-password-form";
 
 import {
@@ -33,7 +32,7 @@ import {
   Edit2,
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardTitle,   CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AddUserForm } from "@/components/form/add_user-form";
@@ -200,27 +199,11 @@ const UsersListTable = () => {
   );
 };
 
-  if (loading) {
-    return <LoadingWave message="Loading..." />;
-  }
-
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-          <div>
-            <CardTitle className="text-2xl font-bold">User Management</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage all registered users and their permissions
-            </p>
-          </div>
-          <Button asChild className="flex items-center gap-2">
-          <AddUserForm onUserAdded={handleUserAdded} />
-          </Button>
-        </div>
-      </CardHeader>
+    <Card className="h-[calc(100vh-150px)] w-full">
+      <CardHeader className="flex flex-col md:flex-row justify-between gap-4">
+      <CardTitle>User Management</CardTitle>     
       
-      <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-6">
             <ShieldAlert className="h-4 w-4" />
@@ -229,17 +212,18 @@ const UsersListTable = () => {
           </Alert>
         )}
 
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search users by name, email or ID..."
-              className="pl-8"
+              className="pl-8 "
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline">
@@ -286,7 +270,14 @@ const UsersListTable = () => {
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button asChild className="flex items-center gap-2">
+            <AddUserForm onUserAdded={handleUserAdded} />
+          </Button>
         </div>
+        </CardHeader>
+        
+        <CardContent>
 
         <div className="rounded-md border">
           <Table>
@@ -313,7 +304,7 @@ const UsersListTable = () => {
               </TableRow>
             </TableHeader>
           </Table>
-          <ScrollArea className="h-[calc(100vh-326px)] flex-1 w-full">
+          <ScrollArea className="h-[calc(100vh-305px)] flex-1 w-full">
             <Table>
               <TableBody>
                 {filteredUsers.length > 0 ? (

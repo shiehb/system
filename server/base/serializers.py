@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, Todo
+from .models import User, Todo, ActivityLog
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 
@@ -96,6 +96,14 @@ class UserSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
         return None
+class ActivityLogSerializer(serializers.ModelSerializer):
+    admin = UserSerializer(read_only=True)
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = ActivityLog
+        fields = ['id', 'admin', 'user', 'action', 'details', 'created_at']
+        read_only_fields = fields
 
 class TodoSerializer(serializers.ModelSerializer):
     class Meta:

@@ -1,6 +1,5 @@
-import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
 
 import { ChartPieLabel } from "@/components/dashboard/ChartPie"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
@@ -11,16 +10,11 @@ export default function Page() {
   return (
     <div className="[--header-height:calc(theme(spacing.14))] min-h-screen bg-muted/20">
       <SidebarProvider className="flex flex-col">
+
         {/* Top Header */}
         <SiteHeader />
 
-        <div className="flex flex-1">
-          {/* Sidebar Navigation */}
-          <AppSidebar />
-
-          <SidebarInset>
             <div className="flex flex-1 flex-col gap-6 p-4">
-
               {/* Metric Cards */}
               <DataCards />
 
@@ -29,10 +23,7 @@ export default function Page() {
                 <ChartPieLabel />
                 <ActivityFeed/>
               </div>
-
             </div>
-          </SidebarInset>
-        </div>
       </SidebarProvider>
     </div>
   )

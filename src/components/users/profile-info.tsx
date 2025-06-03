@@ -254,13 +254,6 @@ export function ProfileInfo() {
     }
   };
 
-  if (isLoading && !profile) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <LoadingWave message='Loading...' />
-      </div>
-    );
-  }
 
   if (!profile) {
     return (

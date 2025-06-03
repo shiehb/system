@@ -7,6 +7,8 @@ from .views import (
     is_logged_in,
     get_users,
     update_user,
+    change_user_status,
+    get_activity_logs,
     get_todos,
     update_avatar,
     get_my_profile,
@@ -26,6 +28,8 @@ urlpatterns = [
     path('admin-reset-password/', admin_reset_password, name='admin_reset_password'),
     path('users/', get_users, name='get_users'),
     path('users/<int:pk>/', update_user, name='update_user'),
+    path('users/<int:pk>/status/', change_user_status, name='change_user_status'),
+    path('activity-logs/', get_activity_logs, name='get_activity_logs'),
 
     # Profile endpoints
     path('me/', get_my_profile, name='get_my_profile'),
