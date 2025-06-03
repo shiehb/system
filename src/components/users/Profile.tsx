@@ -37,26 +37,16 @@ import {
   Alert,
   AlertDescription,
 } from "@/components/ui/alert";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import ReactCrop, { centerCrop, makeAspectCrop } from 'react-image-crop';
-import type { Crop, PixelCrop } from 'react-image-crop';
+import type {  Crop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 
 // Utility function for canvas preview
 async function canvasPreview(
   image: HTMLImageElement,
+  canvas: HTMLCanvasElement,
   crop: PixelCrop
 ) {
-  const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
   if (!ctx) {
@@ -65,33 +55,26 @@ async function canvasPreview(
 
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
-  const pixelRatio = window.devicePixelRatio;
 
-  canvas.width = Math.floor(crop.width * scaleX * pixelRatio);
-  canvas.height = Math.floor(crop.height * scaleY * pixelRatio);
+  canvas.width = Math.floor(crop.width * scaleX);
+  canvas.height = Math.floor(crop.height * scaleY);
 
-  ctx.scale(pixelRatio, pixelRatio);
   ctx.imageSmoothingQuality = 'high';
 
   const cropX = crop.x * scaleX;
   const cropY = crop.y * scaleY;
 
-  ctx.save();
-  ctx.translate(-cropX, -cropY);
   ctx.drawImage(
     image,
+    cropX,
+    cropY,
+    crop.width * scaleX,
+    crop.height * scaleY,
     0,
     0,
-    image.naturalWidth,
-    image.naturalHeight,
-    0,
-    0,
-    image.naturalWidth,
-    image.naturalHeight,
+    crop.width * scaleX,
+    crop.height * scaleY,
   );
-  ctx.restore();
-
-  return canvas;
 }
 
 // Function to center the crop
@@ -104,7 +87,7 @@ function centerAspectCrop(
     makeAspectCrop(
       {
         unit: '%',
-        width: 90,
+        width: 100,
       },
       aspect,
       mediaWidth,
@@ -151,8 +134,6 @@ export function ProfileInfo() {
   const [isLoading, setIsLoading] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [pendingData, setPendingData] = useState<ProfileFormValues | null>(null);
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -161,6 +142,7 @@ export function ProfileInfo() {
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const imgRef = useRef<HTMLImageElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -192,68 +174,80 @@ export function ProfileInfo() {
     }
   }, [isDialogOpen, form]);
 
-  const handleSubmit = async (data: ProfileFormValues) => {
-    setPendingData(data);
-    setIsConfirmOpen(true);
-  };
+  useEffect(() => {
+    if (completedCrop && imgRef.current && previewCanvasRef.current) {
+      canvasPreview(
+        imgRef.current,
+        previewCanvasRef.current,
+        completedCrop
+      );
+    }
+  }, [completedCrop]);
 
-  const confirmSubmit = async () => {
-    if (!pendingData) return;
+  const handleAvatarSubmit = async (data: ProfileFormValues) => {
+    if (!data.avatar || !completedCrop) return;
 
     try {
       setIsLoading(true);
-
-      if (pendingData.new_password) {
-        try {
-          await updateProfile({
-            current_password: pendingData.current_password,
-            new_password: pendingData.new_password,
-          });
-          toast.success("Password updated successfully");
-
-          form.reset({
-            ...form.getValues(),
-            current_password: "",
-            new_password: "",
-            confirm_password: "",
-          });
-
-          await logout();
-          toast.success("Please login again with your new password");
-          navigate("/login");
-          return;
-        } catch (error) {
-          form.reset({
-            ...form.getValues(),
-            current_password: "",
-            new_password: "",
-            confirm_password: "",
-          });
-          throw error;
-        }
-      }
-
-      if (pendingData.avatar) {
-        const avatarResponse = await updateAvatar(pendingData.avatar);
+      
+      // Get the cropped image from canvas
+      const canvas = previewCanvasRef.current;
+      if (!canvas) return;
+      
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        
+        const croppedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+        
+        const avatarResponse = await updateAvatar(croppedFile);
         setProfile(prev => ({
           ...prev,
           avatar_url: avatarResponse.avatar_url,
         }));
         toast.success("Avatar updated successfully");
+        setIsAvatarDialogOpen(false);
         setAvatarPreview(null);
-      }
-
-      const updatedProfile = await getMyProfile();
-      setProfile(updatedProfile);
-      setIsDialogOpen(false);
+        setCrop(undefined);
+      }, 'image/jpeg', 0.2);
     } catch (error: any) {
-      toast.error(error.message || "Failed to update profile");
+      toast.error(error.message || "Failed to update avatar");
     } finally {
       setIsLoading(false);
-      setIsConfirmOpen(false);
     }
   };
 
+  const handlePasswordSubmit = async (data: ProfileFormValues) => {
+    if (!data.new_password) return;
+
+    try {
+      setIsLoading(true);
+      await updateProfile({
+        current_password: data.current_password,
+        new_password: data.new_password,
+      });
+      toast.success("Password updated successfully");
+
+      form.reset({
+        ...form.getValues(),
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
+      });
+
+      await logout();
+      toast.success("Please login again with your new password");
+      navigate("/login");
+    } catch (error: any) {
+      form.reset({
+        ...form.getValues(),
+        current_password: "",
+        new_password: "",
+        confirm_password: "",
+      });
+      toast.error(error.message || "Failed to update password");
+      setIsLoading(false);
+    }
+  };
 
   if (!profile) {
     return (
@@ -310,28 +304,39 @@ export function ProfileInfo() {
                   <DialogTitle className="text-xl">Change Profile Photo</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                  <form onSubmit={form.handleSubmit(handleAvatarSubmit)} className="space-y-6">
                     <div className="flex flex-col items-center gap-4">
                       {avatarPreview ? (
-                        <ReactCrop
-                          crop={crop}
-                          onChange={(c) => setCrop(c)}
-                          onComplete={(c) => setCompletedCrop(c)}
-                          aspect={1}
-                          circularCrop
-                          className="rounded-md overflow-hidden"
-                        >
-                          <img
-                            ref={imgRef}
-                            src={avatarPreview}
-                            alt="Crop preview"
-                            style={{ maxWidth: '100%', maxHeight: '300px' }}
-                            onLoad={(e) => {
-                              const { width, height } = e.currentTarget;
-                              setCrop(centerAspectCrop(width, height, 1));
+                        <div className="flex flex-col items-center gap-4">
+                          <ReactCrop
+                            crop={crop}
+                            onChange={(c) => setCrop(c)}
+                            onComplete={(c) => setCompletedCrop(c)}
+                            aspect={1}
+                            circularCrop
+                            className="rounded-md overflow-hidden"
+                          >
+                            <img
+                              ref={imgRef}
+                              src={avatarPreview}
+                              alt="Crop preview"
+                              style={{ maxWidth: '100%', maxHeight: '300px' }}
+                              onLoad={(e) => {
+                                const { width, height } = e.currentTarget;
+                                setCrop(centerAspectCrop(width, height, 1));
+                              }}
+                            />
+                          </ReactCrop>
+                          <canvas
+                            ref={previewCanvasRef}
+                            style={{
+                              display: 'none',
+                              objectFit: 'contain',
+                              width: 150,
+                              height: 150,
                             }}
                           />
-                        </ReactCrop>
+                        </div>
                       ) : (
                         <Avatar className="w-32 h-32">
                           <AvatarImage
@@ -391,8 +396,11 @@ export function ProfileInfo() {
                       >
                         Cancel
                       </Button>
-                      <Button type="submit" disabled={isLoading}>
-                        {isLoading && <LoadingWave message="Please wait..."/>}
+                      <Button 
+                        type="submit" 
+                        disabled={isLoading || !avatarPreview || !completedCrop}
+                      >
+                        {isLoading && <LoadingWave message="Uploading..."/>}
                         Save Changes
                       </Button>
                     </div>
@@ -427,7 +435,7 @@ export function ProfileInfo() {
                 </Alert>
 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                  <form onSubmit={form.handleSubmit(handlePasswordSubmit)} className="space-y-6">
                     <div className="space-y-4">
                       <FormField
                         control={form.control}
@@ -546,7 +554,10 @@ export function ProfileInfo() {
                       >
                         Cancel
                       </Button>
-                      <Button type="submit" disabled={isLoading}>
+                      <Button 
+                        type="submit" 
+                        disabled={isLoading || !form.watch("new_password")}
+                      >
                         {isLoading && <LoadingWave message="Please wait..."/>}
                         Update Password
                       </Button>
@@ -609,37 +620,6 @@ export function ProfileInfo() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Confirmation Dialog */}
-      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl">Confirm Changes</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingData?.new_password && (
-                <p className="mb-2">You are about to change your password.</p>
-              )}
-              {pendingData?.avatar && (
-                <p className="mb-2">You are about to update your profile picture.</p>
-              )}
-              <p>Are you sure you want to proceed?</p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSubmit} className="bg-primary hover:bg-primary/90">
-              {isLoading ? (
-                <>
-                  <LoadingWave message="Updating..." />
-                  Updating...
-                </>
-              ) : (
-                "Confirm"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

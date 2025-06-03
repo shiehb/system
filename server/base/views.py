@@ -525,6 +525,7 @@ def update_profile(request):
     })
 
 # --- Update Avatar ---
+# --- Update Avatar ---
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_avatar(request):
@@ -536,6 +537,16 @@ def update_avatar(request):
             'success': False,
             'message': 'No avatar file provided'
         }, status=400)
+
+    # Delete old avatar file if it exists and isn't the default
+    if user.avatar and user.avatar.name != 'avatars/default.jpg':
+        try:
+            # Get the storage instance
+            storage = user.avatar.storage
+            # Delete the file
+            storage.delete(user.avatar.name)
+        except Exception as e:
+            print(f"Error deleting old avatar: {e}")
 
     user.avatar = avatar
     user.save()
