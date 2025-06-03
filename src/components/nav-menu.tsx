@@ -31,7 +31,7 @@ const components: { title: string; href: string; description: string }[] = [
   // ... other component items
 ]
 
-export function NavigationMenuDemo() {
+export function NavigationMenuDemo({ userLevel }: { userLevel?: string }) {
   const isMobile = useIsMobile()
 
   return (
@@ -126,35 +126,39 @@ export function NavigationMenuDemo() {
           </NavigationMenuContent>
         </NavigationMenuItem>
 
-        <NavigationMenuItem>
-          <NavigationMenuTrigger>
-            {isMobile ? <UsersRound className="h-5 w-5" /> : "Users"}
-          </NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <ul className="grid w-[150px] gap-4">
-              <li>
-                <NavigationMenuLink asChild>
-                  <Link to="/user-management" className="flex-row items-center gap-2">
-                    <UsersRound />
-                    All Users
-                  </Link>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <Link to="/user-management" className="flex-row items-center gap-2">
-                    <UserRoundPlus />
-                    Add New User
-                  </Link>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <Link to="/profile" className="flex-row items-center gap-2">
-                    <CircleUserRound />
-                    Profile
-                  </Link>
-                </NavigationMenuLink>
-              </li>
-            </ul>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
+        {userLevel === 'admin' && (
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>
+              {isMobile ? <UsersRound className="h-5 w-5" /> : "Users"}
+            </NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <ul className="grid w-[150px] gap-4">
+                <li>
+                  <NavigationMenuLink asChild>
+                    <Link to="/user-management" className="flex-row items-center gap-2">
+                      <UsersRound />
+                      All Users
+                    </Link>
+                  </NavigationMenuLink>
+                  <NavigationMenuLink asChild>
+                    <Link to="/user-management" className="flex-row items-center gap-2">
+                      <UserRoundPlus />
+                      Add New User
+                    </Link>
+                  </NavigationMenuLink>
+                  <NavigationMenuLink asChild>
+                    <Link to="/profile" className="flex-row items-center gap-2">
+                      <CircleUserRound />
+                      Profile
+                    </Link>
+                  </NavigationMenuLink>
+                </li>
+              </ul>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+
+
+        )}
       </NavigationMenuList>
     </NavigationMenu>
   )

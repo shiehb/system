@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom"
-import { SearchForm } from "@/components/search-form"
-
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown"
 import { logout, getMyProfile } from '@/endpoints/api';
 import { NavUser } from "@/components/nav-user";
 import { NavigationMenuDemo } from "@/components/nav-menu"
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Separator } from "@radix-ui/react-separator";
+import { Link } from "react-router-dom";
 
 export function SiteHeader() {
-  // const { toggleSidebar } = useSidebar()
   const navigate = useNavigate()
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -55,24 +53,27 @@ export function SiteHeader() {
   return (
     <header className="bg-background sticky top-0 z-50 flex w-full items-center border-b">
       <div className="flex h-(--header-height) w-full items-center gap-2 px-2">
-        <a onClick={() => navigate("/dashboard")} className="flex items-center gap-2 px-4 w-[400px]">
-          <img src="/assets/DENR-Logo.svg" className="h-8" />
+        <Link 
+          to="/dashboard" 
+          className="flex items-center gap-2 px-4 cursor-pointer"
+          aria-label="Go to dashboard"
+        >
+          <img src="/assets/DENR-Logo.svg" className="h-8 w-8" alt="DENR Logo" />
           {!isMobile && (
-            <div className="grid text-left text-sm leading-tight">
+            <div className="grid text-left text-sm leading-tight select-none">
               <span className="truncate text-xs font-medium">Integrated Establishment Regulatory</span>
               <span className="truncate text-xs">Management System</span>
             </div>
           )}
-        </a>
+        </Link>
         
-
         <div className="flex-grow flex justify-center">
-          <NavigationMenuDemo />
-          <SearchForm  />
+          <NavigationMenuDemo userLevel={profile?.user_level} />
           <Separator className="my-2" />   
         </div>
-      <div className="flex items-center gap-2 px-2">
-        <NotificationDropdown /> 
+        
+        <div className="flex items-center gap-2 px-2">
+          <NotificationDropdown /> 
           <div className="flex items-center">
             <NavUser 
               user={{
@@ -84,8 +85,8 @@ export function SiteHeader() {
               onSettingsClick={() => navigate("/settings")}
               onLogoutClick={handleLogout}
             />
-            </div>
           </div>
+        </div>
       </div>
     </header>
   )

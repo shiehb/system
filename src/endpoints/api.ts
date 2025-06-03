@@ -4,6 +4,8 @@ import type { AxiosResponse } from "axios";
 // Base configuration
 const BASE_URL = "http://127.0.0.1:8000/api/";
 
+
+
 // Authentication endpoints
 const LOGIN_URL = `${BASE_URL}login/`;
 const REFRESH_URL = `${BASE_URL}token/refresh/`;
@@ -258,6 +260,8 @@ export const getMyProfile = async () => {
     axios.get(PROFILE_URL, { withCredentials: true })
   );
 };
+
+
 
 export const updateProfile = async (data: {
   current_password?: string;

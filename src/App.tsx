@@ -21,13 +21,18 @@ function App() {
 
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+
             <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-            <Route path="/user-management" element={<PrivateRoute><UserManagementPage /></PrivateRoute>} />
-            <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+            <Route path="*" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+            <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} /> 
+           
+
             <Route path="/maps" element={<PrivateRoute><MapPage /></PrivateRoute>} />
             <Route path="/schedule" element={<PrivateRoute><SchedulePage /></PrivateRoute>} />
-            <Route path="*" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-            <Route path="/" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />   
+            <Route path="/user-management" element={<PrivateRoute><UserManagementPage /></PrivateRoute>} />
+
+            <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+              
           </Routes>
         </AuthProvider>
       </TooltipProvider>

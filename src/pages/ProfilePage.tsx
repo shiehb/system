@@ -1,6 +1,6 @@
 import { SiteHeader } from "@/components/site-header"
 import { SidebarProvider } from "@/components/ui/sidebar"
-import { ProfileInfo } from "@/components/users/profile-info"
+import { ProfileInfo } from "@/components/users/Profile"
 
 export default function ProfilePage() {
   return (
