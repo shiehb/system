@@ -1,17 +1,13 @@
 import { useRef } from "react";
-import banner1 from '@/assets/banner1.png';
+import banner1 from "@/assets/banner1.png";
 import { LoadingWave } from "@/components/ui/loading-wave";
-import { logout } from '@/endpoints/api';
+import { logout } from "@/endpoints/api";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {
-  getMyProfile,
-  updateProfile,
-  updateAvatar,
-} from "@/endpoints/api";
+import { getMyProfile, updateProfile, updateAvatar } from "@/endpoints/api";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -34,10 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Alert,
-  AlertDescription,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,8 +41,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
+import ReactCrop, {
+  type Crop,
+  centerCrop,
+  makeAspectCrop,
+} from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import { Camera, Pencil, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 function setCanvasPreview(
@@ -57,8 +54,8 @@ function setCanvasPreview(
   canvas: HTMLCanvasElement,
   crop: Crop
 ) {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('No 2d context');
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("No 2d context");
 
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
@@ -68,7 +65,7 @@ function setCanvasPreview(
   canvas.height = Math.floor(crop.height * scaleY * pixelRatio);
 
   ctx.scale(pixelRatio, pixelRatio);
-  ctx.imageSmoothingQuality = 'high';
+  ctx.imageSmoothingQuality = "high";
 
   const cropX = crop.x * scaleX;
   const cropY = crop.y * scaleY;
@@ -88,33 +85,35 @@ function setCanvasPreview(
   );
 }
 
-const profileFormSchema = z.object({
-  current_password: z.string().optional(),
-  new_password: z
-    .string()
-    .min(8, { message: "Password must be at least 8 characters." })
-    .optional()
-    .or(z.literal("")),
-  confirm_password: z.string().optional(),
-  avatar: z.instanceof(File).optional(),
-}).superRefine((data, ctx) => {
-  if (data.new_password) {
-    if (!data.current_password) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Current password is required when changing password",
-        path: ["current_password"],
-      });
+const profileFormSchema = z
+  .object({
+    current_password: z.string().optional(),
+    new_password: z
+      .string()
+      .min(8, { message: "Password must be at least 8 characters." })
+      .optional()
+      .or(z.literal("")),
+    confirm_password: z.string().optional(),
+    avatar: z.instanceof(File).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.new_password) {
+      if (!data.current_password) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Current password is required when changing password",
+          path: ["current_password"],
+        });
+      }
+      if (data.new_password !== data.confirm_password) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Passwords don't match",
+          path: ["confirm_password"],
+        });
+      }
     }
-    if (data.new_password !== data.confirm_password) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Passwords don't match",
-        path: ["confirm_password"],
-      });
-    }
-  }
-});
+  });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
@@ -125,17 +124,19 @@ export function ProfileInfo() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [pendingData, setPendingData] = useState<ProfileFormValues | null>(null);
+  const [pendingData, setPendingData] = useState<ProfileFormValues | null>(
+    null
+  );
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+
   // Image cropping states
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<Crop>();
-  const [imgSrc, setImgSrc] = useState<string>('');
+  const [imgSrc, setImgSrc] = useState<string>("");
   const imgRef = useRef<HTMLImageElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -173,8 +174,8 @@ export function ProfileInfo() {
     if (e.target.files && e.target.files.length > 0) {
       setCrop(undefined);
       const reader = new FileReader();
-      reader.addEventListener('load', () => {
-        setImgSrc(reader.result?.toString() || '');
+      reader.addEventListener("load", () => {
+        setImgSrc(reader.result?.toString() || "");
         setAvatarPreview(reader.result?.toString() || null);
       });
       reader.readAsDataURL(e.target.files[0]);
@@ -186,7 +187,7 @@ export function ProfileInfo() {
     const crop = centerCrop(
       makeAspectCrop(
         {
-          unit: '%',
+          unit: "%",
           width: 90,
         },
         1,
@@ -242,13 +243,13 @@ export function ProfileInfo() {
 
       if (pendingData.avatar) {
         const avatarResponse = await updateAvatar(pendingData.avatar);
-        setProfile(prev => ({
+        setProfile((prev) => ({
           ...prev,
           avatar_url: avatarResponse.avatar_url,
         }));
         toast.success("Avatar updated successfully");
         setAvatarPreview(null);
-        setImgSrc('');
+        setImgSrc("");
       }
 
       const updatedProfile = await getMyProfile();
@@ -263,36 +264,39 @@ export function ProfileInfo() {
     }
   };
   const AnimatedText = () => {
-  const texts = [
-    "Welcome to your profile",
-    "Manage your account settings",
-    "Update your personal information",
-    "Keep your details current"
-  ];
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [fade, setFade] = useState(true);
+    const texts = [
+      "Welcome to your profile",
+      "Manage your account settings",
+      "Update your personal information",
+      "Keep your details current",
+    ];
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [fade, setFade] = useState(true);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFade(false);
-      setTimeout(() => {
-        setCurrentIndex((prev) => (prev + 1) % texts.length);
-        setFade(true);
-      }, 500); // Half second for fade out before changing text
-    }, 3000); // Change text every 3 seconds
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setFade(false);
+        setTimeout(() => {
+          setCurrentIndex((prev) => (prev + 1) % texts.length);
+          setFade(true);
+        }, 500); // Half second for fade out before changing text
+      }, 3000); // Change text every 3 seconds
 
-    return () => clearInterval(interval);
-  }, [texts.length]);
+      return () => clearInterval(interval);
+    }, [texts.length]);
 
-  return (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <h1 className={`text-4xl font-bold text-white drop-shadow-lg transition-opacity duration-500 ${fade ? 'opacity-100' : 'opacity-0'}`}>
-        {texts[currentIndex]}
-      </h1>
-    </div>
-  );
-};
-  
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <h1
+          className={`text-4xl font-bold text-white drop-shadow-lg transition-opacity duration-500 ${
+            fade ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          {texts[currentIndex]}
+        </h1>
+      </div>
+    );
+  };
 
   if (isLoading && !profile) {
     return (
@@ -314,11 +318,7 @@ export function ProfileInfo() {
     <div className="w-full mx-auto">
       {/* Cover Photo Section */}
       <div className="relative h-80 bg-gradient-to-r from--500 to-light-600 rounded-t-lg overflow-hidden shadow-md">
-        <img
-          src={banner1}
-          alt="Cover"
-          className="w-full h-full object-cover"
-        />
+        <img src={banner1} alt="Cover" className="w-full h-full object-cover" />
         <AnimatedText />
       </div>
 
@@ -334,18 +334,24 @@ export function ProfileInfo() {
                 className="object-cover"
               />
               <AvatarFallback>
-                {profile.first_name?.[0]}{profile.last_name?.[0]}
+                {profile.first_name?.[0]}
+                {profile.last_name?.[0]}
               </AvatarFallback>
             </Avatar>
 
             {/* Avatar Dialog */}
-            <Dialog open={isAvatarDialogOpen} onOpenChange={setIsAvatarDialogOpen}>
+            <Dialog
+              open={isAvatarDialogOpen}
+              onOpenChange={setIsAvatarDialogOpen}
+            >
               <DialogTrigger asChild>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="icon"
                   className={`absolute bottom-2 right-2 rounded-full bg-white hover:bg-gray-100 p-2 shadow-md transition-all ${
-                    isAvatarHovered ? 'opacity-100 scale-110' : 'opacity-0 scale-95'
+                    isAvatarHovered
+                      ? "opacity-100 scale-110"
+                      : "opacity-0 scale-95"
                   } group-hover:opacity-100 group-hover:scale-110`}
                   onMouseEnter={() => setIsAvatarHovered(true)}
                   onMouseLeave={() => setIsAvatarHovered(false)}
@@ -355,10 +361,15 @@ export function ProfileInfo() {
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle className="text-xl">Change Profile Photo</DialogTitle>
+                  <DialogTitle className="text-xl">
+                    Change Profile Photo
+                  </DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                  <form
+                    onSubmit={form.handleSubmit(handleSubmit)}
+                    className="space-y-6"
+                  >
                     <div className="flex flex-col items-center gap-4">
                       {!imgSrc ? (
                         <Avatar className="w-32 h-32">
@@ -368,7 +379,8 @@ export function ProfileInfo() {
                             className="object-cover"
                           />
                           <AvatarFallback>
-                            {profile.first_name?.[0]}{profile.last_name?.[0]}
+                            {profile.first_name?.[0]}
+                            {profile.last_name?.[0]}
                           </AvatarFallback>
                         </Avatar>
                       ) : (
@@ -385,15 +397,15 @@ export function ProfileInfo() {
                               alt="Crop me"
                               src={imgSrc}
                               onLoad={onImageLoad}
-                              style={{ maxHeight: '350px', maxWidth: '100%' }}
+                              style={{ maxHeight: "350px", maxWidth: "100%" }}
                             />
                           </ReactCrop>
                           {completedCrop && (
                             <canvas
                               ref={previewCanvasRef}
                               style={{
-                                display: 'none',
-                                objectFit: 'contain',
+                                display: "none",
+                                objectFit: "contain",
                                 width: completedCrop.width,
                                 height: completedCrop.height,
                               }}
@@ -410,7 +422,7 @@ export function ProfileInfo() {
                               <div className="flex flex-col items-center gap-2">
                                 <Button variant="outline" asChild>
                                   <label className="cursor-pointer">
-                                    {imgSrc ? 'Change Image' : 'Choose File'}
+                                    {imgSrc ? "Change Image" : "Choose File"}
                                     <Input
                                       type="file"
                                       accept="image/*"
@@ -429,7 +441,7 @@ export function ProfileInfo() {
                                     variant="destructive"
                                     size="sm"
                                     onClick={() => {
-                                      setImgSrc('');
+                                      setImgSrc("");
                                       setCrop(undefined);
                                       setCompletedCrop(undefined);
                                       field.onChange(undefined);
@@ -446,38 +458,54 @@ export function ProfileInfo() {
                       />
                     </div>
                     <div className="flex gap-3 justify-end">
-                      <Button 
-                        variant="outline" 
-                        type="button" 
+                      <Button
+                        variant="outline"
+                        type="button"
                         onClick={() => {
                           setIsAvatarDialogOpen(false);
-                          setImgSrc('');
+                          setImgSrc("");
                         }}
                       >
                         Cancel
                       </Button>
-                      <Button 
+                      <Button
                         type="button"
                         disabled={!completedCrop || isLoading}
                         onClick={() => {
-                          if (imgRef.current && previewCanvasRef.current && completedCrop) {
+                          if (
+                            imgRef.current &&
+                            previewCanvasRef.current &&
+                            completedCrop
+                          ) {
                             setCanvasPreview(
                               imgRef.current,
                               previewCanvasRef.current,
                               completedCrop
                             );
-                            previewCanvasRef.current.toBlob((blob) => {
-                              if (!blob) return;
-                              const croppedFile = new File([blob], 'avatar.jpg', {
-                                type: 'image/jpeg',
-                              });
-                              form.setValue('avatar', croppedFile);
-                              form.handleSubmit(handleSubmit)();
-                            }, 'image/jpeg', 0.9);
+                            previewCanvasRef.current.toBlob(
+                              (blob) => {
+                                if (!blob) return;
+                                const croppedFile = new File(
+                                  [blob],
+                                  "avatar.jpg",
+                                  {
+                                    type: "image/jpeg",
+                                  }
+                                );
+                                form.setValue("avatar", croppedFile);
+                                form.handleSubmit(handleSubmit)();
+                              },
+                              "image/jpeg",
+                              0.9
+                            );
                           }
                         }}
                       >
-                        {isLoading ? <LoadingWave message="Please wait..."/> : 'Save Changes'}
+                        {isLoading ? (
+                          <LoadingWave message="Please wait..." />
+                        ) : (
+                          "Save Changes"
+                        )}
                       </Button>
                     </div>
                   </form>
@@ -506,12 +534,16 @@ export function ProfileInfo() {
                 <Alert variant="destructive" className="mb-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription className="ml-2">
-                    After saving, you'll be automatically logged out for security reasons.
+                    After saving, you'll be automatically logged out for
+                    security reasons.
                   </AlertDescription>
                 </Alert>
 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                  <form
+                    onSubmit={form.handleSubmit(handleSubmit)}
+                    className="space-y-6"
+                  >
                     <div className="space-y-4">
                       <FormField
                         control={form.control}
@@ -522,7 +554,9 @@ export function ProfileInfo() {
                             <div className="relative">
                               <FormControl>
                                 <Input
-                                  type={showCurrentPassword ? "text" : "password"}
+                                  type={
+                                    showCurrentPassword ? "text" : "password"
+                                  }
                                   placeholder="Enter current password"
                                   {...field}
                                 />
@@ -532,7 +566,9 @@ export function ProfileInfo() {
                                 variant="ghost"
                                 size="sm"
                                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                onClick={() =>
+                                  setShowCurrentPassword(!showCurrentPassword)
+                                }
                               >
                                 {showCurrentPassword ? (
                                   <EyeOff className="h-4 w-4" />
@@ -540,7 +576,9 @@ export function ProfileInfo() {
                                   <Eye className="h-4 w-4" />
                                 )}
                                 <span className="sr-only">
-                                  {showCurrentPassword ? "Hide password" : "Show password"}
+                                  {showCurrentPassword
+                                    ? "Hide password"
+                                    : "Show password"}
                                 </span>
                               </Button>
                             </div>
@@ -568,7 +606,9 @@ export function ProfileInfo() {
                                 variant="ghost"
                                 size="sm"
                                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                onClick={() =>
+                                  setShowNewPassword(!showNewPassword)
+                                }
                               >
                                 {showNewPassword ? (
                                   <EyeOff className="h-4 w-4" />
@@ -576,7 +616,9 @@ export function ProfileInfo() {
                                   <Eye className="h-4 w-4" />
                                 )}
                                 <span className="sr-only">
-                                  {showNewPassword ? "Hide password" : "Show password"}
+                                  {showNewPassword
+                                    ? "Hide password"
+                                    : "Show password"}
                                 </span>
                               </Button>
                             </div>
@@ -594,7 +636,9 @@ export function ProfileInfo() {
                             <div className="relative">
                               <FormControl>
                                 <Input
-                                  type={showConfirmPassword ? "text" : "password"}
+                                  type={
+                                    showConfirmPassword ? "text" : "password"
+                                  }
                                   placeholder="Confirm new password"
                                   {...field}
                                 />
@@ -604,7 +648,9 @@ export function ProfileInfo() {
                                 variant="ghost"
                                 size="sm"
                                 className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                onClick={() =>
+                                  setShowConfirmPassword(!showConfirmPassword)
+                                }
                               >
                                 {showConfirmPassword ? (
                                   <EyeOff className="h-4 w-4" />
@@ -612,7 +658,9 @@ export function ProfileInfo() {
                                   <Eye className="h-4 w-4" />
                                 )}
                                 <span className="sr-only">
-                                  {showConfirmPassword ? "Hide password" : "Show password"}
+                                  {showConfirmPassword
+                                    ? "Hide password"
+                                    : "Show password"}
                                 </span>
                               </Button>
                             </div>
@@ -623,15 +671,15 @@ export function ProfileInfo() {
                     </div>
 
                     <div className="flex gap-3 justify-end">
-                      <Button 
-                        variant="outline" 
-                        type="button" 
+                      <Button
+                        variant="outline"
+                        type="button"
                         onClick={() => setIsDialogOpen(false)}
                       >
                         Cancel
                       </Button>
                       <Button type="submit" disabled={isLoading}>
-                        {isLoading && <LoadingWave message="Please wait..."/>}
+                        {isLoading && <LoadingWave message="Please wait..." />}
                         Update Password
                       </Button>
                     </div>
@@ -655,23 +703,33 @@ export function ProfileInfo() {
               {/* Column 1 */}
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">ID Number</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    ID Number
+                  </h3>
                   <p className="text-lg font-medium">{profile.id_number}</p>
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">User Level</h3>
-                  <p className="text-lg font-medium capitalize">{profile.user_level}</p>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    User Level
+                  </h3>
+                  <p className="text-lg font-medium capitalize">
+                    {profile.user_level}
+                  </p>
                 </div>
               </div>
 
               {/* Column 2 */}
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">First Name</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    First Name
+                  </h3>
                   <p className="text-lg font-medium">{profile.first_name}</p>
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">Last Name</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    Last Name
+                  </h3>
                   <p className="text-lg font-medium">{profile.last_name}</p>
                 </div>
               </div>
@@ -680,13 +738,19 @@ export function ProfileInfo() {
               <div className="space-y-4">
                 {profile.middle_name && (
                   <div className="space-y-1">
-                    <h3 className="text-sm font-medium text-muted-foreground">Middle Name</h3>
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      Middle Name
+                    </h3>
                     <p className="text-lg font-medium">{profile.middle_name}</p>
                   </div>
                 )}
                 <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
-                  <p className="text-lg font-medium capitalize">{profile.status}</p>
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    Status
+                  </h3>
+                  <p className="text-lg font-medium capitalize">
+                    {profile.status}
+                  </p>
                 </div>
               </div>
             </div>
@@ -698,20 +762,27 @@ export function ProfileInfo() {
       <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl">Confirm Changes</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl">
+              Confirm Changes
+            </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingData?.new_password && (
                 <p className="mb-2">You are about to change your password.</p>
               )}
               {pendingData?.avatar && (
-                <p className="mb-2">You are about to update your profile picture.</p>
+                <p className="mb-2">
+                  You are about to update your profile picture.
+                </p>
               )}
               <p>Are you sure you want to proceed?</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSubmit} className="bg-primary hover:bg-primary/90">
+            <AlertDialogAction
+              onClick={confirmSubmit}
+              className="bg-primary hover:bg-primary/90"
+            >
               {isLoading ? (
                 <>
                   <LoadingWave message="Updating..." />

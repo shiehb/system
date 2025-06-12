@@ -33,7 +33,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { adminResetPassword } from "@/endpoints/api";
 
-import {  ShieldCheck, Info } from "lucide-react";
+import { ShieldCheck, Info } from "lucide-react";
 
 const formSchema = z.object({
   idNumber: z.string().min(1, "ID Number is required"),
@@ -69,21 +69,19 @@ export function ResetPassword({ idNumber, userName }: ResetPasswordProps) {
     try {
       setLoading(true);
       const values = form.getValues();
-      
-      await adminResetPassword(
-        values.idNumber,
-        values.adminPassword
-      );
+
+      await adminResetPassword(values.idNumber, values.adminPassword);
 
       toast.success("Password reset to default successfully");
       form.reset({
         idNumber,
-        adminPassword: ""
+        adminPassword: "",
       });
       setOpen(false);
     } catch (error) {
       toast.error("Failed to reset password", {
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
       });
     } finally {
       setLoading(false);
@@ -95,24 +93,22 @@ export function ResetPassword({ idNumber, userName }: ResetPasswordProps) {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-            <div className="flex items-center">
-              <ShieldCheck className="mr-2 h-4 w-4" />
-              <span>Reset Password</span>
-            </div>
+          <div className="flex items-center text-blue-500">
+            <ShieldCheck className="mr-2 h-4 w-4 text-blue-500" />
+            <span>Reset Password</span>
+          </div>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader className="mt-6">
-          <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
-                <Info className="h-4 w-4 mb-2" />
-                <AlertTitle>
-                  Reset Password
-                </AlertTitle>
-                <AlertDescription>
-                  Password will be reset to system default
+            <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
+              <Info className="h-4 w-4 mb-2" />
+              <AlertTitle>Reset Password</AlertTitle>
+              <AlertDescription>
+                Password will be reset to system default
               </AlertDescription>
             </Alert>
-            </DialogHeader>
-          
+          </DialogHeader>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -174,8 +170,8 @@ export function ResetPassword({ idNumber, userName }: ResetPasswordProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Password Reset</AlertDialogTitle>
             <AlertDialogDescription>
-              This will reset {userName ? `${userName}'s` : "the user's"} password to the system default.
-              Are you sure you want to continue?
+              This will reset {userName ? `${userName}'s` : "the user's"}{" "}
+              password to the system default. Are you sure you want to continue?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

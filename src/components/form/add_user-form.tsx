@@ -33,36 +33,50 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
-const userSchema = z.object({
-  id_number: z.string().min(3, "ID Number must be at least 3 characters"),
-  first_name: z.string().min(2, "First name is required"),
-  last_name: z.string().min(2, "Last name is required"),
-  middle_name: z.string().optional(),
-  email: z.string().email("Invalid email address"),
-  password: z.string().optional(),
-  cPassword: z.string().optional(),
-  user_level: z.enum(["admin", "manager", "inspector"]),
-  status: z.enum(["active", "inactive"]),
-  showPasswordFields: z.boolean(),
-}).refine(data => {
-  if (data.showPasswordFields && data.password && data.password.length > 0) {
-    return data.password === data.cPassword;
-  }
-  return true;
-}, {
-  message: "Passwords do not match",
-  path: ["cPassword"],
-});
+const userSchema = z
+  .object({
+    id_number: z.string().min(3, "ID Number must be at least 3 characters"),
+    first_name: z.string().min(2, "First name is required"),
+    last_name: z.string().min(2, "Last name is required"),
+    middle_name: z.string().optional(),
+    email: z.string().email("Invalid email address"),
+    password: z.string().optional(),
+    cPassword: z.string().optional(),
+    user_level: z.enum(["admin", "manager", "inspector"]),
+    status: z.enum(["active", "inactive"]),
+    showPasswordFields: z.boolean(),
+  })
+  .refine(
+    (data) => {
+      if (
+        data.showPasswordFields &&
+        data.password &&
+        data.password.length > 0
+      ) {
+        return data.password === data.cPassword;
+      }
+      return true;
+    },
+    {
+      message: "Passwords do not match",
+      path: ["cPassword"],
+    }
+  );
+
+interface AddUserFormProps extends React.ComponentPropsWithoutRef<"div"> {
+  onUserAdded?: () => void;
+}
 
 export function AddUserForm({
   className,
+  onUserAdded,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: AddUserFormProps) {
   const [open, setOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showCPassword, setShowCPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
-  
+
   const { register_user } = useAuth();
 
   const form = useForm<z.infer<typeof userSchema>>({
@@ -102,10 +116,10 @@ export function AddUserForm({
 
   const onSubmit = async (values: z.infer<typeof userSchema>) => {
     const { cPassword, showPasswordFields, ...userData } = values;
-    
+
     try {
       setFormErrors({});
-      
+
       await register_user(
         userData.id_number,
         userData.first_name,
@@ -117,27 +131,26 @@ export function AddUserForm({
         userData.status,
         showPasswordFields ? cPassword || "" : ""
       );
-      
+
       toast.success("User added successfully");
       setOpen(false);
+      onUserAdded?.(); // Call the callback after success
     } catch (error: any) {
       console.error("Error adding user:", error);
-      
+
       if (error.message) {
         try {
           const errorData = JSON.parse(error.message);
           if (errorData.errors) {
-            // Set form-level errors
             setFormErrors(errorData.errors);
-            
-            // Set field-level errors
-            Object.keys(errorData.errors).forEach(field => {
+
+            Object.keys(errorData.errors).forEach((field) => {
               form.setError(field as any, {
-                type: 'manual',
-                message: errorData.errors[field][0]
+                type: "manual",
+                message: errorData.errors[field][0],
               });
             });
-            
+
             toast.error("Validation failed", {
               description: "Please correct the errors in the form",
             });
@@ -160,7 +173,7 @@ export function AddUserForm({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <div className={cn("w-full md:w-auto", className)} {...props}>
-          <UserPlus className="mr-2 h-4 w-4 " />
+          <UserPlus className="mr-2 h-4 w-4" />
           Add New User
         </div>
       </DialogTrigger>
@@ -168,7 +181,7 @@ export function AddUserForm({
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Add User</DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {Object.keys(formErrors).length > 0 && (
@@ -177,16 +190,16 @@ export function AddUserForm({
                 <AlertTitle>Form Errors</AlertTitle>
                 <AlertDescription>
                   <ul className="list-disc pl-5">
-                    {Object.entries(formErrors).map(([field, errors]) => (
+                    {Object.entries(formErrors).map(([field, errors]) =>
                       errors.map((error, index) => (
                         <li key={`${field}-${index}`}>{error}</li>
                       ))
-                    ))}
+                    )}
                   </ul>
                 </AlertDescription>
               </Alert>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
@@ -199,7 +212,11 @@ export function AddUserForm({
                         {...field}
                         placeholder="123456789"
                         required
-                        className={form.formState.errors.id_number ? "border-destructive" : ""}
+                        className={
+                          form.formState.errors.id_number
+                            ? "border-destructive"
+                            : ""
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -219,7 +236,11 @@ export function AddUserForm({
                         type="email"
                         placeholder="user@example.com"
                         required
-                        className={form.formState.errors.email ? "border-destructive" : ""}
+                        className={
+                          form.formState.errors.email
+                            ? "border-destructive"
+                            : ""
+                        }
                       />
                     </FormControl>
                     <FormMessage />
@@ -234,11 +255,7 @@ export function AddUserForm({
                   <FormItem>
                     <FormLabel>First Name</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="John"
-                        required
-                      />
+                      <Input {...field} placeholder="John" required />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -252,11 +269,7 @@ export function AddUserForm({
                   <FormItem>
                     <FormLabel>Last Name</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Doe"
-                        required
-                      />
+                      <Input {...field} placeholder="Doe" required />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -270,10 +283,7 @@ export function AddUserForm({
                   <FormItem>
                     <FormLabel>Middle Name (Optional)</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="Michael"
-                      />
+                      <Input {...field} placeholder="Michael" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -292,9 +302,7 @@ export function AddUserForm({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Set custom password
-                      </FormLabel>
+                      <FormLabel>Set custom password</FormLabel>
                     </div>
                   </FormItem>
                 )}
@@ -331,7 +339,11 @@ export function AddUserForm({
                             className="absolute right-3 top-1/2 transform -translate-y-1/2"
                             onClick={() => setShowPassword(!showPassword)}
                           >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {showPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
                           </button>
                         </div>
                       </FormControl>
@@ -360,7 +372,11 @@ export function AddUserForm({
                             className="absolute right-3 top-1/2 transform -translate-y-1/2"
                             onClick={() => setShowCPassword(!showCPassword)}
                           >
-                            {showCPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {showCPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
                           </button>
                         </div>
                       </FormControl>
@@ -417,8 +433,8 @@ export function AddUserForm({
             </div>
 
             <div className="flex justify-end gap-4 pt-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 type="button"
                 onClick={() => setOpen(false)}
               >

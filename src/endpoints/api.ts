@@ -4,8 +4,6 @@ import type { AxiosResponse } from "axios";
 // Base configuration
 const BASE_URL = "http://127.0.0.1:8000/api/";
 
-
-
 // Authentication endpoints
 const LOGIN_URL = `${BASE_URL}login/`;
 const REFRESH_URL = `${BASE_URL}token/refresh/`;
@@ -80,11 +78,11 @@ interface PaginatedResponse<T> {
 const handleApiError = (error: unknown): never => {
   if (axios.isAxiosError(error)) {
     const apiError = error.response?.data as ApiError;
-    console.error('API Error:', apiError);
-    throw new Error(apiError.message || 'An error occurred');
+    console.error("API Error:", apiError);
+    throw new Error(apiError.message || "An error occurred");
   }
-  console.error('Unknown error:', error);
-  throw new Error('An unexpected error occurred');
+  console.error("Unknown error:", error);
+  throw new Error("An unexpected error occurred");
 };
 
 const callWithRefresh = async <T>(
@@ -102,7 +100,7 @@ const callWithRefresh = async <T>(
           return retryResponse.data;
         }
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
+        console.error("Token refresh failed:", refreshError);
       }
     }
     throw error;
@@ -112,9 +110,13 @@ const callWithRefresh = async <T>(
 // Authentication services
 export const login = async (id_number: string, password: string) => {
   try {
-    const response = await axios.post(LOGIN_URL, { id_number, password }, {
-      withCredentials: true
-    });
+    const response = await axios.post(
+      LOGIN_URL,
+      { id_number, password },
+      {
+        withCredentials: true,
+      }
+    );
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -124,13 +126,13 @@ export const login = async (id_number: string, password: string) => {
 export const refreshToken = async (): Promise<boolean> => {
   try {
     const response = await axios.post<RefreshResponse>(
-      REFRESH_URL, 
-      {}, 
+      REFRESH_URL,
+      {},
       { withCredentials: true }
     );
     return response.data.refreshed;
   } catch (error) {
-    console.error('Token refresh failed:', error);
+    console.error("Token refresh failed:", error);
     return false;
   }
 };
@@ -140,7 +142,7 @@ export const logout = async (): Promise<boolean> => {
     await axios.post(LOGOUT_URL, {}, { withCredentials: true });
     return true;
   } catch (error) {
-    console.error('Logout failed:', error);
+    console.error("Logout failed:", error);
     return false;
   }
 };
@@ -150,7 +152,7 @@ export const is_authenticated = async (): Promise<boolean> => {
     await axios.get(AUTH_URL, { withCredentials: true });
     return true;
   } catch (error) {
-    console.error('Auth check failed:', error);
+    console.error("Auth check failed:", error);
     return false;
   }
 };
@@ -159,7 +161,7 @@ export const is_authenticated = async (): Promise<boolean> => {
 export const register = async (userData: UserData) => {
   try {
     const response = await axios.post(REGISTER_URL, userData, {
-      withCredentials: true
+      withCredentials: true,
     });
     return response.data;
   } catch (error) {
@@ -184,18 +186,17 @@ export const adminResetPassword = async (
 };
 
 export const getUsers = async () => {
-  return callWithRefresh(() => 
-    axios.get(USERS_URL, { withCredentials: true })
-  );
+  return callWithRefresh(() => axios.get(USERS_URL, { withCredentials: true }));
 };
 
-export const updateUser = async (userId: number, userData: Partial<UserData>) => {
+export const updateUser = async (
+  userId: number,
+  userData: Partial<UserData>
+) => {
   try {
-    const response = await axios.patch(
-      `${USERS_URL}${userId}/`,
-      userData,
-      { withCredentials: true }
-    );
+    const response = await axios.patch(`${USERS_URL}${userId}/`, userData, {
+      withCredentials: true,
+    });
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -217,10 +218,9 @@ export const changeUserStatus = async (userId: number, status: string) => {
 
 export const deleteUser = async (userId: number) => {
   try {
-    const response = await axios.delete(
-      `${USERS_URL}${userId}/`,
-      { withCredentials: true }
-    );
+    const response = await axios.delete(`${USERS_URL}${userId}/`, {
+      withCredentials: true,
+    });
     return response.data;
   } catch (error) {
     return handleApiError(error);
@@ -244,8 +244,8 @@ export const getActivityLogs = async (params?: {
         params: {
           page: params?.page || 1,
           page_size: params?.page_size || 10,
-          ...params
-        }
+          ...params,
+        },
       }
     );
     return response.data;
@@ -261,8 +261,6 @@ export const getMyProfile = async () => {
   );
 };
 
-
-
 export const updateProfile = async (data: {
   current_password?: string;
   new_password?: string;
@@ -270,14 +268,15 @@ export const updateProfile = async (data: {
 }) => {
   try {
     const formData = new FormData();
-    if (data.current_password) formData.append('current_password', data.current_password);
-    if (data.new_password) formData.append('new_password', data.new_password);
-    if (data.avatar) formData.append('avatar', data.avatar);
+    if (data.current_password)
+      formData.append("current_password", data.current_password);
+    if (data.new_password) formData.append("new_password", data.new_password);
+    if (data.avatar) formData.append("avatar", data.avatar);
 
     const response = await axios.patch(UPDATE_PROFILE_URL, formData, {
       withCredentials: true,
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
@@ -289,12 +288,12 @@ export const updateProfile = async (data: {
 export const updateAvatar = async (avatarFile: File) => {
   try {
     const formData = new FormData();
-    formData.append('avatar', avatarFile);
+    formData.append("avatar", avatarFile);
 
     const response = await axios.patch(UPDATE_AVATAR_URL, formData, {
       withCredentials: true,
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
     return response.data;
@@ -305,7 +304,5 @@ export const updateAvatar = async (avatarFile: File) => {
 
 // Todo services
 export const fetchTodos = async () => {
-  return callWithRefresh(() =>
-    axios.get(TODO_URL, { withCredentials: true })
-  );
+  return callWithRefresh(() => axios.get(TODO_URL, { withCredentials: true }));
 };

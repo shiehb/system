@@ -16,26 +16,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-const get_authenticated = useCallback(async () => {
-  try {
-    const success = await is_authenticated();
-    setIsAuthenticated(success);
-    setAuthError(null);
-  } catch {
-    setIsAuthenticated(false);
+  const get_authenticated = useCallback(async () => {
+    try {
+      const success = await is_authenticated();
+      setIsAuthenticated(success);
+      setAuthError(null);
+    } catch {
+      setIsAuthenticated(false);
 
-    toast.error("Session expired. Please login again.", {
-      description: "Your session has ended due to inactivity.",
-      duration: 5000,
-    });
+      toast.error("Session expired. Please login again.", {
+        description: "Your session has ended due to inactivity.",
+        duration: 5000,
+      });
 
-    setAuthError("Session expired. Please login again.");
+      setAuthError("Session expired. Please login again.");
 
-    setTimeout(() => navigate("/login"), 100);
-  } finally {
-    setLoading(false);
-  }
-}, [navigate]);
+      setTimeout(() => navigate("/login"), 100);
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     get_authenticated();

@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Link } from "react-router-dom"
-import { UsersRound, UserRoundPlus, CircleUserRound, Home, Map, Building, Inspect, FileText } from "lucide-react"
-import { useIsMobile } from "@/hooks/use-mobile"
+import * as React from "react";
+import { Link } from "react-router-dom";
+import { Home, Map, Building, Inspect, FileText } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import {
   NavigationMenu,
@@ -13,7 +13,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu"
+} from "@/components/ui/navigation-menu";
 
 const components: { title: string; href: string; description: string }[] = [
   {
@@ -29,23 +29,29 @@ const components: { title: string; href: string; description: string }[] = [
       "For sighted users to preview content available behind a link.",
   },
   // ... other component items
-]
+];
 
 export function NavigationMenuDemo({ userLevel }: { userLevel?: string }) {
-  const isMobile = useIsMobile()
+  const isMobile = useIsMobile();
 
   return (
     <NavigationMenu viewport={false}>
       <NavigationMenuList>
         <NavigationMenuItem>
           {isMobile ? (
-            <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <NavigationMenuLink
+              asChild
+              className={navigationMenuTriggerStyle()}
+            >
               <Link to="/dashboard" title="Dashboard">
                 <Home className="h-5 w-5" />
               </Link>
             </NavigationMenuLink>
           ) : (
-            <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <NavigationMenuLink
+              asChild
+              className={navigationMenuTriggerStyle()}
+            >
               <Link to="/dashboard">Dashboard</Link>
             </NavigationMenuLink>
           )}
@@ -53,13 +59,19 @@ export function NavigationMenuDemo({ userLevel }: { userLevel?: string }) {
 
         <NavigationMenuItem>
           {isMobile ? (
-            <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <NavigationMenuLink
+              asChild
+              className={navigationMenuTriggerStyle()}
+            >
               <Link to="/maps" title="Maps">
                 <Map className="h-5 w-5" />
               </Link>
             </NavigationMenuLink>
           ) : (
-            <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <NavigationMenuLink
+              asChild
+              className={navigationMenuTriggerStyle()}
+            >
               <Link to="/maps">Maps</Link>
             </NavigationMenuLink>
           )}
@@ -83,7 +95,7 @@ export function NavigationMenuDemo({ userLevel }: { userLevel?: string }) {
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>
-        
+
         <NavigationMenuItem>
           <NavigationMenuTrigger>
             {isMobile ? <Inspect className="h-5 w-5" /> : "Inspection"}
@@ -126,42 +138,30 @@ export function NavigationMenuDemo({ userLevel }: { userLevel?: string }) {
           </NavigationMenuContent>
         </NavigationMenuItem>
 
-        {userLevel === 'admin' && (
+        {userLevel === "admin" && (
           <NavigationMenuItem>
-            <NavigationMenuTrigger>
-              {isMobile ? <UsersRound className="h-5 w-5" /> : "Users"}
-            </NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <ul className="grid w-[150px] gap-4">
-                <li>
-                  <NavigationMenuLink asChild>
-                    <Link to="/user-management" className="flex-row items-center gap-2">
-                      <UsersRound />
-                      All Users
-                    </Link>
-                  </NavigationMenuLink>
-                  <NavigationMenuLink asChild>
-                    <Link to="/user-management" className="flex-row items-center gap-2">
-                      <UserRoundPlus />
-                      Add New User
-                    </Link>
-                  </NavigationMenuLink>
-                  <NavigationMenuLink asChild>
-                    <Link to="/profile" className="flex-row items-center gap-2">
-                      <CircleUserRound />
-                      Profile
-                    </Link>
-                  </NavigationMenuLink>
-                </li>
-              </ul>
-            </NavigationMenuContent>
+            {isMobile ? (
+              <NavigationMenuLink
+                asChild
+                className={navigationMenuTriggerStyle()}
+              >
+                <Link to="/user-management" title="Users">
+                  <Map className="h-5 w-5" />
+                </Link>
+              </NavigationMenuLink>
+            ) : (
+              <NavigationMenuLink
+                asChild
+                className={navigationMenuTriggerStyle()}
+              >
+                <Link to="/user-management">Users</Link>
+              </NavigationMenuLink>
+            )}
           </NavigationMenuItem>
-
-
         )}
       </NavigationMenuList>
     </NavigationMenu>
-  )
+  );
 }
 
 function ListItem({
@@ -181,6 +181,5 @@ function ListItem({
         </Link>
       </NavigationMenuLink>
     </li>
-  )
+  );
 }
-

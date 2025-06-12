@@ -1,18 +1,8 @@
-"use client"
+"use client";
 
-import {
-  ChevronDown,
-  ChevronUp,
-  User,
-  Settings,
-  LogOut,
-} from "lucide-react"
-import { useIsMobile } from "@/hooks/use-mobile"
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+import { ChevronDown, ChevronUp, User, Settings, LogOut } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,23 +10,23 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { useState } from "react"
+} from "@/components/ui/sidebar";
+import { useState } from "react";
 
 interface NavUserProps {
   user: {
-    name: string
-    email: string
-    avatar: string
-  }
-  onProfileClick?: () => void
-  onSettingsClick?: () => void
-  onLogoutClick?: () => void
+    name: string;
+    email: string;
+    avatar: string;
+  };
+  onProfileClick?: () => void;
+  onSettingsClick?: () => void;
+  onLogoutClick?: () => void;
 }
 
 export function NavUser({
@@ -45,9 +35,8 @@ export function NavUser({
   onSettingsClick,
   onLogoutClick,
 }: NavUserProps) {
- 
-  const isMobile = useIsMobile()
-  const [isOpen, setIsOpen] = useState(false)
+  const isMobile = useIsMobile();
+  const [isOpen, setIsOpen] = useState(false);
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -58,11 +47,16 @@ export function NavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-full">
-                <AvatarImage  className="object-cover"
-                 src={user.avatar} alt={user.name} 
-                 />
+                <AvatarImage
+                  className="object-cover"
+                  src={user.avatar}
+                  alt={user.name}
+                />
                 <AvatarFallback className="rounded-full">
-                  {user.name.split(' ').map(n => n[0]).join('')}
+                  {user.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
                 </AvatarFallback>
               </Avatar>
               {!isMobile && (
@@ -104,5 +98,5 @@ export function NavUser({
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

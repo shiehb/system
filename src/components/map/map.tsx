@@ -1,10 +1,6 @@
 // components/map/map.tsx
 import React from "react";
-import {
-  MapContainer,
-  TileLayer,
-  useMapEvents,
-} from "react-leaflet";
+import { MapContainer, TileLayer, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 interface MapProps {
@@ -61,10 +57,7 @@ const Map: React.FC<MapProps> = ({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <MapEvents
-        onZoomChange={onZoomChange}
-        onCenterChange={onCenterChange}
-      />
+      <MapEvents onZoomChange={onZoomChange} onCenterChange={onCenterChange} />
       {children}
     </MapContainer>
   );

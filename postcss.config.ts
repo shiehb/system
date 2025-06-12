@@ -1,8 +1,8 @@
-import type { Config } from 'postcss'
+import type { Config } from "postcss";
 
 export default {
   plugins: {
-    '@tailwindcss/postcss': {},
+    "@tailwindcss/postcss": {},
     autoprefixer: {},
   },
-} satisfies Config
+} satisfies Config;

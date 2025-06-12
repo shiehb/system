@@ -1,14 +1,14 @@
-import { useAuth } from '../contexts/useAuth';
-import { Navigate, useLocation } from 'react-router-dom';
-import { LoadingWave } from "@/components/ui/loading-wave"
-import type { JSX } from 'react';
+import { useAuth } from "../contexts/useAuth";
+import { Navigate, useLocation } from "react-router-dom";
+import { LoadingWave } from "@/components/ui/loading-wave";
+import type { JSX } from "react";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
-    return <LoadingWave message="Loading..." />
+    return <LoadingWave message="Loading..." />;
   }
 
   if (!isAuthenticated) {

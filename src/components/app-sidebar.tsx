@@ -1,5 +1,5 @@
-import * as React from "react"
-import { useNavigate } from "react-router-dom"
+import * as React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   User2,
@@ -11,13 +11,13 @@ import {
   LifeBuoy,
   Map,
   Frame,
-} from "lucide-react" 
-import { NavMain } from "@/components/nav-main"
+} from "lucide-react";
+// import { NavMain } from "@/components/nav-main";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 const data = {
   user: {
@@ -49,7 +49,7 @@ const data = {
         {
           title: "Add New Establishment",
           url: "/establishments/new",
-        }
+        },
       ],
     },
     {
@@ -68,8 +68,7 @@ const data = {
         {
           title: "Inspection Schedule",
           url: "/schedule",
-          
-        }
+        },
       ],
     },
     {
@@ -84,7 +83,7 @@ const data = {
         {
           title: "Generate Report",
           url: "/reports/generate",
-        }
+        },
       ],
     },
     {
@@ -103,7 +102,7 @@ const data = {
         {
           title: "Profile",
           url: "/profile",
-        }        
+        },
       ],
     },
     {
@@ -114,7 +113,7 @@ const data = {
         {
           title: "General",
           url: "/settings/general",
-        }
+        },
       ],
     },
   ],
@@ -142,7 +141,7 @@ const data = {
       icon: Map,
     },
   ],
-}
+};
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate();
@@ -152,23 +151,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
   return (
-     <Sidebar collapsible="icon" {...props}
+    <Sidebar
+      collapsible="icon"
+      {...props}
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
     >
       <SidebarContent>
-        <NavMain items={data.navMain.map(item => ({
-          ...item,
-          onClick: () => handleNavigation(item.url),
-          items: item.items?.map(subItem => ({
-            ...subItem,
-            onClick: () => handleNavigation(subItem.url)
-          }))
-        }))} />
-        
+        {/* <NavMain
+          items={data.navMain.map((item) => ({
+            ...item,
+            onClick: () => handleNavigation(item.url),
+            items: item.items?.map((subItem) => ({
+              ...subItem,
+              onClick: () => handleNavigation(subItem.url),
+            })),
+          }))}
+        /> */}
       </SidebarContent>
-      <SidebarFooter>
-        {/* <NavUser user={data.user} /> */}
-      </SidebarFooter>
+      <SidebarFooter>{/* <NavUser user={data.user} /> */}</SidebarFooter>
     </Sidebar>
-  )
+  );
 }

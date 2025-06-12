@@ -9,7 +9,13 @@ import {
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,16 +60,18 @@ export function LoginForm({
       toast.success(
         <div>
           <p className="font-semibold">Login Successful</p>
-          <p className="text-sm text-muted-foreground">Redirecting to your dashboard...</p>
+          <p className="text-sm text-muted-foreground">
+            Redirecting to your dashboard...
+          </p>
         </div>
       );
 
       // Redirect to intended path or default
       const redirectPath = location.state?.from?.pathname || "/dashboard";
       navigate(redirectPath);
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
       setError(errorMessage);
       setUsername("");
       setPassword("");
@@ -73,7 +81,6 @@ export function LoginForm({
           <p className="text-sm text-muted-foreground">{errorMessage}</p>
         </div>
       );
-
     } finally {
       onLoadingChange(false);
     }
@@ -139,17 +146,23 @@ export function LoginForm({
                     onBlur={() => setIsUsernameFocused(false)}
                     className={cn(
                       "pl-10",
-                      showUsernameError && "border-destructive focus-visible:ring-destructive"
+                      showUsernameError &&
+                        "border-destructive focus-visible:ring-destructive"
                     )}
                     inputMode="numeric"
                     pattern="[0-9]*"
                     placeholder="e.g. 12345678"
                     required
                   />
-                  <User2 className={cn(
-                    "absolute left-3 top-1/2 -translate-y-1/2",
-                    showUsernameError ? "text-destructive" : "text-muted-foreground"
-                  )} size={18} />
+                  <User2
+                    className={cn(
+                      "absolute left-3 top-1/2 -translate-y-1/2",
+                      showUsernameError
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                    )}
+                    size={18}
+                  />
                 </div>
               </div>
               {/* Password Input */}
@@ -162,7 +175,8 @@ export function LoginForm({
                     onClick={(e) => {
                       e.preventDefault();
                       toast.error("Password Reset", {
-                        description: "Please contact your system administrator for password reset.",
+                        description:
+                          "Please contact your system administrator for password reset.",
                         duration: 5000,
                       });
                     }}
@@ -180,20 +194,28 @@ export function LoginForm({
                     onBlur={() => setIsPasswordFocused(false)}
                     className={cn(
                       "pl-10",
-                      showPasswordError && "border-destructive focus-visible:ring-destructive"
+                      showPasswordError &&
+                        "border-destructive focus-visible:ring-destructive"
                     )}
                     placeholder="••••••••"
                     required
                   />
-                  <KeyRound className={cn(
-                    "absolute left-3 top-1/2 -translate-y-1/2",
-                    showPasswordError ? "text-destructive" : "text-muted-foreground"
-                  )} size={18} />
+                  <KeyRound
+                    className={cn(
+                      "absolute left-3 top-1/2 -translate-y-1/2",
+                      showPasswordError
+                        ? "text-destructive"
+                        : "text-muted-foreground"
+                    )}
+                    size={18}
+                  />
                   <button
                     type="button"
                     className={cn(
                       "absolute right-3 top-1/2 -translate-y-1/2 hover:text-primary",
-                      showPasswordError ? "text-destructive hover:text-destructive" : "text-muted-foreground"
+                      showPasswordError
+                        ? "text-destructive hover:text-destructive"
+                        : "text-muted-foreground"
                     )}
                     onClick={togglePasswordVisibility}
                   >
