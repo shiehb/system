@@ -525,7 +525,6 @@ def update_profile(request):
     })
 
 # --- Update Avatar ---
-# --- Update Avatar ---
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_avatar(request):

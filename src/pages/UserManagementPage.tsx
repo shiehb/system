@@ -3,17 +3,27 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { FileText } from "lucide-react";
 
 import UsersListTable from "@/components/table/UserManagement";
 import ActivityLogs from "@/components/table/ActivityLogs";
 import { AddUserForm } from "@/components/form/add_user-form";
+import ExportUsersButton from "@/components/report/ExportUsersButton";
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState("users");
+  const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
 
   const handleUserAdded = () => {
     // Handle user added logic
+  };
+
+  const handleUserSelection = (ids: number[]) => {
+    setSelectedUserIds(ids);
+  };
+
+  const handleUsersData = (usersData: any[]) => {
+    setUsers(usersData);
   };
 
   return (
@@ -26,18 +36,15 @@ export default function Page() {
           {activeTab === "users" && (
             <div className="absolute flex right-6 top-6 gap-2">
               {/* Export button */}
-              <Button
-                className="cursor-pointer bg-background text-black border-1 hover:bg-muted hover:text-black 
-            transition duration-150 ease-in hover:scale-95"
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Export
-              </Button>
+              <ExportUsersButton
+                selectedUserIds={selectedUserIds}
+                users={users}
+              />
 
               {/* Add user button */}
               <Button
                 asChild
-                className="transition duration-150 ease-in hover:scale-95 "
+                className="transition duration-150 ease-in hover:scale-95"
                 aria-label="Add new user"
               >
                 <AddUserForm
@@ -53,7 +60,7 @@ export default function Page() {
             <TabsList aria-label="User management sections">
               <TabsTrigger
                 value="users"
-                className="cursor-pointer transition duration-300 ease-in "
+                className="cursor-pointer transition duration-300 ease-in"
                 aria-selected={activeTab === "users"}
                 aria-controls="users-content"
               >
@@ -76,7 +83,10 @@ export default function Page() {
               aria-labelledby="users-tab"
               tabIndex={0}
             >
-              <UsersListTable />
+              <UsersListTable
+                onSelectionChange={handleUserSelection}
+                onUsersData={handleUsersData}
+              />
             </TabsContent>
 
             <TabsContent

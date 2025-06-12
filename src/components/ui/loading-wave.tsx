@@ -1,9 +1,9 @@
 export const LoadingWave = ({
   message = "Loading...",
-  logoSrc = "/assets/DENR-Logo.svg"
+  logoSrc = "/assets/DENR-Logo.svg",
 }: {
-  message?: string
-  logoSrc?: string
+  message?: string;
+  logoSrc?: string;
 }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
@@ -16,29 +16,29 @@ export const LoadingWave = ({
             alt="Loading Logo"
             className="relative z-10 h-full w-full object-contain animate-[wave_1.3s_ease-in-out_infinite,pulse_3s_ease-in-out_infinite]"
             style={{
-              transformOrigin: 'bottom center',
-              animationDelay: '0.1s' // Slight delay to offset from the pulse background
+              transformOrigin: "bottom center",
+              animationDelay: "0.1s", // Slight delay to offset from the pulse background
             }}
           />
         </div>
 
         {/* Animated message with individual character wave */}
         <div className="flex items-center justify-center space-x-1 h-8">
-          {message.split('').map((char, index) => (
+          {message.split("").map((char, index) => (
             <span
               key={index}
               className="text-primary font-medium tracking-wider animate-[wave_1.3s_ease-in-out_infinite]"
               style={{
                 animationDelay: `${index * 0.1}s`,
-                display: 'inline-block',
-                transformOrigin: 'bottom center'
+                display: "inline-block",
+                transformOrigin: "bottom center",
               }}
             >
-              {char === ' ' ? '\u00A0' : char}
+              {char === " " ? "\u00A0" : char}
             </span>
           ))}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};

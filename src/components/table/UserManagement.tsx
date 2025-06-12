@@ -42,7 +42,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { EditUserForm } from "@/components/form/edit-user-form";
 import { ChangeStatus } from "@/components/form/change-status-form";
 
-const UsersListTable = () => {
+interface UsersListTableProps {
+  onSelectionChange?: (ids: number[]) => void;
+  onUsersData?: (users: User[]) => void;
+}
+
+const UsersListTable = ({
+  onSelectionChange,
+  onUsersData,
+}: UsersListTableProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -65,12 +73,28 @@ const UsersListTable = () => {
     if (isAuthenticated) {
       fetchUsers();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, statusFilter, userLevelFilter, searchTerm]);
+
+  useEffect(() => {
+    if (onSelectionChange) {
+      onSelectionChange(selectedUserIds);
+    }
+  }, [selectedUserIds]);
+
+  useEffect(() => {
+    if (onUsersData) {
+      onUsersData(users);
+    }
+  }, [users]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const data = await getUsers();
+      const data = await getUsers({
+        status: statusFilter,
+        user_level: userLevelFilter,
+        search: searchTerm,
+      });
       setUsers(data);
       setError("");
     } catch (err) {
@@ -83,28 +107,18 @@ const UsersListTable = () => {
     }
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
-      `${user.first_name} ${user.last_name} ${user.email} ${user.id_number}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) &&
-      statusFilter.includes(user.status) &&
-      userLevelFilter.includes(user.user_level)
-  );
-
   const handleUserSelect = (userId: number) => {
-    setSelectedUserIds((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
-    );
+    const newSelectedIds = selectedUserIds.includes(userId)
+      ? selectedUserIds.filter((id) => id !== userId)
+      : [...selectedUserIds, userId];
+    setSelectedUserIds(newSelectedIds);
   };
 
   const handleSelectAll = () => {
-    if (selectedUserIds.length === filteredUsers.length) {
+    if (selectedUserIds.length === users.length) {
       setSelectedUserIds([]);
     } else {
-      setSelectedUserIds(filteredUsers.map((user) => user.id));
+      setSelectedUserIds(users.map((user) => user.id));
     }
   };
 
@@ -150,12 +164,11 @@ const UsersListTable = () => {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-40 bg-white dark:bg-gray-800 "
+          className="w-40 bg-white dark:bg-gray-800"
         >
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
-          {/* Edit User */}
           <DropdownMenuItem
             className="cursor-pointer"
             onSelect={(e) => {
@@ -167,7 +180,6 @@ const UsersListTable = () => {
             <span>Edit</span>
           </DropdownMenuItem>
 
-          {/* Change Status */}
           <DropdownMenuItem
             className="cursor-pointer"
             onSelect={(e) => e.preventDefault()}
@@ -182,7 +194,6 @@ const UsersListTable = () => {
 
           <DropdownMenuSeparator />
 
-          {/* Reset Password */}
           <DropdownMenuItem
             onSelect={(e) => e.preventDefault()}
             className="cursor-pointer"
@@ -194,7 +205,6 @@ const UsersListTable = () => {
           </DropdownMenuItem>
         </DropdownMenuContent>
 
-        {/* Edit User Dialog */}
         <EditUserForm
           user={user}
           open={editOpen}
@@ -282,18 +292,18 @@ const UsersListTable = () => {
       </CardHeader>
 
       <CardContent>
-        <div className="rounded-md border overflow-hidden w-full ">
+        <div className="rounded-md border overflow-hidden w-full">
           {/* Desktop Table */}
-          <div className="hidden sm:block min-w-[900px] ">
+          <div className="hidden sm:block min-w-[900px]">
             <Table>
-              <ScrollArea className="h-[calc(100vh-260px)]  w-full ">
-                <TableHeader className="bg-green-200 sticky top-0 z-10 ">
+              <ScrollArea className="h-[calc(100vh-260px)] w-full">
+                <TableHeader className="bg-green-200 sticky top-0 z-10">
                   <TableRow>
                     <TableHead className="w-[40px] min-w-[40px] max-w-[40px] border-b text-center">
                       <Checkbox
                         checked={
-                          filteredUsers.length > 0 &&
-                          selectedUserIds.length === filteredUsers.length
+                          users.length > 0 &&
+                          selectedUserIds.length === users.length
                         }
                         onCheckedChange={handleSelectAll}
                         aria-label="Select all users"
@@ -328,10 +338,10 @@ const UsersListTable = () => {
                 </TableHeader>
 
                 <TableBody>
-                  {filteredUsers.length > 0 ? (
-                    filteredUsers.map((user) => (
-                      <TableRow key={user.id} className=" hover:bg-muted/50">
-                        <TableCell className=" border-b text-center">
+                  {users.length > 0 ? (
+                    users.map((user) => (
+                      <TableRow key={user.id} className="hover:bg-muted/50">
+                        <TableCell className="border-b text-center">
                           <Checkbox
                             checked={selectedUserIds.includes(user.id)}
                             onCheckedChange={() => handleUserSelect(user.id)}
@@ -339,16 +349,16 @@ const UsersListTable = () => {
                             className="cursor-pointer"
                           />
                         </TableCell>
-                        <TableCell className=" border-b text-left font-bold">
+                        <TableCell className="border-b text-left font-bold">
                           {user.id_number}
                         </TableCell>
-                        <TableCell className=" border text-left font-medium">
+                        <TableCell className="border text-left font-medium">
                           {user.first_name} {user.last_name}
                         </TableCell>
-                        <TableCell className=" border text-left font-medium">
+                        <TableCell className="border text-left font-medium">
                           {user.email}
                         </TableCell>
-                        <TableCell className=" border text-center">
+                        <TableCell className="border text-center">
                           <Badge
                             variant={
                               user.user_level === "admin"
@@ -360,11 +370,11 @@ const UsersListTable = () => {
                             className={cn(
                               "capitalize py-1 w-20 bg-transparent border-1 select-none",
                               {
-                                " border-red-600 hover:bg-red-50 text-red-700":
+                                "border-red-600 hover:bg-red-50 text-red-700":
                                   user.user_level === "admin",
-                                " border-blue-600 hover:bg-blue-50 text-blue-700":
+                                "border-blue-600 hover:bg-blue-50 text-blue-700":
                                   user.user_level === "manager",
-                                " border-green-600 hover:bg-green-50 text-green-700":
+                                "border-green-600 hover:bg-green-50 text-green-700":
                                   user.user_level === "inspector",
                               }
                             )}
@@ -373,13 +383,13 @@ const UsersListTable = () => {
                           </Badge>
                         </TableCell>
 
-                        <TableCell className=" border text-center font-medium">
+                        <TableCell className="border text-center font-medium">
                           {new Date(user.created_at).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className=" border text-center font-medium">
+                        <TableCell className="border text-center font-medium">
                           {new Date(user.updated_at).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className=" border text-center">
+                        <TableCell className="border text-center">
                           <Badge
                             variant={
                               user.status === "active"
@@ -408,7 +418,7 @@ const UsersListTable = () => {
                             {user.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className=" border text-center">
+                        <TableCell className="border text-center">
                           <UserActionsDropdown userId={user.id} />
                         </TableCell>
                       </TableRow>
@@ -429,8 +439,8 @@ const UsersListTable = () => {
 
           {/* Mobile Card View */}
           <div className="block sm:hidden p-2 space-y-4">
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
+            {users.length > 0 ? (
+              users.map((user) => (
                 <div
                   key={user.id}
                   className="border rounded-md p-4 shadow-sm bg-white dark:bg-muted"
