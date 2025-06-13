@@ -13,7 +13,8 @@ export interface AuthContextType {
     password: string,
     cPassword: string,
     user_level: string,
-    status: string
+    status: string,
+    role: string
   ) => Promise<void>;
 }
 

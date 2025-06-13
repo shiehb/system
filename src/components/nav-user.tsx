@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronDown, ChevronUp, User, Settings, LogOut } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -35,8 +34,8 @@ export function NavUser({
   onSettingsClick,
   onLogoutClick,
 }: NavUserProps) {
-  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -59,12 +58,10 @@ export function NavUser({
                     .join("")}
                 </AvatarFallback>
               </Avatar>
-              {!isMobile && (
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
-                </div>
-              )}
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">{user.name}</span>
+                <span className="truncate text-xs">{user.email}</span>
+              </div>
               {isOpen ? (
                 <ChevronUp className="ml-auto size-4" />
               ) : (

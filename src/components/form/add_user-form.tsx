@@ -16,6 +16,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, UserPlus, Info, ShieldAlert } from "lucide-react";
 import {
   Select,
@@ -42,26 +43,41 @@ const userSchema = z
     email: z.string().email("Invalid email address"),
     password: z.string().optional(),
     cPassword: z.string().optional(),
-    user_level: z.enum(["admin", "manager", "inspector"]),
+    user_level: z.enum(["admin", "manager", "inspector", "chief"]),
     status: z.enum(["active", "inactive"]),
+    role: z.string().optional(),
     showPasswordFields: z.boolean(),
   })
-  .refine(
-    (data) => {
-      if (
-        data.showPasswordFields &&
-        data.password &&
-        data.password.length > 0
-      ) {
-        return data.password === data.cPassword;
+  .superRefine((data, ctx) => {
+    // Password validation
+    if (data.showPasswordFields && data.password && data.password.length > 0) {
+      if (data.password !== data.cPassword) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Passwords do not match",
+          path: ["cPassword"],
+        });
       }
-      return true;
-    },
-    {
-      message: "Passwords do not match",
-      path: ["cPassword"],
     }
-  );
+
+    // Role validation for inspector/chief
+    if (["inspector", "chief"].includes(data.user_level) && !data.role) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Role is required for Inspector and Chief",
+        path: ["role"],
+      });
+    }
+
+    // Clear role if not inspector/chief
+    if (!["inspector", "chief"].includes(data.user_level) && data.role) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Role is only applicable for Inspector and Chief",
+        path: ["role"],
+      });
+    }
+  });
 
 interface AddUserFormProps extends React.ComponentPropsWithoutRef<"div"> {
   onUserAdded?: () => void;
@@ -91,6 +107,7 @@ export function AddUserForm({
       cPassword: "",
       user_level: "inspector",
       status: "active",
+      role: "",
       showPasswordFields: false,
     },
   });
@@ -109,6 +126,7 @@ export function AddUserForm({
         cPassword: "",
         user_level: "inspector",
         status: "active",
+        role: "",
         showPasswordFields: false,
       });
     }
@@ -129,7 +147,8 @@ export function AddUserForm({
         showPasswordFields ? userData.password || "" : "",
         userData.user_level,
         userData.status,
-        showPasswordFields ? cPassword || "" : ""
+        showPasswordFields ? cPassword || "" : "",
+        userData.role || ""
       );
 
       toast.success("User added successfully");
@@ -168,18 +187,24 @@ export function AddUserForm({
   };
 
   const showPasswordFields = form.watch("showPasswordFields");
+  const userLevel = form.watch("user_level");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
+      {/* Button Trigger */}
+
       <DialogTrigger asChild>
         <div className={cn("w-full md:w-auto", className)} {...props}>
-          <UserPlus className="mr-2 h-4 w-4" />
+          <UserPlus className="h-4 w-4" />
           Add New User
         </div>
       </DialogTrigger>
+
+      {/* Content */}
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Add User</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">Add New User</DialogTitle>
+          <Separator className="my-2" />
         </DialogHeader>
 
         <Form {...form}>
@@ -200,236 +225,281 @@ export function AddUserForm({
               </Alert>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="id_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ID Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="123456789"
-                        required
-                        className={
-                          form.formState.errors.id_number
-                            ? "border-destructive"
-                            : ""
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder="user@example.com"
-                        required
-                        className={
-                          form.formState.errors.email
-                            ? "border-destructive"
-                            : ""
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="first_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="John" required />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="last_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Doe" required />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="middle_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Middle Name (Optional)</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Michael" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="showPasswordFields"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Set custom password</FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              {!showPasswordFields && (
-                <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
-                  <Info className="h-4 w-4 mb-2" />
-                  <AlertTitle>
-                    A default password will be automatically generated.
-                  </AlertTitle>
-                  <AlertDescription>
-                    Check the box above if you want to set a custom password.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {showPasswordFields && (
+            <div className="space-y-4 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <FormField
                   control={form.control}
-                  name="password"
+                  name="id_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>ID Number</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••"
-                          />
-                          <button
-                            type="button"
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? (
-                              <EyeOff size={18} />
-                            ) : (
-                              <Eye size={18} />
-                            )}
-                          </button>
-                        </div>
+                        <Input
+                          {...field}
+                          placeholder="e.g. (12345678)"
+                          required
+                          className={
+                            form.formState.errors.id_number
+                              ? "border-destructive"
+                              : ""
+                          }
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
 
-              {showPasswordFields && (
                 <FormField
                   control={form.control}
-                  name="cPassword"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            type={showCPassword ? "text" : "password"}
-                            placeholder="••••••"
-                          />
-                          <button
-                            type="button"
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                            onClick={() => setShowCPassword(!showCPassword)}
-                          >
-                            {showCPassword ? (
-                              <EyeOff size={18} />
-                            ) : (
-                              <Eye size={18} />
-                            )}
-                          </button>
-                        </div>
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder="user@example.com"
+                          required
+                          className={
+                            form.formState.errors.email
+                              ? "border-destructive"
+                              : ""
+                          }
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
+              </div>
 
-              <FormField
-                control={form.control}
-                name="user_level"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>User Level</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+              <div className="grid grid-cols-3 gap-2">
+                <FormField
+                  control={form.control}
+                  name="first_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select user level" />
-                        </SelectTrigger>
+                        <Input {...field} placeholder="first_name" required />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="inspector">Inspector</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                <FormField
+                  control={form.control}
+                  name="last_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
+                        <Input {...field} placeholder="last_name" required />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="middle_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Middle Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="middle_name" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                <FormField
+                  control={form.control}
+                  name="showPasswordFields"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-y-0 ">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Set custom password</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {!showPasswordFields && (
+                  <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
+                    <Info className="h-4 w-4 mb-2" />
+                    <AlertTitle>
+                      A default password will be automatically generated.
+                    </AlertTitle>
+                    <AlertDescription>
+                      Check the box above if you want to set a custom password.
+                    </AlertDescription>
+                  </Alert>
                 )}
-              />
+
+                {showPasswordFields && (
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              type={showPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                              onClick={() => setShowPassword(!showPassword)}
+                            >
+                              {showPassword ? (
+                                <EyeOff size={18} />
+                              ) : (
+                                <Eye size={18} />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                {showPasswordFields && (
+                  <FormField
+                    control={form.control}
+                    name="cPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm Password</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              type={showCPassword ? "text" : "password"}
+                              placeholder="••••••••"
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                              onClick={() => setShowCPassword(!showCPassword)}
+                            >
+                              {showCPassword ? (
+                                <EyeOff size={18} />
+                              ) : (
+                                <Eye size={18} />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="user_level"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>User Level</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select user level" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="inspector">Inspector</SelectItem>
+                          <SelectItem value="chief">Chief</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {["inspector", "chief"].includes(userLevel) && (
+                  <FormField
+                    control={form.control}
+                    name="role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Section</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Section" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="RA-6969">RA-6969</SelectItem>
+                            <SelectItem value="RA-8749">RA-8749</SelectItem>
+                            <SelectItem value="RA-9275">RA-9275</SelectItem>
+                            <SelectItem value="RA-9003">RA-9003</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-4 pt-4">

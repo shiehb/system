@@ -48,7 +48,7 @@ export default function LoginPage() {
               <img
                 src={BPLogo}
                 alt="Bagong Pilipinas Logo"
-                className="h-12 w-12 sm:h-12 sm:w-12 object-containtransition-all"
+                className="h-12 w-12 sm:h-12 sm:w-12 object-contain transition-all"
                 style={{ maxWidth: "64px", height: "auto" }}
               />
             </div>
@@ -85,12 +85,19 @@ export default function LoginPage() {
       </header>
       {/* Main Content: Add padding-top equal to header height */}
       <main
-        className={`flex items-center justify-center min-h-svh pt-[100px] md:pt-[120px] px-2`}
+        className={`flex items-center justify-center min-h-svh pt-[100px] md:pt-[120px] px-2 pb-[env(keyboard-inset-height,0)]`}
       >
-        <div className="w-full max-w-xs sm:max-w-sm md:max-w-md">
+        <div className="w-full max-w-xs sm:max-w-sm md:max-w-md md:static z-10">
           <LoginForm onLoadingChange={setLoading} />
         </div>
       </main>
+      <footer className="fixed bottom-0 left-0 w-full h-10 border-t  bg-muted">
+        <div className="flex h-full items-center justify-center px-4">
+          <span className="text-xs text-muted-foreground">
+            &copy; 2025 DENR ENVIRONMENTAL MANAGEMENT BUREAU
+          </span>
+        </div>
+      </footer>
     </div>
   );
 }

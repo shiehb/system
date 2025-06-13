@@ -76,7 +76,7 @@ export default function ActivityLogs() {
   const [filters, setFilters] = useState({
     action: "",
     search: "",
-    page_size: 15,
+    page_size: 100,
   });
   // New state for search input value
   const [searchInput, setSearchInput] = useState("");
@@ -151,18 +151,18 @@ export default function ActivityLogs() {
   // };
 
   return (
-    <Card className="h-[calc(100vh-150px)] w-full">
+    <Card className="h-[calc(100vh-150px)] w-full bg-muted">
       <CardHeader className="flex flex-col md:flex-row justify-between gap-4">
         <CardTitle>Activity Logs</CardTitle>
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search logs by user (press Enter)"
+              placeholder="Search logs by user..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="pl-8 pr-8 w-full md:w-100" // Added padding for clear button
+              className="pl-8 pr-8 w-full md:w-100 bg-background border-foreground" // Added padding for clear button
             />
             {searchInput && (
               <X
@@ -173,7 +173,10 @@ export default function ActivityLogs() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full md:w-auto">
+              <Button
+                variant="outline"
+                className="w-full md:w-auto border-foreground"
+              >
                 {filters.action
                   ? actionNames[filters.action as keyof typeof actionNames]
                   : "All Actions"}
@@ -204,9 +207,9 @@ export default function ActivityLogs() {
 
       <CardContent>
         <div className="rounded-md border">
-          <Table>
+          <Table className="bg-background border-1 border-foreground">
             <ScrollArea className="h-[calc(100vh-315px)] flex-1 w-full">
-              <TableHeader className="bg-green-200 sticky top-0 z-10 ">
+              <TableHeader className="bg-primary border-foreground sticky top-0 z-10 ">
                 <TableRow>
                   <TableHead className="w-[200px] border">Admin</TableHead>
                   <TableHead className="w-[200px] border">User</TableHead>

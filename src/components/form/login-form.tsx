@@ -106,7 +106,7 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-4", className)} {...props}>
-      <Card className="md:w-[400px] lg:w-[400px] md:mx-auto">
+      <Card className="md:w-[400px] lg:w-[400px] md:mx-auto border border-foreground">
         <CardHeader className="text-center">
           <div className="flex flex-col items-center text-center mb-2">
             <span className="text-xs md:text-xl font-bold text-muted-foreground">
@@ -149,8 +149,9 @@ export function LoginForm({
                       showUsernameError &&
                         "border-destructive focus-visible:ring-destructive"
                     )}
-                    inputMode="numeric"
-                    pattern="[0-9]*"
+                    type="tel" // Changed from inputMode to type="tel" for better mobile support
+                    inputMode="numeric" // Fallback for some browsers
+                    pattern="[0-9]*" // Ensures only numbers are accepted
                     placeholder="e.g. 12345678"
                     required
                   />
@@ -225,7 +226,10 @@ export function LoginForm({
               </div>
 
               {/* Submit Button */}
-              <Button type="submit" className="w-full">
+              <Button
+                type="submit"
+                className="w-full text-foreground border border-foreground"
+              >
                 Login
               </Button>
             </div>

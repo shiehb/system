@@ -48,6 +48,7 @@ class User(AbstractUser):
     USER_LEVEL_CHOICES = [
         ('admin', 'Admin'),
         ('manager', 'Manager'),
+        ('chief', 'Chief'),
         ('inspector', 'Inspector'),
     ]
     
@@ -55,12 +56,26 @@ class User(AbstractUser):
         ('active', 'Active'),
         ('inactive', 'Inactive'),
     ]
+    
+    ROLE_CHOICES = [
+        ('RA-6969', 'RA-6969'),
+        ('RA-8749', 'RA-8749'),
+        ('RA-9275', 'RA-9275'),
+        ('RA-9003', 'RA-9003'),
+    ]
 
     username = models.CharField(max_length=150, null=True, blank=True, unique=False)
     id_number = models.CharField(max_length=50, unique=True)
     middle_name = models.CharField(max_length=150, blank=True)
     user_level = models.CharField(max_length=20, choices=USER_LEVEL_CHOICES, default='inspector')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    role = models.CharField(
+        max_length=20,
+        choices=ROLE_CHOICES,
+        blank=True,
+        null=True,
+        help_text='Applicable only for Inspector and Chief roles'
+    )
     avatar = models.ImageField(
         upload_to='avatars/',
         null=True,
@@ -95,6 +110,9 @@ class User(AbstractUser):
     def save(self, *args, **kwargs):
         if not self.username:
             self.username = self.id_number
+        # Clear role if user is not inspector or chief
+        if self.user_level not in ['inspector', 'chief']:
+            self.role = None
         super().save(*args, **kwargs)
 
     def __str__(self):

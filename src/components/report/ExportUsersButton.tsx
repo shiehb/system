@@ -40,7 +40,7 @@ const ExportUsersButton = ({
       <DialogTrigger asChild>
         <Button
           disabled={selectedUserIds.length === 0}
-          className="cursor-pointer bg-background text-black border-1 hover:bg-muted hover:text-black 
+          className="cursor-pointer bg-background text-black border-1 border-foreground hover:bg-muted hover:text-black 
                     transition duration-150 ease-in hover:scale-95"
           aria-label="Export selected users"
         >

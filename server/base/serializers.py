@@ -6,7 +6,7 @@ from django.conf import settings
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True,
-        required=False,  # Make password optional
+        required=False,
         allow_blank=True,
     )
     email = serializers.EmailField(required=True)
@@ -15,6 +15,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     middle_name = serializers.CharField(required=False, allow_blank=True)
     user_level = serializers.CharField(required=False, default='inspector')
     status = serializers.CharField(required=False, default='active')
+    role = serializers.CharField(required=False, allow_null=True)
     
     class Meta:
         model = User
@@ -26,13 +27,26 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'middle_name',
             'email',
             'user_level',
-            'status'
+            'status',
+            'role'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
             'user_level': {'required': False},
             'status': {'required': False},
+            'role': {'required': False},
         }
+
+    def validate(self, data):
+        user_level = data.get('user_level', 'inspector')
+        role = data.get('role')
+        
+        if user_level in ['inspector', 'chief'] and not role:
+            raise serializers.ValidationError({"role": "Role is required for Inspector and Chief users"})
+        elif user_level not in ['inspector', 'chief'] and role:
+            raise serializers.ValidationError({"role": "Role is only applicable for Inspector and Chief users"})
+        
+        return data
 
     def validate_id_number(self, value):
         if User.objects.filter(id_number=value).exists():
@@ -48,7 +62,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop('password', None)
         if not password:
-            password = settings.DEFAULT_USER_PASSWORD  # Fallback to default password
+            password = settings.DEFAULT_USER_PASSWORD
 
         try:
             user = User.objects.create_user(
@@ -56,10 +70,11 @@ class UserRegisterSerializer(serializers.ModelSerializer):
                 email=validated_data['email'],
                 first_name=validated_data['first_name'],
                 last_name=validated_data['last_name'],
-                password=password,  # Use either provided or default password
+                password=password,
                 middle_name=validated_data.get('middle_name', ''),
                 user_level=validated_data.get('user_level', 'inspector'),
-                status=validated_data.get('status', 'active')
+                status=validated_data.get('status', 'active'),
+                role=validated_data.get('role')
             )
             return user
         except Exception as e:
@@ -79,15 +94,27 @@ class UserSerializer(serializers.ModelSerializer):
             'email',
             'user_level',
             'status',
-            'avatar',  
-            'avatar_url', 
+            'role',
+            'avatar',
+            'avatar_url',
             'created_at',
             'updated_at'
         ]
         extra_kwargs = {
             'id_number': {'read_only': True},
-            'avatar': {'write_only': True} 
+            'avatar': {'write_only': True}
         }
+    
+    def validate(self, data):
+        user_level = data.get('user_level', self.instance.user_level if self.instance else 'inspector')
+        role = data.get('role', self.instance.role if self.instance else None)
+        
+        if user_level in ['inspector', 'chief'] and not role:
+            raise serializers.ValidationError({"role": "Role is required for Inspector and Chief users"})
+        elif user_level not in ['inspector', 'chief'] and role:
+            raise serializers.ValidationError({"role": "Role is only applicable for Inspector and Chief users"})
+        
+        return data
     
     def get_avatar_url(self, obj):
         if obj.avatar:
@@ -96,6 +123,7 @@ class UserSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.avatar.url)
             return obj.avatar.url
         return None
+
 class ActivityLogSerializer(serializers.ModelSerializer):
     admin = UserSerializer(read_only=True)
     user = UserSerializer(read_only=True)

@@ -18,7 +18,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
 import { toast } from "sonner";
 import { Camera, Pencil, Eye, EyeOff, AlertCircle } from "lucide-react";
 import {
@@ -429,17 +434,15 @@ export function ProfileInfo() {
                 <DialogHeader>
                   <DialogTitle className="text-xl">Change Password</DialogTitle>
                   <DialogDescription>
-                    Update your account password here
+                    <Alert className="mb-4">
+                      <AlertDescription className="ml-2 relative">
+                        Note: Password must be at least 8 characters long. For
+                        stronger password, it must contain special characters
+                        and numbers.
+                      </AlertDescription>
+                    </Alert>
                   </DialogDescription>
                 </DialogHeader>
-
-                <Alert variant="destructive" className="mb-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="ml-2">
-                    After saving, you'll be automatically logged out for
-                    security reasons.
-                  </AlertDescription>
-                </Alert>
 
                 <Form {...form}>
                   <form
@@ -570,6 +573,16 @@ export function ProfileInfo() {
                           </FormItem>
                         )}
                       />
+                      <Alert
+                        variant="destructive"
+                        className="mb-4 items-center "
+                      >
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription className="ml-2">
+                          After saving, you'll be automatically logged out for
+                          security reasons.
+                        </AlertDescription>
+                      </Alert>
                     </div>
 
                     <div className="flex gap-3 justify-end">
@@ -595,70 +608,48 @@ export function ProfileInfo() {
           </div>
         </div>
 
-        {/* Profile Info Section - 3 Column Layout */}
         <Card className="mt-6 rounded-lg shadow-sm">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold">
-              {profile.first_name} {profile.last_name}
-            </CardTitle>
-            <p className="text-muted-foreground">{profile.email}</p>
+            <CardDescription className="text-lg font-bold text-foreground">
+              <div>
+                <span className="text-muted-foreground">ID Number: </span>
+                {profile.id_number}
+              </div>
+
+              <div>
+                <span className="text-muted-foreground">Name: </span>
+                {profile.last_name}, {profile.first_name} {profile.middle_name}
+              </div>
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Column 1 */}
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    ID Number
-                  </h3>
-                  <p className="text-lg font-medium">{profile.id_number}</p>
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    User Level
-                  </h3>
-                  <p className="text-lg font-medium capitalize">
-                    {profile.user_level}
-                  </p>
-                </div>
+          <CardContent className="grid grid-cols-2 gap-4">
+            {profile.email && (
+              <div>
+                <span className="p-2 text-base font-medium text-right">
+                  Email:
+                </span>
+                <input
+                  type="email"
+                  value={profile.email}
+                  readOnly
+                  className="p-1 text-base font-medium border border-foreground rounded-md"
+                />
               </div>
+            )}
 
-              {/* Column 2 */}
-              <div className="space-y-4">
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    First Name
-                  </h3>
-                  <p className="text-lg font-medium">{profile.first_name}</p>
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Last Name
-                  </h3>
-                  <p className="text-lg font-medium">{profile.last_name}</p>
-                </div>
+            {profile.user_level && (
+              <div>
+                <span className="p-2 text-base font-medium text-right">
+                  User Level:
+                </span>
+                <input
+                  type="text"
+                  value={profile.user_level}
+                  readOnly
+                  className="p-1 text-base font-medium border border-foreground rounded-md"
+                />
               </div>
-
-              {/* Column 3 */}
-              <div className="space-y-4">
-                {profile.middle_name && (
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-medium text-muted-foreground">
-                      Middle Name
-                    </h3>
-                    <p className="text-lg font-medium">{profile.middle_name}</p>
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <h3 className="text-sm font-medium text-muted-foreground">
-                    Status
-                  </h3>
-                  <p className="text-lg font-medium capitalize">
-                    {profile.status}
-                  </p>
-                </div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>

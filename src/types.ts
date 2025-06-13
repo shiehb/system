@@ -6,7 +6,8 @@ export interface User {
   last_name: string;
   middle_name?: string;
   email: string;
-  user_level: "admin" | "manager" | "inspector";
+  user_level: "admin" | "manager" | "inspector" | "chief";
+  role: string;
   status: "active" | "inactive";
   created_at: string;
   updated_at: string;

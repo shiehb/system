@@ -34,7 +34,7 @@ export default function Page() {
         <div className="relative p-6">
           {/* Conditionally render the button only when users tab is active */}
           {activeTab === "users" && (
-            <div className="absolute flex right-6 top-6 gap-2">
+            <div className="absolute flex right-6 top-6 gap-2 ">
               {/* Export button */}
               <ExportUsersButton
                 selectedUserIds={selectedUserIds}
@@ -44,7 +44,7 @@ export default function Page() {
               {/* Add user button */}
               <Button
                 asChild
-                className="transition duration-150 ease-in hover:scale-95"
+                className="w-fit transition duration-150 ease-in hover:scale-95 text-foreground border-1 border-foreground"
                 aria-label="Add new user"
               >
                 <AddUserForm
@@ -57,10 +57,17 @@ export default function Page() {
 
           {/* Selectable tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList aria-label="User management sections">
+            <TabsList
+              aria-label="User management sections"
+              className="border-foreground border-1 w-fit"
+            >
               <TabsTrigger
                 value="users"
-                className="cursor-pointer transition duration-300 ease-in"
+                className={`cursor-pointer transition duration-300 ease-in ${
+                  activeTab === "users"
+                    ? "text-foreground border-1 border-foreground"
+                    : ""
+                }`}
                 aria-selected={activeTab === "users"}
                 aria-controls="users-content"
               >
@@ -68,7 +75,11 @@ export default function Page() {
               </TabsTrigger>
               <TabsTrigger
                 value="logs"
-                className="cursor-pointer transition duration-300 ease-in"
+                className={`cursor-pointer transition duration-300 ease-in ${
+                  activeTab === "logs"
+                    ? "text-foreground border-1 border-foreground"
+                    : ""
+                }`}
                 aria-selected={activeTab === "logs"}
                 aria-controls="logs-content"
               >

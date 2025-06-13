@@ -92,8 +92,8 @@ export function ChangeStatus({
               disabled={loading}
               className={
                 currentStatus === "active"
-                  ? "bg-destructive hover:bg-destructive/90"
-                  : "bg-green-600 hover:bg-green-700"
+                  ? "bg-destructive hover:bg-destructive/80"
+                  : "bg-primary text-foreground hover:bg-primary/80"
               }
             >
               {loading ? "Processing..." : `Confirm ${actionText}`}
