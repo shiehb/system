@@ -2,7 +2,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import ScheduleCalendar from "@/components/inspection/schedule";
 
-export default function ProfilePage() {
+export default function SchedulePage() {
   return (
     <div className="[--header-height:calc(theme(spacing.14))]">
       <SidebarProvider className="flex flex-col">

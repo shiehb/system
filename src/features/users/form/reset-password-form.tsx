@@ -7,7 +7,6 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -31,7 +30,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { adminResetPassword } from "@/endpoints/api";
+import { adminResetPassword } from "@/lib/api";
 
 import { ShieldCheck, Info } from "lucide-react";
 

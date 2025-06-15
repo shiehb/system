@@ -10,7 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { changeUserStatus } from "@/endpoints/api";
+import { changeUserStatus } from "@/lib/api";
 import { Ban, CheckCircle } from "lucide-react";
 
 interface ChangeStatusProps {

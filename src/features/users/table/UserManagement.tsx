@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { getUsers } from "@/endpoints/api";
+import { getUsers } from "@/lib/api";
 import { useAuth } from "@/contexts/useAuth";
 import type { User } from "@/types";
-import { ResetPassword } from "@/components/form/reset-password-form";
+import { ResetPassword } from "@/features/users/form/reset-password-form";
 
 import {
   Table,
@@ -45,8 +45,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-import { EditUserForm } from "@/components/form/edit-user-form";
-import { ChangeStatus } from "@/components/form/change-status-form";
+import { EditUserForm } from "@/features/users/form/edit-user-form";
+import { ChangeStatus } from "@/features/users/form/change-status-form";
 
 interface UsersListTableProps {
   onSelectionChange?: (ids: number[]) => void;
@@ -315,7 +315,7 @@ const UsersListTable = ({
                 <TableHeader className="bg-primary border-foreground sticky top-0 z-10">
                   <TableRow>
                     {/* Selection checkbox */}
-                    <TableHead className="w-10 min-w-10 max-w-10 border-y border-b-foreground text-center p-0">
+                    <TableHead className="w-[10px] min-w-[10px] border-y border-b-foreground text-center p-2">
                       <Checkbox
                         checked={
                           users.length > 0 &&

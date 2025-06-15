@@ -60,11 +60,9 @@ export function NavigationMenuDemo({ userLevel }: { userLevel?: string }) {
             <ul className="grid w-[300px] gap-4">
               <li>
                 <NavigationMenuLink asChild>
-                  <Link to="#">
-                    <div className="font-medium">Components</div>
-                    <div className="text-muted-foreground">
-                      Browse all components in the library.
-                    </div>
+                  <Link to="/reports">
+                    <div className="font-medium">Report</div>
+                    <div className="text-muted-foreground">Browse all.</div>
                   </Link>
                 </NavigationMenuLink>
               </li>

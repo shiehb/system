@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 import { Separator } from "@/components/ui/separator";
-import { logout, getMyProfile } from "@/endpoints/api";
+import { logout, getMyProfile } from "@/lib/api";
 import { NavUser } from "@/components/nav-user";
 import { NavigationMenuDemo } from "@/components/nav-menu";
 import { Link } from "react-router-dom";

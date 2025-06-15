@@ -4,10 +4,10 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 
-import UsersListTable from "@/components/table/UserManagement";
-import ActivityLogs from "@/components/table/ActivityLogs";
-import { AddUserForm } from "@/components/form/add_user-form";
-import ExportUsersButton from "@/components/report/ExportUsersButton";
+import UsersListTable from "@/features/users/table/UserManagement";
+import ActivityLogs from "@/features/users/table/ActivityLogs";
+import { AddUserForm } from "@/features/users/form/add_user-form";
+import ExportUsersButton from "@/features/users/button/ExportUsersButton";
 
 export default function Page() {
   const [activeTab, setActiveTab] = useState("users");
@@ -59,7 +59,7 @@ export default function Page() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList
               aria-label="User management sections"
-              className="border-foreground border-1 w-fit"
+              className="border-foreground border-1 w-fit gap-1"
             >
               <TabsTrigger
                 value="users"

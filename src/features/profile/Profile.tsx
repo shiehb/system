@@ -1,12 +1,11 @@
 import banner1 from "@/assets/banner1.png";
 import { LoadingWave } from "@/components/ui/loading-wave";
-import { logout } from "@/endpoints/api";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { getMyProfile, updateProfile, updateAvatar } from "@/endpoints/api";
+import { getMyProfile, updateProfile, updateAvatar, logout } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -262,7 +261,7 @@ export function ProfileInfo() {
   return (
     <div className="w-full mx-auto">
       {/* Cover Photo Section */}
-      <div className="relative h-80 bg-gradient-to-r from--500 to-light-600 rounded-t-lg overflow-hidden shadow-md">
+      <div className="relative md:h-50 lg:h-80 bg-gradient-to-r from--500 to-light-600 rounded-t-lg overflow-hidden shadow-md">
         <img src={banner1} alt="Cover" className="w-full h-full object-cover" />
       </div>
 

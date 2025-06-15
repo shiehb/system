@@ -1,8 +1,9 @@
-import { LoginForm } from "@/components/form/login-form";
-import denrLogo from "@/assets/DENR-Logo.svg";
-import BPLogo from "@/assets/Bagong-Pilipinas-Logo.svg";
 import { useState } from "react";
 import { LoadingWave } from "@/components/ui/loading-wave";
+
+import { LoginForm } from "@/features/auth/login-form";
+import denrLogo from "@/assets/DENR-Logo.svg";
+import BPLogo from "@/assets/Bagong-Pilipinas-Logo.svg";
 
 export default function LoginPage() {
   // Set header height for mobile and larger screens

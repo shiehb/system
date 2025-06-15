@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { getActivityLogs } from "@/endpoints/api";
+import { getActivityLogs } from "@/lib/api";
 import {
   Table,
   TableBody,

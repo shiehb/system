@@ -1,7 +1,8 @@
-import { useEffect, useState, useCallback, ReactNode } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { is_authenticated, login, register } from "../endpoints/api";
-import { AuthContext } from "./AuthContext";
+import { is_authenticated, login, register } from "@/lib/api";
+import { AuthContext } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 interface AuthProviderProps {

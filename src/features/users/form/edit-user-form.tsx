@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { updateUser } from "@/endpoints/api";
+import { updateUser } from "@/lib/api";
 import { toast } from "sonner";
 
 const userSchema = z
@@ -194,6 +194,7 @@ export function EditUserForm({
                         <Input
                           {...field}
                           placeholder="e.g. (12345678)"
+                          readOnly
                           className={
                             form.formState.errors.id_number
                               ? "border-destructive"
