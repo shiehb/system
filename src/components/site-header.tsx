@@ -63,12 +63,11 @@ export function SiteHeader() {
     }
   };
 
-  // Mobile navigation items with icons
   const mobileNavItems = [
     { name: "Dashboard", path: "/dashboard", icon: Home },
     { name: "Maps", path: "/maps", icon: Map },
     { name: "Establishments", path: "/establishments", icon: Building2 },
-    { name: "Inspection", path: "/schedule", icon: ClipboardList },
+    { name: "Inspection", path: "/inspection", icon: ClipboardList },
     { name: "Reports", path: "/reports", icon: FileText },
     ...(profile?.user_level === "admin"
       ? [{ name: "Users", path: "/user-management", icon: Users }]
@@ -80,12 +79,14 @@ export function SiteHeader() {
       {/* Mobile Sidebar */}
       <div className="md:hidden">
         <Sheet>
-          <SheetTrigger className="fixed top-4 left-4 z-50">
+          <SheetTrigger className="fixed top-4 left-4 z-[1000]">
             <Menu className="h-6 w-6" />
           </SheetTrigger>
-          <SheetContent side="left" className="w-[320px] flex flex-col">
-            <Link
-              to="/dashboard"
+          <SheetContent
+            side="left"
+            className="w-[320px] flex flex-col z-[1001]"
+          >
+            <div
               className="flex items-center gap-3 p-4 pb-0 cursor-pointer"
               aria-label="Go to dashboard"
             >
@@ -100,12 +101,10 @@ export function SiteHeader() {
                 </span>
                 <span className="truncate text-xs">Management System</span>
               </div>
-            </Link>
+            </div>
 
-            {/* Separator */}
             <Separator />
 
-            {/* Main Navigation */}
             <nav className="flex-1 flex flex-col space-y-2">
               {mobileNavItems.map((item) => {
                 const Icon = item.icon;
@@ -121,7 +120,7 @@ export function SiteHeader() {
                 );
               })}
             </nav>
-            {/* User Menu */}
+
             <SheetFooter>
               <NavUser
                 user={{
@@ -143,8 +142,7 @@ export function SiteHeader() {
       {/* Desktop Header */}
       <header className="bg-background sticky top-0 z-40 flex w-full items-center border-b border-foreground">
         <div className="flex h-(--header-height) w-full items-center gap-2 px-2">
-          <Link
-            to="/dashboard"
+          <div
             className="flex items-center gap-2 px-12 md:px-4 md:min-w-20 lg:min-w-70 cursor-pointer"
             aria-label="Go to dashboard"
           >
@@ -159,7 +157,7 @@ export function SiteHeader() {
               </span>
               <span className="truncate text-xs">Management System</span>
             </div>
-          </Link>
+          </div>
 
           <div className="hidden md:flex flex-grow justify-center">
             <NavigationMenuDemo userLevel={profile?.user_level} />

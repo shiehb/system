@@ -162,7 +162,7 @@ export default function ActivityLogs() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="pl-8 pr-8 w-full md:w-100 bg-background border-foreground" // Added padding for clear button
+              className="pl-8 pr-8 w-full md:w-100 bg-background border-foreground"
             />
             {searchInput && (
               <X

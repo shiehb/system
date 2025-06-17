@@ -36,21 +36,9 @@ export function NavigationMenuDemo({ userLevel }: { userLevel?: string }) {
 
         {/* Inspection */}
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Inspection</NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <ul className="grid w-[300px] gap-4">
-              <li>
-                <NavigationMenuLink asChild>
-                  <Link to="/schedule">
-                    <div className="font-medium">Set Schedule</div>
-                    <div className="text-muted-foreground">
-                      Set inspection schedule
-                    </div>
-                  </Link>
-                </NavigationMenuLink>
-              </li>
-            </ul>
-          </NavigationMenuContent>
+          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <Link to="/inspection">Inspection</Link>
+          </NavigationMenuLink>
         </NavigationMenuItem>
 
         {/* Report */}

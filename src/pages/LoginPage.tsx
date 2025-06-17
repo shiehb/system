@@ -8,7 +8,9 @@ import BPLogo from "@/assets/Bagong-Pilipinas-Logo.svg";
 export default function LoginPage() {
   // Set header height for mobile and larger screens
   const headerHeightMobile = "h-[90px]"; // adjust as needed
-  const headerHeightMd = "md:h-[110px]"; // adjust as needed
+  const headerHeightMd = "md:h-[110px]";
+
+  // adjust as needed
   const [loading, setLoading] = useState(false);
 
   return (

@@ -19,7 +19,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -31,12 +31,39 @@ import {
 import { updateUser } from "@/lib/api";
 import { toast } from "sonner";
 
+// Type definitions for role descriptions
+type RoleDescription = {
+  chief: string;
+  inspector: string;
+};
+
+const roleDescriptions: Record<string, RoleDescription> = {
+  "RA-6969": {
+    chief:
+      "This Chief will oversee Toxic Substances and Hazardous and Nuclear Wastes Control",
+    inspector:
+      "This Inspector will handle Toxic Substances and Hazardous and Nuclear Wastes Control",
+  },
+  "RA-8749": {
+    chief: "This Chief will oversee Air Quality Management",
+    inspector: "This Inspector will handle Air Quality Management",
+  },
+  "RA-9275": {
+    chief: "This Chief will oversee Water Quality Management",
+    inspector: "This Inspector will handle Water Quality Management",
+  },
+  "RA-9003": {
+    chief: "This Chief will oversee Ecological Solid Waste Management",
+    inspector: "This Inspector will handle Ecological Solid Waste Management",
+  },
+};
+
 const userSchema = z
   .object({
     id_number: z.string().min(3, "ID Number must be at least 3 characters"),
     first_name: z.string().min(2, "First name is required"),
     last_name: z.string().min(2, "Last name is required"),
-    middle_name: z.string().optional(),
+    middle_name: z.string().min(2, "Middle name is required"),
     email: z.string().email("Invalid email address"),
     user_level: z.enum(["admin", "manager", "inspector", "chief"]),
     status: z.enum(["active", "inactive"]),
@@ -94,8 +121,9 @@ export function EditUserForm({
     },
   });
 
-  // Watch user_level to conditionally show role field
+  // Watch user_level and role to conditionally show role field and alert
   const userLevel = form.watch("user_level");
+  const selectedRole = form.watch("role");
 
   useEffect(() => {
     if (user && open) {
@@ -280,18 +308,18 @@ export function EditUserForm({
                   control={form.control}
                   name="status"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="w-full">
                       <FormLabel>Status</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="w-full">
                           <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="inactive">Inactive</SelectItem>
                         </SelectContent>
@@ -305,22 +333,22 @@ export function EditUserForm({
                   control={form.control}
                   name="user_level"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="w-full">
                       <FormLabel>User Level</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select user level" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
+                        <SelectContent className="w-full">
                           <SelectItem value="inspector">Inspector</SelectItem>
                           <SelectItem value="chief">Chief</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="admin">Administrator</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -333,18 +361,18 @@ export function EditUserForm({
                     control={form.control}
                     name="role"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="w-full">
                         <FormLabel>Section</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select section" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="w-full">
                             <SelectItem value="RA-6969">RA-6969</SelectItem>
                             <SelectItem value="RA-8749">RA-8749</SelectItem>
                             <SelectItem value="RA-9275">RA-9275</SelectItem>
@@ -357,6 +385,22 @@ export function EditUserForm({
                   />
                 )}
               </div>
+
+              {["inspector", "chief"].includes(userLevel) && (
+                <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
+                  <Info className="h-4 w-4 mb-2" />
+                  <AlertTitle>
+                    {userLevel === "chief" ? "Chief" : "Inspector"} Information
+                  </AlertTitle>
+                  <AlertDescription>
+                    {selectedRole
+                      ? roleDescriptions[selectedRole][
+                          userLevel as "chief" | "inspector"
+                        ]
+                      : `Please select a section for this ${userLevel}`}
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             <div className="flex justify-end gap-4 pt-4">

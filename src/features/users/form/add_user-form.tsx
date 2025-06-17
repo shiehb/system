@@ -34,12 +34,39 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 
+// Type definitions for role descriptions
+type RoleDescription = {
+  chief: string;
+  inspector: string;
+};
+
+const roleDescriptions: Record<string, RoleDescription> = {
+  "RA-6969": {
+    chief:
+      "This Chief will oversee Toxic Substances and Hazardous and Nuclear Wastes Control",
+    inspector:
+      "This Inspector will handle Toxic Substances and Hazardous and Nuclear Wastes Control",
+  },
+  "RA-8749": {
+    chief: "This Chief will oversee Air Quality Management",
+    inspector: "This Inspector will handle Air Quality Management",
+  },
+  "RA-9275": {
+    chief: "This Chief will oversee Water Quality Management",
+    inspector: "This Inspector will handle Water Quality Management",
+  },
+  "RA-9003": {
+    chief: "This Chief will oversee Ecological Solid Waste Management",
+    inspector: "This Inspector will handle Ecological Solid Waste Management",
+  },
+};
+
 const userSchema = z
   .object({
-    id_number: z.string().min(3, "ID Number must be at least 3 characters"),
+    id_number: z.string().min(3, "ID Number must be at least 8 characters"),
     first_name: z.string().min(2, "First name is required"),
     last_name: z.string().min(2, "Last name is required"),
-    middle_name: z.string().optional(),
+    middle_name: z.string().min(2, "Middle name is required"),
     email: z.string().email("Invalid email address"),
     password: z.string().optional(),
     cPassword: z.string().optional(),
@@ -49,7 +76,6 @@ const userSchema = z
     showPasswordFields: z.boolean(),
   })
   .superRefine((data, ctx) => {
-    // Password validation
     if (data.showPasswordFields && data.password && data.password.length > 0) {
       if (data.password !== data.cPassword) {
         ctx.addIssue({
@@ -60,7 +86,6 @@ const userSchema = z
       }
     }
 
-    // Role validation for inspector/chief
     if (["inspector", "chief"].includes(data.user_level) && !data.role) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -69,7 +94,6 @@ const userSchema = z
       });
     }
 
-    // Clear role if not inspector/chief
     if (!["inspector", "chief"].includes(data.user_level) && data.role) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -153,7 +177,7 @@ export function AddUserForm({
 
       toast.success("User added successfully");
       setOpen(false);
-      onUserAdded?.(); // Call the callback after success
+      onUserAdded?.();
     } catch (error: any) {
       console.error("Error adding user:", error);
 
@@ -188,11 +212,10 @@ export function AddUserForm({
 
   const showPasswordFields = form.watch("showPasswordFields");
   const userLevel = form.watch("user_level");
+  const selectedRole = form.watch("role");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {/* Button Trigger */}
-
       <DialogTrigger asChild>
         <div className={cn("w-full md:w-auto", className)} {...props}>
           <UserPlus className="h-4 w-4" />
@@ -200,7 +223,6 @@ export function AddUserForm({
         </div>
       </DialogTrigger>
 
-      {/* Content */}
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold">Add New User</DialogTitle>
@@ -342,7 +364,6 @@ export function AddUserForm({
               <div className="grid grid-cols-2 gap-2">
                 {!showPasswordFields && (
                   <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
-                    <Info className="h-4 w-4 mb-2" />
                     <AlertTitle>
                       A default password will be automatically generated.
                     </AlertTitle>
@@ -424,18 +445,18 @@ export function AddUserForm({
                   control={form.control}
                   name="status"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="w-full">
                       <FormLabel>Status</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select status" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className="w-full">
                           <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="inactive">Inactive</SelectItem>
                         </SelectContent>
@@ -448,22 +469,22 @@ export function AddUserForm({
                   control={form.control}
                   name="user_level"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="w-full">
                       <FormLabel>User Level</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select user level" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
+                        <SelectContent className="w-full">
                           <SelectItem value="inspector">Inspector</SelectItem>
                           <SelectItem value="chief">Chief</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="admin">Administrator</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -476,18 +497,18 @@ export function AddUserForm({
                     control={form.control}
                     name="role"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="w-full">
                         <FormLabel>Section</FormLabel>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="w-full">
                               <SelectValue placeholder="Select Section" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="w-full">
                             <SelectItem value="RA-6969">RA-6969</SelectItem>
                             <SelectItem value="RA-8749">RA-8749</SelectItem>
                             <SelectItem value="RA-9275">RA-9275</SelectItem>
@@ -500,6 +521,22 @@ export function AddUserForm({
                   />
                 )}
               </div>
+
+              {["inspector", "chief"].includes(userLevel) && (
+                <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
+                  <Info className="h-4 w-4 mb-2" />
+                  <AlertTitle>
+                    {userLevel === "chief" ? "Chief" : "Inspector"} Information
+                  </AlertTitle>
+                  <AlertDescription>
+                    {selectedRole
+                      ? roleDescriptions[selectedRole][
+                          userLevel as "chief" | "inspector"
+                        ]
+                      : `Please select a section for this ${userLevel}`}
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
             <div className="flex justify-end gap-4 pt-4">
