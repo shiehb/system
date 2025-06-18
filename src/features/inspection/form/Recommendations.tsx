@@ -69,6 +69,8 @@ export function Recommendations() {
           <p>PCO/Manager</p>
           <p className="text-sm text-muted-foreground">
             (Referred to attached: Monitoring Slip)
+            <br />
+            EMED-MONITORING_F001
           </p>
         </div>
       </div>
