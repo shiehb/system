@@ -1,18 +1,16 @@
 import banner1 from "@/assets/banner1.png";
 import { LoadingWave } from "@/components/ui/loading-wave";
-import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { getMyProfile, updateProfile, updateAvatar, logout } from "@/lib/api";
+import { getMyProfile, updateAvatar } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -24,16 +22,15 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Camera, Pencil, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Camera } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogDescription,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import type { Crop, PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -95,56 +92,25 @@ function centerAspectCrop(
   );
 }
 
-const profileFormSchema = z
-  .object({
-    current_password: z.string().optional(),
-    new_password: z
-      .string()
-      .min(8, { message: "Password must be at least 8 characters." })
-      .optional()
-      .or(z.literal("")),
-    confirm_password: z.string().optional(),
-    avatar: z.instanceof(File).optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.new_password) {
-      if (!data.current_password) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Current password is required when changing password",
-          path: ["current_password"],
-        });
-      }
-      if (data.new_password !== data.confirm_password) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Passwords don't match",
-          path: ["confirm_password"],
-        });
-      }
-    }
-  });
+const avatarFormSchema = z.object({
+  avatar: z.instanceof(File).optional(),
+});
 
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
+type AvatarFormValues = z.infer<typeof avatarFormSchema>;
 
 export function ProfileInfo() {
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
   const imgRef = useRef<HTMLImageElement>(null);
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileFormSchema),
+  const form = useForm<AvatarFormValues>({
+    resolver: zodResolver(avatarFormSchema),
   });
 
   useEffect(() => {
@@ -163,23 +129,12 @@ export function ProfileInfo() {
   }, []);
 
   useEffect(() => {
-    if (isDialogOpen) {
-      form.reset({
-        current_password: "",
-        new_password: "",
-        confirm_password: "",
-        avatar: undefined,
-      });
-    }
-  }, [isDialogOpen, form]);
-
-  useEffect(() => {
     if (completedCrop && imgRef.current && previewCanvasRef.current) {
       canvasPreview(imgRef.current, previewCanvasRef.current, completedCrop);
     }
   }, [completedCrop]);
 
-  const handleAvatarSubmit = async (data: ProfileFormValues) => {
+  const handleAvatarSubmit = async (data: AvatarFormValues) => {
     if (!data.avatar || !completedCrop) return;
 
     try {
@@ -213,39 +168,6 @@ export function ProfileInfo() {
     } catch (error: any) {
       toast.error(error.message || "Failed to update avatar");
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePasswordSubmit = async (data: ProfileFormValues) => {
-    if (!data.new_password) return;
-
-    try {
-      setIsLoading(true);
-      await updateProfile({
-        current_password: data.current_password,
-        new_password: data.new_password,
-      });
-      toast.success("Password updated successfully");
-
-      form.reset({
-        ...form.getValues(),
-        current_password: "",
-        new_password: "",
-        confirm_password: "",
-      });
-
-      await logout();
-      toast.success("Please login again with your new password");
-      navigate("/login");
-    } catch (error: any) {
-      form.reset({
-        ...form.getValues(),
-        current_password: "",
-        new_password: "",
-        confirm_password: "",
-      });
-      toast.error(error.message || "Failed to update password");
       setIsLoading(false);
     }
   };
@@ -412,192 +334,6 @@ export function ProfileInfo() {
                       >
                         {isLoading && <LoadingWave message="Uploading..." />}
                         Save Changes
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {/* Edit Password Button */}
-          <div className="mt-2">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2">
-                  <Pencil className="w-4 h-4" />
-                  <span>Edit Password</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle className="text-xl">Change Password</DialogTitle>
-                  <DialogDescription>
-                    <Alert className="mb-4">
-                      <AlertDescription className="ml-2 relative">
-                        Note: Password must be at least 8 characters long. For
-                        stronger password, it must contain special characters
-                        and numbers.
-                      </AlertDescription>
-                    </Alert>
-                  </DialogDescription>
-                </DialogHeader>
-
-                <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(handlePasswordSubmit)}
-                    className="space-y-6"
-                  >
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="current_password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Current Password</FormLabel>
-                            <div className="relative">
-                              <FormControl>
-                                <Input
-                                  type={
-                                    showCurrentPassword ? "text" : "password"
-                                  }
-                                  placeholder="Enter current password"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() =>
-                                  setShowCurrentPassword(!showCurrentPassword)
-                                }
-                              >
-                                {showCurrentPassword ? (
-                                  <EyeOff className="h-4 w-4" />
-                                ) : (
-                                  <Eye className="h-4 w-4" />
-                                )}
-                                <span className="sr-only">
-                                  {showCurrentPassword
-                                    ? "Hide password"
-                                    : "Show password"}
-                                </span>
-                              </Button>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="new_password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>New Password</FormLabel>
-                            <div className="relative">
-                              <FormControl>
-                                <Input
-                                  type={showNewPassword ? "text" : "password"}
-                                  placeholder="Enter new password (min 8 characters)"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() =>
-                                  setShowNewPassword(!showNewPassword)
-                                }
-                              >
-                                {showNewPassword ? (
-                                  <EyeOff className="h-4 w-4" />
-                                ) : (
-                                  <Eye className="h-4 w-4" />
-                                )}
-                                <span className="sr-only">
-                                  {showNewPassword
-                                    ? "Hide password"
-                                    : "Show password"}
-                                </span>
-                              </Button>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="confirm_password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Confirm New Password</FormLabel>
-                            <div className="relative">
-                              <FormControl>
-                                <Input
-                                  type={
-                                    showConfirmPassword ? "text" : "password"
-                                  }
-                                  placeholder="Confirm new password"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                                onClick={() =>
-                                  setShowConfirmPassword(!showConfirmPassword)
-                                }
-                              >
-                                {showConfirmPassword ? (
-                                  <EyeOff className="h-4 w-4" />
-                                ) : (
-                                  <Eye className="h-4 w-4" />
-                                )}
-                                <span className="sr-only">
-                                  {showConfirmPassword
-                                    ? "Hide password"
-                                    : "Show password"}
-                                </span>
-                              </Button>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Alert
-                        variant="destructive"
-                        className="mb-4 items-center "
-                      >
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription className="ml-2">
-                          After saving, you'll be automatically logged out for
-                          security reasons.
-                        </AlertDescription>
-                      </Alert>
-                    </div>
-
-                    <div className="flex gap-3 justify-end">
-                      <Button
-                        variant="outline"
-                        type="button"
-                        onClick={() => setIsDialogOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        disabled={isLoading || !form.watch("new_password")}
-                      >
-                        {isLoading && <LoadingWave message="Please wait..." />}
-                        Update Password
                       </Button>
                     </div>
                   </form>

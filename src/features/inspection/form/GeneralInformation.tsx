@@ -38,7 +38,7 @@ const generalInfoSchema = z.object({
   }),
 });
 
-export function GeneralInformation() {
+export default function GeneralInformation() {
   const form = useForm<z.infer<typeof generalInfoSchema>>({
     resolver: zodResolver(generalInfoSchema),
     defaultValues: {
@@ -74,7 +74,7 @@ export function GeneralInformation() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6  pb-10">
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">General Information</h2>
         <Separator className="my-2" />
@@ -88,7 +88,7 @@ export function GeneralInformation() {
             render={() => (
               <FormItem>
                 <div className="mb-4">
-                  <FormLabel className="text-base">
+                  <FormLabel>
                     Applicable Environmental Laws (Pls. Checkbox)
                   </FormLabel>
                 </div>
@@ -114,7 +114,7 @@ export function GeneralInformation() {
                               }}
                             />
                           </FormControl>
-                          <FormLabel className="font-normal text-sm">
+                          <FormLabel className="font-normal text-base">
                             {law.label}
                           </FormLabel>
                         </FormItem>

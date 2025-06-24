@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { logout, getMyProfile } from "@/lib/api";
 import { NavUser } from "@/components/nav-user";
 import { NavigationMenuDemo } from "@/components/nav-menu";
+import { ChangePassword } from "@/features/password/edit_password";
 import { Link } from "react-router-dom";
 import {
   Sheet,
@@ -87,7 +88,7 @@ export function SiteHeader() {
             className="w-[320px] flex flex-col z-[1001]"
           >
             <div
-              className="flex items-center gap-3 p-4 pb-0 cursor-pointer"
+              className="flex items-center gap-3 p-4 pb-0"
               aria-label="Go to dashboard"
             >
               <img
@@ -131,7 +132,6 @@ export function SiteHeader() {
                   avatar: profile?.avatar_url || "",
                 }}
                 onProfileClick={() => navigate("/profile")}
-                onSettingsClick={() => navigate("/settings")}
                 onLogoutClick={handleLogout}
               />
             </SheetFooter>
@@ -143,7 +143,7 @@ export function SiteHeader() {
       <header className="bg-background sticky top-0 z-40 flex w-full items-center border-b border-foreground">
         <div className="flex h-(--header-height) w-full items-center gap-2 px-2">
           <div
-            className="flex items-center gap-2 px-12 md:px-4 md:min-w-20 lg:min-w-70 cursor-pointer"
+            className="flex items-center gap-2 px-12 md:px-4 md:min-w-20 lg:min-w-70"
             aria-label="Go to dashboard"
           >
             <img
@@ -175,7 +175,6 @@ export function SiteHeader() {
                   avatar: profile?.avatar_url || "",
                 }}
                 onProfileClick={() => navigate("/profile")}
-                onSettingsClick={() => navigate("/settings")}
                 onLogoutClick={handleLogout}
               />
             </div>

@@ -16,6 +16,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import UserManagementPage from "@/pages/UserManagementPage";
 import ProfilePage from "@/pages/ProfilePage";
 import MapPage from "@/pages/MapPage";
+import EstablishmentPage from "@/pages/EstablishmentPage";
 import InspectionPage from "@/pages/InspectionPage";
 import ReportPage from "@/pages/ReportPage";
 
@@ -80,6 +81,17 @@ function AppRoutes() {
                   <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
                     <SiteHeader />
                     <MapPage />
+                  </SidebarProvider>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/establishments"
+              element={
+                <PrivateRoute>
+                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
+                    <SiteHeader />
+                    <EstablishmentPage />
                   </SidebarProvider>
                 </PrivateRoute>
               }

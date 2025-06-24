@@ -26,7 +26,7 @@ const summarySchema = z.object({
   commitments: z.string().optional(),
 });
 
-export function SummaryOfFindingsAndObservations() {
+export default function SummaryOfFindingsAndObservations() {
   const form = useForm<z.infer<typeof summarySchema>>({
     resolver: zodResolver(summarySchema),
     defaultValues: {
@@ -101,9 +101,12 @@ export function SummaryOfFindingsAndObservations() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6  pb-10">
+      {/* Header Section */}
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold">
+        <h2 className="text-2xl font-bold tracking-tight">
+          {" "}
+          {/* 24px for main heading */}
           Summary of Findings and Observations
         </h2>
         <Separator className="my-2" />
@@ -125,7 +128,9 @@ export function SummaryOfFindingsAndObservations() {
                           <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-12 gap-4 items-start">
                             {/* System Label */}
                             <div className="lg:col-span-3">
-                              <FormLabel className="font-medium">
+                              <FormLabel className="font-medium text-base">
+                                {" "}
+                                {/* 16px for labels */}
                                 {system.system}
                               </FormLabel>
                             </div>
@@ -145,6 +150,8 @@ export function SummaryOfFindingsAndObservations() {
                                     className="flex flex-col items-center space-y-2"
                                   >
                                     <FormLabel className="text-xs text-center">
+                                      {" "}
+                                      {/* 12px for status labels */}
                                       {status === "compliant"
                                         ? "Compliant"
                                         : status === "nonCompliant"
@@ -183,6 +190,7 @@ export function SummaryOfFindingsAndObservations() {
                                     };
                                     field.onChange(updatedSystems);
                                   }}
+                                  className="text-sm"
                                 />
                               </FormControl>
                             </div>
@@ -194,7 +202,8 @@ export function SummaryOfFindingsAndObservations() {
                         </div>
                       ))}
                     </div>
-                    <FormMessage />
+                    <FormMessage className="text-xs" />{" "}
+                    {/* 12px for error messages */}
                   </FormItem>
                 )}
               />

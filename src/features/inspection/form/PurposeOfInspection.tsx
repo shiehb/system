@@ -22,7 +22,7 @@ const purposeSchema = z.object({
   commitmentOtherDetail: z.string().optional(),
 });
 
-export function PurposeOfInspection() {
+export default function PurposeOfInspection() {
   const form = useForm<z.infer<typeof purposeSchema>>({
     resolver: zodResolver(purposeSchema),
     defaultValues: {
@@ -80,7 +80,7 @@ export function PurposeOfInspection() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6  pb-10">
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">Purpose of Inspection</h2>
         <Separator className="my-2" />

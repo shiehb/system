@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronUp, User, Settings, LogOut } from "lucide-react";
+import { User, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -15,7 +15,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { useState } from "react";
+import { ChangePassword } from "@/features/password/edit_password";
 
 interface NavUserProps {
   user: {
@@ -24,26 +24,18 @@ interface NavUserProps {
     avatar: string;
   };
   onProfileClick?: () => void;
-  onSettingsClick?: () => void;
   onLogoutClick?: () => void;
 }
 
-export function NavUser({
-  user,
-  onProfileClick,
-  onSettingsClick,
-  onLogoutClick,
-}: NavUserProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
+export function NavUser({ user, onProfileClick, onLogoutClick }: NavUserProps) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu onOpenChange={setIsOpen}>
+        <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border-none"
             >
               <Avatar className="h-8 w-8 rounded-full">
                 <AvatarImage
@@ -58,33 +50,30 @@ export function NavUser({
                     .join("")}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
-              </div>
-              {isOpen ? (
-                <ChevronUp className="ml-auto size-4" />
-              ) : (
-                <ChevronDown className="ml-auto size-4" />
-              )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-50 rounded-lg"
             side={"bottom"}
             align="end"
             sideOffset={8}
             collisionPadding={16}
           >
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuLabel className="flex items-center gap-3">
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">{user.name}</span>
+                <span className="truncate text-xs">{user.email}</span>
+              </div>
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onProfileClick}>
               <User className="mr-2 h-4 w-4" />
-              Profile
+              View Profile
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onSettingsClick}>
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <ChangePassword>
+                <div className="flex items-center">Password</div>
+              </ChangePassword>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onLogoutClick}>

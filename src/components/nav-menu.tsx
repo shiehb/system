@@ -30,8 +30,9 @@ export function NavigationMenuDemo({ userLevel }: { userLevel?: string }) {
 
         {/* Establishments */}
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Establishments</NavigationMenuTrigger>
-          <NavigationMenuContent></NavigationMenuContent>
+          <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+            <Link to="/establishments">Establishments</Link>
+          </NavigationMenuLink>
         </NavigationMenuItem>
 
         {/* Inspection */}
