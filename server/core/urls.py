@@ -6,6 +6,7 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('base.urls')),  # Your API endpoints
+       path('api/establishment/', include('establishment.urls')),
 ]
 
 # Add this to serve media files in development

@@ -59,64 +59,62 @@ export default function InspectionTasking() {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create Inspection Task</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/*  Column */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Establishments</Label>
-                <EstablishmentSelector
-                  selected={selectedEstablishments}
-                  onSelect={setSelectedEstablishments}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Inspector</Label>
-                <PersonnelSelector
-                  selected={selectedInspector}
-                  onSelect={setSelectedInspector}
-                  userLevel="inspector"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Inspection Date Range</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="start-date">Start</Label>
-                    <input
-                      id="start-date"
-                      type="date"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="end-date">End</Label>
-                    <input
-                      id="end-date"
-                      type="date"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      min={startDate}
-                    />
+    <div className="flex flex-col w-full">
+      <div className="flex flex-col lg:flex-row gap-4 w-full flex-1">
+        {/* Sidebar - Task Creation */}
+        <div className="w-full lg:w-[350px] p-4 pr-0">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Inspection</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-8">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label>Establishments</Label>
+                  <EstablishmentSelector
+                    selected={selectedEstablishments}
+                    onSelect={setSelectedEstablishments}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Inspector</Label>
+                  <PersonnelSelector
+                    selected={selectedInspector}
+                    onSelect={setSelectedInspector}
+                    userLevel="inspector"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Inspection Date Range</Label>
+                  <div className="flex gap-4">
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor="start-date">Start</Label>
+                      <input
+                        id="start-date"
+                        type="date"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Label htmlFor="end-date">End</Label>
+                      <input
+                        id="end-date"
+                        type="date"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            {/*  Date Range */}
-            <div className="grid grid-cols-1 space-y-4">
-              {/* Task Summary Preview */}
-              <div className="space-y-2">
+              {/* Task Summary */}
+              <div>
                 <Label>Task Summary</Label>
-                <div className="rounded-md border p-4 bg-muted/50">
+                <div className="rounded-md border p-4 bg-muted/50 mt-2">
                   {selectedInspector || selectedEstablishments.length > 0 ? (
                     <div className="space-y-2 text-sm">
                       <p>
@@ -147,45 +145,50 @@ export default function InspectionTasking() {
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={resetForm}
-              disabled={
-                !selectedInspector && selectedEstablishments.length === 0
-              }
-            >
-              Clear
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={
-                selectedEstablishments.length === 0 ||
-                !selectedInspector ||
-                !startDate ||
-                !endDate
-              }
-            >
-              Create Task
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Task Table */}
-      {tasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Created Inspection Tasks</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <InspectionTaskTable tasks={tasks} />
-          </CardContent>
-        </Card>
-      )}
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={resetForm}
+                  disabled={
+                    !selectedInspector && selectedEstablishments.length === 0
+                  }
+                >
+                  Clear
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={
+                    selectedEstablishments.length === 0 ||
+                    !selectedInspector ||
+                    !startDate ||
+                    !endDate
+                  }
+                >
+                  Create Task
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {/* Task Table */}
+        <div className="flex-1  p-4 pl-0">
+          <Card className=" h-full">
+            <CardHeader>
+              <CardTitle>Inspections List</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {tasks.length > 0 ? (
+                <InspectionTaskTable tasks={tasks} />
+              ) : (
+                <div className="text-center text-muted-foreground py-12">
+                  No inspection tasks created yet.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

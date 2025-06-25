@@ -30,7 +30,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     
     # Local apps
-    'base'
+    'base',
+    'establishment.apps.EstablishmentConfig',
 ]
 
 AUTH_USER_MODEL = 'base.User'
