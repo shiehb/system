@@ -228,7 +228,7 @@ const UsersListTable = ({
   };
 
   return (
-    <Card className="sm:h-auto md:h-[calc(100vh-150px)] w-full bg-muted">
+    <Card className="sm:h-auto md:h-[calc(100vh-150px)] w-full bg-muted rounded-none">
       <CardHeader className="flex flex-col md:flex-row justify-between gap-4">
         <CardTitle>User Management</CardTitle>
 
@@ -307,12 +307,12 @@ const UsersListTable = ({
       </CardHeader>
 
       <CardContent>
-        <div className="rounded-md border overflow-hidden w-full">
+        <div className=" overflow-hidden w-full">
           {/* Desktop Table */}
           <div className="hidden sm:block ">
             <Table className="bg-background border-1 border-foreground min-w-lg ">
               <ScrollArea className="h-[calc(100vh-310px)] md:h-[calc(100vh-275px)]  xl:h-[calc(100vh-260px)]">
-                <TableHeader className="bg-primary border-foreground sticky top-0 z-10">
+                <TableHeader className=" border-foreground sticky top-0 z-10">
                   <TableRow>
                     {/* Selection checkbox */}
                     <TableHead className="w-[10px] min-w-[10px] border-y border-b-foreground text-center p-2">

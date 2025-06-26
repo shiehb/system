@@ -18,32 +18,24 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Search, Loader2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  deleteEstablishment,
-  updateEstablishment,
-} from "@/lib/establishmentApi";
-
-interface Establishment {
-  id: number;
-  name: string;
-  address: string;
-  coordinates: string;
-  year: string;
-  createdAt: string;
-}
+import { deleteEstablishment } from "@/lib/establishmentApi";
+import type { Establishment } from "@/lib/establishmentApi";
 
 interface EstablishmentsListProps {
   establishments: Establishment[];
   onDelete?: (id: number) => void;
-  onUpdate?: (id: number, data: Partial<Establishment>) => void;
+  onEdit?: (establishment: Establishment) => void;
 }
 
-type SortableKey = keyof Pick<Establishment, "name" | "year" | "createdAt">;
+type SortableKey = keyof Pick<
+  Establishment,
+  "name" | "year_established" | "createdAt"
+>;
 
 export default function EstablishmentsList({
   establishments,
   onDelete,
-  onUpdate,
+  onEdit,
 }: EstablishmentsListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
@@ -51,8 +43,6 @@ export default function EstablishmentsList({
     direction: "ascending" | "descending";
   } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editValues, setEditValues] = useState<Partial<Establishment>>({});
 
   // Handle sorting
   const requestSort = (key: SortableKey) => {
@@ -81,17 +71,18 @@ export default function EstablishmentsList({
     // Apply sorting
     if (sortConfig !== null) {
       filtered.sort((a, b) => {
+        // Handle undefined values by treating them as empty strings for comparison
+        const aValue = a[sortConfig.key]?.toString() || "";
+        const bValue = b[sortConfig.key]?.toString() || "";
+
         // Special handling for createdAt to sort by date
         if (sortConfig.key === "createdAt") {
-          const aDate = new Date(a.createdAt).getTime();
-          const bDate = new Date(b.createdAt).getTime();
+          const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return sortConfig.direction === "ascending"
             ? aDate - bDate
             : bDate - aDate;
         }
-
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
 
         if (aValue < bValue) {
           return sortConfig.direction === "ascending" ? -1 : 1;
@@ -109,58 +100,30 @@ export default function EstablishmentsList({
   const handleDelete = async (id: number) => {
     setDeletingId(id);
     try {
-      const response = await deleteEstablishment(id);
-      if (response.status === 204) {
-        // Successful deletion
-        onDelete?.(id);
-        toast.success("Establishment deleted successfully");
-      } else {
-        throw new Error("Failed to delete establishment");
-      }
+      await deleteEstablishment(id);
+      onDelete?.(id);
+      toast.success("Establishment deleted successfully");
     } catch (error) {
       console.error("Delete error:", error);
       toast.error(
         "Failed to delete establishment. It may have already been removed."
       );
-      // Force refresh the list if the item still appears
       if (onDelete) {
-        onDelete(id); // Remove from UI even if API fails
+        onDelete(id);
       }
     } finally {
       setDeletingId(null);
     }
   };
 
-  const handleEdit = (est: Establishment) => {
-    setEditingId(est.id);
-    setEditValues({
-      name: est.name,
-      year: est.year,
-    });
-  };
-
-  const handleSaveEdit = async (id: number) => {
-    try {
-      const updated = await updateEstablishment(id, editValues);
-      onUpdate?.(id, updated);
-      setEditingId(null);
-      toast.success("Establishment updated successfully"); // Fixed success message
-    } catch (error) {
-      toast.error("Failed to update establishment"); // Fixed error message
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setEditValues({});
-  };
-
   return (
-    <Card>
+    <Card className="rounded-none">
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <CardTitle>Establishments</CardTitle>
+            <CardTitle className="font-medium text-xl">
+              Establishment List
+            </CardTitle>
             <CardDescription>
               {sortedAndFilteredEstablishments.length} of{" "}
               {establishments.length} establishments shown
@@ -211,7 +174,7 @@ export default function EstablishmentsList({
                 <TableHead>
                   <Button
                     variant="ghost"
-                    onClick={() => requestSort("year")}
+                    onClick={() => requestSort("year_established")}
                     className="p-0 hover:bg-transparent"
                   >
                     Year
@@ -235,88 +198,41 @@ export default function EstablishmentsList({
               {sortedAndFilteredEstablishments.length > 0 ? (
                 sortedAndFilteredEstablishments.map((est) => (
                   <TableRow key={est.id}>
-                    <TableCell className="font-medium">
-                      {editingId === est.id ? (
-                        <Input
-                          value={editValues.name || ""}
-                          onChange={(e) =>
-                            setEditValues({
-                              ...editValues,
-                              name: e.target.value,
-                            })
-                          }
-                        />
-                      ) : (
-                        est.name
-                      )}
-                    </TableCell>
+                    <TableCell className="font-medium">{est.name}</TableCell>
                     <TableCell className="max-w-xs truncate">
                       {est.address || "Not specified"}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {est.coordinates || "Not specified"}
+                      {est.coordinates}
                     </TableCell>
-                    <TableCell>
-                      {editingId === est.id ? (
-                        <Input
-                          type="number"
-                          value={editValues.year || ""}
-                          onChange={(e) =>
-                            setEditValues({
-                              ...editValues,
-                              year: e.target.value,
-                            })
-                          }
-                        />
-                      ) : (
-                        est.year || "Not specified"
-                      )}
-                    </TableCell>
+                    <TableCell>{est.year || "N/A"}</TableCell>
                     <TableCell>
                       {est.createdAt
                         ? new Date(est.createdAt).toLocaleDateString()
                         : "Not available"}
                     </TableCell>
                     <TableCell>
-                      {editingId === est.id ? (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleSaveEdit(est.id)}
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={handleCancelEdit}
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(est)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(est.id)}
-                            disabled={deletingId === est.id}
-                          >
-                            {deletingId === est.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            )}
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onEdit?.(est)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(est.id)}
+                          disabled={deletingId === est.id}
+                        >
+                          {deletingId === est.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          )}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

@@ -303,8 +303,8 @@ export function EditUserForm({
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <FormField
+              <div className="grid grid-cols-2 gap-2">
+                {/* <FormField
                   control={form.control}
                   name="status"
                   render={({ field }) => (
@@ -327,7 +327,7 @@ export function EditUserForm({
                       <FormMessage />
                     </FormItem>
                   )}
-                />
+                /> */}
 
                 <FormField
                   control={form.control}

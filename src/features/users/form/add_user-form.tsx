@@ -440,8 +440,8 @@ export function AddUserForm({
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <FormField
+              <div className="grid grid-cols-2 gap-2">
+                {/* <FormField
                   control={form.control}
                   name="status"
                   render={({ field }) => (
@@ -464,7 +464,7 @@ export function AddUserForm({
                       <FormMessage />
                     </FormItem>
                   )}
-                />
+                /> */}
                 <FormField
                   control={form.control}
                   name="user_level"
@@ -547,7 +547,9 @@ export function AddUserForm({
               >
                 Cancel
               </Button>
-              <Button type="submit">Add User</Button>
+              <Button className="bg-muted" variant="outline" type="submit">
+                Add User
+              </Button>
             </div>
           </form>
         </Form>

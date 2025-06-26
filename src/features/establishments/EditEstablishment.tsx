@@ -37,42 +37,33 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-function usePersistedState<T>(
-  key: string,
-  defaultValue: T
-): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const [state, setState] = useState<T>(() => {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : defaultValue;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(state));
-  }, [key, state]);
-
-  return [state, setState];
+interface EditEstablishmentProps {
+  id: number;
+  establishment: EstablishmentFormData;
+  onUpdate: (id: number, data: EstablishmentFormData) => Promise<void>;
+  isSubmitting?: boolean;
+  onCancel?: () => void;
 }
 
-export default function AddEstablishment({
-  onAdd,
+export default function EditEstablishment({
+  id,
+  establishment,
+  onUpdate,
   isSubmitting,
-}: {
-  onAdd: (est: EstablishmentFormData) => Promise<void>;
-  isSubmitting?: boolean;
-}) {
-  const [name, setName] = usePersistedState("est_name", "");
-  const [addressLine, setAddressLine] = usePersistedState(
-    "est_addressLine",
-    ""
-  );
-  const [postalCode, setPostalCode] = usePersistedState("est_postalCode", "");
-  const [region, setRegion] = usePersistedState("est_region", "");
-  const [province, setProvince] = usePersistedState("est_province", "");
-  const [city, setCity] = usePersistedState("est_city", "");
-  const [barangay, setBarangay] = usePersistedState("est_barangay", "");
-  const [latitude, setLatitude] = usePersistedState("est_latitude", "");
-  const [longitude, setLongitude] = usePersistedState("est_longitude", "");
-  const [year, setYear] = usePersistedState("est_year", "");
+  onCancel,
+}: EditEstablishmentProps) {
+  const [formData, setFormData] = useState<EstablishmentFormData>({
+    name: establishment.name || "",
+    address_line: establishment.address_line || "",
+    barangay: establishment.barangay || "",
+    city: establishment.city || "",
+    province: establishment.province || "",
+    region: establishment.region || "",
+    postal_code: establishment.postal_code || "",
+    latitude: establishment.latitude || "",
+    longitude: establishment.longitude || "",
+    year_established: establishment.year_established || null,
+  });
 
   const [errors, setErrors] = useState({
     name: "",
@@ -80,15 +71,15 @@ export default function AddEstablishment({
     province: "",
     city: "",
     barangay: "",
-    addressLine: "",
-    postalCode: "",
-    year: "",
+    address_line: "",
+    postal_code: "",
+    year_established: "",
     latitude: "",
     longitude: "",
   });
   const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const provinceRef = useRef<HTMLButtonElement>(null);
   const cityRef = useRef<HTMLButtonElement>(null);
@@ -96,105 +87,81 @@ export default function AddEstablishment({
 
   const regions = addressData.regions || [];
   const provinces =
-    regions.find((r: any) => r.name === region)?.provinces || [];
+    regions.find((r: any) => r.name === formData.region)?.provinces || [];
   const cities =
-    provinces.find((p: any) => p.name === province)?.municipalities || [];
-  const barangays = cities.find((c: any) => c.name === city)?.barangays || [];
+    provinces.find((p: any) => p.name === formData.province)?.municipalities ||
+    [];
+  const barangays =
+    cities.find((c: any) => c.name === formData.city)?.barangays || [];
 
   useEffect(() => {
-    if (region && provinceRef.current) {
+    if (formData.region && provinceRef.current) {
       setTimeout(() => provinceRef.current?.focus(), 100);
     }
-  }, [region]);
+  }, [formData.region]);
 
   useEffect(() => {
-    if (province && cityRef.current) {
+    if (formData.province && cityRef.current) {
       setTimeout(() => cityRef.current?.focus(), 100);
     }
-  }, [province]);
+  }, [formData.province]);
 
   useEffect(() => {
-    if (city && barangayRef.current && barangays.length > 0) {
+    if (formData.city && barangayRef.current && barangays.length > 0) {
       setTimeout(() => barangayRef.current?.focus(), 100);
     }
-  }, [city, barangays.length]);
+  }, [formData.city, barangays.length]);
 
-  const validateForm = () => {
-    let isValid = true;
+  const handleChange = (field: keyof EstablishmentFormData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    if (errors[field as keyof typeof errors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
+  };
+
+  const validateForm = (): boolean => {
     const newErrors = {
-      name: "",
-      region: "",
-      province: "",
-      city: "",
-      barangay: "",
-      addressLine: "",
-      postalCode: "",
-      year: "",
-      latitude: "",
-      longitude: "",
+      name: !formData.name ? "Name is required" : "",
+      region: !formData.region ? "Region is required" : "",
+      province: !formData.province ? "Province is required" : "",
+      city: !formData.city ? "City is required" : "",
+      barangay: !formData.barangay ? "Barangay is required" : "",
+      address_line: !formData.address_line ? "Address line is required" : "",
+      postal_code: !formData.postal_code
+        ? "Postal code is required"
+        : !/^\d{4}$/.test(formData.postal_code)
+        ? "Must be a 4-digit number"
+        : "",
+      year_established: !formData.year_established
+        ? "Year is required"
+        : isNaN(Number(formData.year_established))
+        ? "Must be a valid number"
+        : Number(formData.year_established) < 1900 ||
+          Number(formData.year_established) > new Date().getFullYear()
+        ? `Year must be between 1900 and ${new Date().getFullYear()}`
+        : "",
+      latitude:
+        formData.latitude && isNaN(Number(formData.latitude))
+          ? "Must be a valid number"
+          : "",
+      longitude:
+        formData.longitude && isNaN(Number(formData.longitude))
+          ? "Must be a valid number"
+          : "",
     };
-
-    if (!name.trim()) {
-      newErrors.name = "required";
-      isValid = false;
-    }
-    if (!region) {
-      newErrors.region = "required";
-      isValid = false;
-    }
-    if (!province) {
-      newErrors.province = "required";
-      isValid = false;
-    }
-    if (!city) {
-      newErrors.city = "required";
-      isValid = false;
-    }
-    if (!barangay) {
-      newErrors.barangay = " required";
-      isValid = false;
-    }
-    if (!addressLine.trim()) {
-      newErrors.addressLine = "required";
-      isValid = false;
-    }
-    if (!postalCode) {
-      newErrors.postalCode = "required";
-      isValid = false;
-    } else if (!/^\d{4}$/.test(postalCode)) {
-      newErrors.postalCode = "Must be a 4-digit number";
-      isValid = false;
-    }
-
-    const yearNum = Number(year);
-    const currentYear = new Date().getFullYear();
-    if (!year) {
-      newErrors.year = "required";
-      isValid = false;
-    } else if (isNaN(yearNum)) {
-      newErrors.year = "Must be a valid number";
-      isValid = false;
-    } else if (yearNum < 1900 || yearNum > currentYear) {
-      newErrors.year = `Year must be between 1900 and ${currentYear}`;
-      isValid = false;
-    }
-
-    // Validate coordinates
-    if (latitude && isNaN(Number(latitude))) {
-      newErrors.latitude = "Must be a valid number";
-      isValid = false;
-    }
-    if (longitude && isNaN(Number(longitude))) {
-      newErrors.longitude = "Must be a valid number";
-      isValid = false;
-    }
 
     setErrors(newErrors);
     setApiErrors({});
-    return isValid;
+    return !Object.values(newErrors).some((error) => error !== "");
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!validateForm()) {
       toast.error("Please fix all errors before submitting");
       return;
@@ -204,115 +171,66 @@ export default function AddEstablishment({
 
   const confirmSave = async () => {
     setShowSaveDialog(false);
-
-    const formData: EstablishmentFormData = {
-      name,
-      address_line: addressLine,
-      barangay,
-      city,
-      province,
-      region,
-      postal_code: postalCode,
-      latitude: latitude || undefined,
-      longitude: longitude || undefined,
-      year_established: year,
-    };
-
     try {
-      await onAdd(formData);
-      resetForm(false);
+      await onUpdate(id, {
+        ...formData,
+        year_established: formData.year_established || null,
+        postal_code: formData.postal_code,
+        latitude: formData.latitude || undefined,
+        longitude: formData.longitude || undefined,
+      });
+      toast.success("Establishment updated successfully");
     } catch (error) {
-      if (error instanceof Error) {
-        if (error.message.includes(":")) {
-          const fieldErrors = error.message.split("\n").reduce((acc, line) => {
-            const [field, message] = line.split(": ");
-            if (field && message) {
-              acc[field] = message;
-            }
-            return acc;
-          }, {} as Record<string, string>);
-
-          setApiErrors(fieldErrors);
-          toast.error("Please fix the validation errors");
-        } else {
-          toast.error(error.message || "Failed to create establishment");
-        }
-      } else {
-        toast.error("Failed to create establishment");
-      }
+      console.error("Update error:", error);
+      toast.error("Failed to update establishment");
     }
   };
 
-  const resetForm = (showToast = true) => {
-    setShowClearDialog(false);
-    setName("");
-    setAddressLine("");
-    setPostalCode("");
-    setRegion("");
-    setProvince("");
-    setCity("");
-    setBarangay("");
-    setLatitude("");
-    setLongitude("");
-    setYear("");
-    setErrors({
-      name: "",
-      region: "",
-      province: "",
-      city: "",
-      barangay: "",
-      addressLine: "",
-      postalCode: "",
-      year: "",
-      latitude: "",
-      longitude: "",
+  const handleCancel = () => {
+    const isModified = Object.keys(formData).some((key) => {
+      const formKey = key as keyof EstablishmentFormData;
+      return formData[formKey] !== (establishment[formKey] || "");
     });
-    setApiErrors({});
-    if (showToast) {
-      toast.info("Form cleared");
+
+    if (isModified) {
+      setShowCancelDialog(true);
+    } else {
+      onCancel?.();
     }
-    [
-      "est_name",
-      "est_addressLine",
-      "est_postalCode",
-      "est_region",
-      "est_province",
-      "est_city",
-      "est_barangay",
-      "est_latitude",
-      "est_longitude",
-      "est_year",
-    ].forEach((key) => localStorage.removeItem(key));
   };
 
-  const getErrorClass = (field: keyof typeof errors) =>
-    errors[field] || apiErrors[field] ? "border-destructive" : "";
-
-  const getErrorMessage = (field: keyof typeof errors) => {
-    return apiErrors[field] || errors[field];
+  const confirmCancel = () => {
+    setShowCancelDialog(false);
+    onCancel?.();
   };
+
+  const getFieldState = (field: keyof typeof errors) => ({
+    className: errors[field] || apiErrors[field] ? "border-destructive" : "",
+    message: apiErrors[field] || errors[field],
+  });
 
   return (
     <Card className="md:min-h-[calc(100vh-59px)] rounded-none flex flex-col">
       <CardHeader>
-        <CardTitle className="m-0 text-xl">Add Establishment</CardTitle>
+        <CardTitle className="m-0 text-xl">Edit Establishment</CardTitle>
         <Separator />
       </CardHeader>
+
       <CardContent className="space-y-2 flex-1">
         {/* Name Field */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="font-medium">Name *</label>
-            {getErrorMessage("name") && (
+            {getFieldState("name").message && (
               <span className="text-sm text-destructive">
-                {getErrorMessage("name")}
+                {getFieldState("name").message}
               </span>
             )}
           </div>
           <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={getErrorClass("name")}
+            value={formData.name}
+            onChange={(e) => handleChange("name", e.target.value)}
+            className={getFieldState("name").className}
             required
           />
         </div>
@@ -321,7 +239,7 @@ export default function AddEstablishment({
           <label className="font-medium text-lg">Address</label>
         </div>
 
-        {/* REGION */}
+        {/* Region */}
         <div className="space-y-2 grid grid-cols-3">
           <label className="pl-4 font-medium">Region *</label>
           <div className="col-span-2">
@@ -330,11 +248,11 @@ export default function AddEstablishment({
                 <Button
                   variant="outline"
                   role="combobox"
-                  className={`justify-between w-full ${getErrorClass(
-                    "region"
-                  )}`}
+                  className={`justify-between w-full ${
+                    getFieldState("region").className
+                  }`}
                 >
-                  {region || "Select Region"}
+                  {formData.region || "Select Region"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -348,16 +266,18 @@ export default function AddEstablishment({
                         key={r.name}
                         value={r.name}
                         onSelect={() => {
-                          setRegion(r.name);
-                          setProvince("");
-                          setCity("");
-                          setBarangay("");
+                          handleChange("region", r.name);
+                          handleChange("province", "");
+                          handleChange("city", "");
+                          handleChange("barangay", "");
                         }}
                       >
                         <Check
                           className={cn(
                             "mr-2 h-4 w-4",
-                            region === r.name ? "opacity-100" : "opacity-0"
+                            formData.region === r.name
+                              ? "opacity-100"
+                              : "opacity-0"
                           )}
                         />
                         {r.name}
@@ -368,15 +288,15 @@ export default function AddEstablishment({
               </PopoverContent>
             </Popover>
           </div>
-          {getErrorMessage("region") && (
+          {getFieldState("region").message && (
             <p className="col-span-2 text-sm text-destructive">
-              {getErrorMessage("region")}
+              {getFieldState("region").message}
             </p>
           )}
         </div>
 
-        {/* PROVINCE */}
-        {region && (
+        {/* Province */}
+        {formData.region && (
           <div className="space-y-2 grid grid-cols-3">
             <label className="pl-4 font-medium">Province *</label>
             <div className="col-span-2">
@@ -386,11 +306,11 @@ export default function AddEstablishment({
                     ref={provinceRef}
                     variant="outline"
                     role="combobox"
-                    className={`justify-between w-full ${getErrorClass(
-                      "province"
-                    )}`}
+                    className={`justify-between w-full ${
+                      getFieldState("province").className
+                    }`}
                   >
-                    {province || "Select Province"}
+                    {formData.province || "Select Province"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -404,15 +324,17 @@ export default function AddEstablishment({
                           key={p.name}
                           value={p.name}
                           onSelect={() => {
-                            setProvince(p.name);
-                            setCity("");
-                            setBarangay("");
+                            handleChange("province", p.name);
+                            handleChange("city", "");
+                            handleChange("barangay", "");
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              province === p.name ? "opacity-100" : "opacity-0"
+                              formData.province === p.name
+                                ? "opacity-100"
+                                : "opacity-0"
                             )}
                           />
                           {p.name}
@@ -423,16 +345,16 @@ export default function AddEstablishment({
                 </PopoverContent>
               </Popover>
             </div>
-            {getErrorMessage("province") && (
+            {getFieldState("province").message && (
               <p className="col-span-2 text-sm text-destructive">
-                {getErrorMessage("province")}
+                {getFieldState("province").message}
               </p>
             )}
           </div>
         )}
 
-        {/* CITY */}
-        {province && (
+        {/* City */}
+        {formData.province && (
           <div className="space-y-2 grid grid-cols-3">
             <label className="pl-4 font-medium">City *</label>
             <div className="col-span-2">
@@ -442,11 +364,11 @@ export default function AddEstablishment({
                     ref={cityRef}
                     variant="outline"
                     role="combobox"
-                    className={`justify-between w-full ${getErrorClass(
-                      "city"
-                    )}`}
+                    className={`justify-between w-full ${
+                      getFieldState("city").className
+                    }`}
                   >
-                    {city || "Select City"}
+                    {formData.city || "Select City"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -460,14 +382,16 @@ export default function AddEstablishment({
                           key={c.name}
                           value={c.name}
                           onSelect={() => {
-                            setCity(c.name);
-                            setBarangay("");
+                            handleChange("city", c.name);
+                            handleChange("barangay", "");
                           }}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              city === c.name ? "opacity-100" : "opacity-0"
+                              formData.city === c.name
+                                ? "opacity-100"
+                                : "opacity-0"
                             )}
                           />
                           {c.name}
@@ -478,16 +402,16 @@ export default function AddEstablishment({
                 </PopoverContent>
               </Popover>
             </div>
-            {getErrorMessage("city") && (
+            {getFieldState("city").message && (
               <p className="col-span-2 text-sm text-destructive">
-                {getErrorMessage("city")}
+                {getFieldState("city").message}
               </p>
             )}
           </div>
         )}
 
-        {/* BARANGAY */}
-        {city && barangays.length > 0 && (
+        {/* Barangay */}
+        {formData.city && barangays.length > 0 && (
           <div className="space-y-2 grid grid-cols-3">
             <label className="pl-4 font-medium">Barangay *</label>
             <div className="col-span-2">
@@ -497,11 +421,11 @@ export default function AddEstablishment({
                     ref={barangayRef}
                     variant="outline"
                     role="combobox"
-                    className={`justify-between w-full ${getErrorClass(
-                      "barangay"
-                    )}`}
+                    className={`justify-between w-full ${
+                      getFieldState("barangay").className
+                    }`}
                   >
-                    {barangay || "Select Barangay"}
+                    {formData.barangay || "Select Barangay"}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -514,14 +438,14 @@ export default function AddEstablishment({
                         <CommandItem
                           key={b}
                           value={b}
-                          onSelect={() => {
-                            setBarangay(b);
-                          }}
+                          onSelect={() => handleChange("barangay", b)}
                         >
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4",
-                              barangay === b ? "opacity-100" : "opacity-0"
+                              formData.barangay === b
+                                ? "opacity-100"
+                                : "opacity-0"
                             )}
                           />
                           {b}
@@ -532,49 +456,49 @@ export default function AddEstablishment({
                 </PopoverContent>
               </Popover>
             </div>
-            {getErrorMessage("barangay") && (
+            {getFieldState("barangay").message && (
               <p className="col-span-2 text-sm text-destructive">
-                {getErrorMessage("barangay")}
+                {getFieldState("barangay").message}
               </p>
             )}
           </div>
         )}
 
-        {/* Address Line Field */}
+        {/* Address Line */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="font-medium">Street / Building *</label>
-            {getErrorMessage("addressLine") && (
+            {getFieldState("address_line").message && (
               <span className="text-sm text-destructive">
-                {getErrorMessage("addressLine")}
+                {getFieldState("address_line").message}
               </span>
             )}
           </div>
           <Input
-            value={addressLine}
-            onChange={(e) => setAddressLine(e.target.value)}
-            className={getErrorClass("addressLine")}
+            value={formData.address_line}
+            onChange={(e) => handleChange("address_line", e.target.value)}
+            className={getFieldState("address_line").className}
             required
           />
         </div>
 
-        {/* Postal Code Field */}
+        {/* Postal Code */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="font-medium">Postal Code *</label>
-            {getErrorMessage("postalCode") && (
+            {getFieldState("postal_code").message && (
               <span className="text-sm text-destructive">
-                {getErrorMessage("postalCode")}
+                {getFieldState("postal_code").message}
               </span>
             )}
           </div>
           <Input
-            value={postalCode}
+            value={formData.postal_code}
             onChange={(e) => {
               const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-              setPostalCode(value);
+              handleChange("postal_code", value);
             }}
-            className={getErrorClass("postalCode")}
+            className={getFieldState("postal_code").className}
             placeholder="4-digit postal code"
             maxLength={4}
             inputMode="numeric"
@@ -582,31 +506,33 @@ export default function AddEstablishment({
           />
         </div>
 
-        {/* Coordinates Field */}
+        {/* Coordinates */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="font-medium">Coordinates</label>
-            {(getErrorMessage("latitude") || getErrorMessage("longitude")) && (
+            {(getFieldState("latitude").message ||
+              getFieldState("longitude").message) && (
               <span className="text-sm text-destructive">
-                {getErrorMessage("latitude") || getErrorMessage("longitude")}
+                {getFieldState("latitude").message ||
+                  getFieldState("longitude").message}
               </span>
             )}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Input
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
+                value={formData.latitude}
+                onChange={(e) => handleChange("latitude", e.target.value)}
                 placeholder="Latitude"
-                className={getErrorClass("latitude")}
+                className={getFieldState("latitude").className}
               />
             </div>
             <div>
               <Input
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
+                value={formData.longitude}
+                onChange={(e) => handleChange("longitude", e.target.value)}
                 placeholder="Longitude"
-                className={getErrorClass("longitude")}
+                className={getFieldState("longitude").className}
               />
             </div>
           </div>
@@ -616,36 +542,37 @@ export default function AddEstablishment({
           </p>
         </div>
 
-        {/* Year Field */}
+        {/* Year Established */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="font-medium">Year Established *</label>
-            {getErrorMessage("year") && (
+            {getFieldState("year_established").message && (
               <span className="text-sm text-destructive">
-                {getErrorMessage("year")}
+                {getFieldState("year_established").message}
               </span>
             )}
           </div>
           <Input
             type="number"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className={getErrorClass("year")}
+            value={formData.year_established || ""}
+            onChange={(e) => handleChange("year_established", e.target.value)}
+            className={getFieldState("year_established").className}
             min="1900"
             max={new Date().getFullYear()}
             required
           />
         </div>
       </CardContent>
+
       <CardFooter className="flex flex-col sm:flex-row gap-3 w-full px-6 mt-auto">
         <Button
           type="button"
           variant="outline"
-          onClick={() => setShowClearDialog(true)}
+          onClick={handleCancel}
           disabled={isSubmitting}
           className="w-full sm:flex-1 capitalize"
         >
-          CLEAR FORM
+          CANCEL
         </Button>
         <Button
           onClick={handleSave}
@@ -655,7 +582,7 @@ export default function AddEstablishment({
           {isSubmitting ? (
             <Loader2 className="w-4 h-4 animate-spin mr-2" />
           ) : null}
-          {isSubmitting ? "Saving..." : "SAVE ESTABLISHMENT"}
+          {isSubmitting ? "Saving..." : "UPDATE ESTABLISHMENT"}
         </Button>
       </CardFooter>
 
@@ -663,9 +590,9 @@ export default function AddEstablishment({
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Save</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Update</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to save this establishment?
+              Are you sure you want to update this establishment?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -674,25 +601,25 @@ export default function AddEstablishment({
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
-              {isSubmitting ? "Saving..." : "Confirm Save"}
+              {isSubmitting ? "Saving..." : "Confirm Update"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Clear Form Confirmation Dialog */}
-      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Clear Form</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Cancel</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to clear the form?
+              Are you sure you want to cancel editing? All changes will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => resetForm(true)}>
-              Clear Form
+            <AlertDialogCancel>Continue Editing</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel}>
+              Discard Changes
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

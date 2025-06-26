@@ -68,8 +68,8 @@ class Establishment(models.Model):
             self.barangay,
             self.city,
             self.province,
-            f"Philippines {self.postal_code}" if self.postal_code else "Philippines",
-            self.region
+            self.region,
+            self.postal_code
         ]
         return ", ".join(filter(None, address_parts))
 
@@ -82,8 +82,9 @@ class Establishment(models.Model):
     def coordinates(self):
         """Formats coordinates for display in API responses"""
         if self.latitude and self.longitude:
-            return f"{self.latitude}, {self.longitude}"
-        return "Not available"
+            # Format to 6 decimal places
+            return f"{self.latitude:.6f}, {self.longitude:.6f}"
+        return "No coordinates"
 
     @property
     def year(self):

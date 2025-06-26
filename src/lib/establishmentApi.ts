@@ -11,6 +11,15 @@ export interface Establishment {
   coordinates: string;
   year: string;
   createdAt: string;
+  address_line?: string;
+  barangay?: string;
+  city?: string;
+  province?: string;
+  region?: string;
+  postal_code?: string;
+  latitude?: string;
+  longitude?: string;
+  year_established?: string | null;
 }
 
 export interface EstablishmentFormData {
@@ -23,23 +32,21 @@ export interface EstablishmentFormData {
   postal_code?: string;
   latitude?: string;
   longitude?: string;
-  year_established?: string;
+  year_established: string | null;
 }
 
-// Get all establishments
 export const fetchEstablishments = async (): Promise<Establishment[]> => {
   try {
-    const response: AxiosResponse<Establishment[]> = await axios.get(
+    const response: AxiosResponse<{ data: Establishment[] }> = await axios.get(
       ESTABLISHMENTS_URL,
       { withCredentials: true }
     );
-    return response.data;
+    return response.data.data;
   } catch (error) {
     return handleApiError(error);
   }
 };
 
-// Create a new establishment
 export const createEstablishment = async (
   data: EstablishmentFormData
 ): Promise<Establishment> => {
@@ -50,10 +57,18 @@ export const createEstablishment = async (
         "Content-Type": "application/json",
       },
     });
-    return response.data;
+    return response.data.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error("API Error:", error.response?.data);
+      if (error.response?.data?.errors) {
+        const errorMessages = Object.entries(error.response.data.errors)
+          .map(
+            ([field, messages]) =>
+              `${field}: ${(messages as string[]).join(", ")}`
+          )
+          .join("\n");
+        throw new Error(errorMessages);
+      }
       throw new Error(
         error.response?.data?.message || "Failed to create establishment"
       );
@@ -62,57 +77,74 @@ export const createEstablishment = async (
   }
 };
 
-// Update an establishment
 export const updateEstablishment = async (
   id: number,
-  data: Partial<EstablishmentFormData>
+  data: EstablishmentFormData
 ): Promise<Establishment> => {
   try {
-    const response: AxiosResponse<Establishment> = await axios.patch(
+    const response: AxiosResponse<{ data: Establishment }> = await axios.patch(
       `${ESTABLISHMENTS_URL}${id}/`,
       data,
       { withCredentials: true }
     );
-    return response.data;
+    return response.data.data;
   } catch (error) {
-    return handleApiError(error);
-  }
-};
-
-export const deleteEstablishment = async (
-  id: number
-): Promise<AxiosResponse> => {
-  try {
-    const response = await axios.delete(`${ESTABLISHMENTS_URL}${id}/`, {
-      withCredentials: true,
-      validateStatus: (status) => status === 204 || status === 404,
-    });
-    return response;
-  } catch (error) {
-    console.error("API Delete Error:", error);
+    if (axios.isAxiosError(error)) {
+      if (error.response?.data?.errors) {
+        const errorMessages = Object.entries(error.response.data.errors)
+          .map(
+            ([field, messages]) =>
+              `${field}: ${(messages as string[]).join(", ")}`
+          )
+          .join("\n");
+        throw new Error(errorMessages);
+      }
+      throw new Error(
+        error.response?.data?.message || "Failed to update establishment"
+      );
+    }
     throw error;
   }
 };
 
-// Search establishments
+export const deleteEstablishment = async (id: number): Promise<void> => {
+  try {
+    await axios.delete(`${ESTABLISHMENTS_URL}${id}/`, {
+      withCredentials: true,
+      validateStatus: (status) => status === 204 || status === 404,
+    });
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message || "Failed to delete establishment"
+      );
+    }
+    throw error;
+  }
+};
+
 export const searchEstablishments = async (
   query: string
 ): Promise<Establishment[]> => {
   try {
-    const response: AxiosResponse<Establishment[]> = await axios.get(
+    const response: AxiosResponse<{ data: Establishment[] }> = await axios.get(
       ESTABLISHMENTS_URL,
       {
         withCredentials: true,
         params: { search: query },
       }
     );
-    return response.data;
+    return response.data.data;
   } catch (error) {
     return handleApiError(error);
   }
 };
 
-export function handleApiError(error: unknown): never {
-  // your error handling logic here
-  throw error;
+function handleApiError(error: unknown): never {
+  if (axios.isAxiosError(error)) {
+    throw new Error(
+      error.response?.data?.message || "An unexpected error occurred"
+    );
+  }
+  throw new Error("An unexpected error occurred");
 }

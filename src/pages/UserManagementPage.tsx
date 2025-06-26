@@ -25,7 +25,7 @@ export default function Page() {
   };
 
   return (
-    <div className="relative p-6">
+    <div className="relative py-6">
       {/* Conditionally render the button only when users tab is active */}
       {activeTab === "users" && (
         <div className="absolute flex right-6 top-6 gap-2 ">
@@ -35,7 +35,7 @@ export default function Page() {
           {/* Add user button */}
           <Button
             asChild
-            className="w-fit transition duration-150 ease-in hover:scale-95 text-foreground border-1 border-foreground"
+            className="w-fit transition duration-150 ease-in hover:scale-95 border-1 border-foreground"
             aria-label="Add new user"
           >
             <AddUserForm
@@ -50,14 +50,12 @@ export default function Page() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList
           aria-label="User management sections"
-          className="border-foreground border-1 w-fit gap-1"
+          className="p-4 bg-muted-secondary gap-1 rounded-none"
         >
           <TabsTrigger
             value="users"
-            className={`cursor-pointer transition duration-300 ease-in ${
-              activeTab === "users"
-                ? "text-foreground border-1 border-foreground"
-                : ""
+            className={`p-4 border-1  cursor-pointer transition duration-300 ease-in ${
+              activeTab === "users" ? "text-foreground  " : ""
             }`}
             aria-selected={activeTab === "users"}
             aria-controls="users-content"
@@ -66,10 +64,8 @@ export default function Page() {
           </TabsTrigger>
           <TabsTrigger
             value="logs"
-            className={`cursor-pointer transition duration-300 ease-in ${
-              activeTab === "logs"
-                ? "text-foreground border-1 border-foreground"
-                : ""
+            className={`p-4 border-1 cursor-pointer transition duration-300 ease-in ${
+              activeTab === "logs" ? "text-foreground " : ""
             }`}
             aria-selected={activeTab === "logs"}
             aria-controls="logs-content"

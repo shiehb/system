@@ -191,10 +191,7 @@ export function LoginForm({
               </div>
 
               {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full text-foreground border border-foreground hover:scale-95"
-              >
+              <Button type="submit" className="w-full  hover:scale-95">
                 LOGIN
               </Button>
             </div>

@@ -4,7 +4,7 @@ from .models import Establishment
 class EstablishmentSerializer(serializers.ModelSerializer):
     address = serializers.SerializerMethodField()
     coordinates = serializers.SerializerMethodField()
-    year = serializers.CharField(source='year_established', read_only=True)
+    year = serializers.SerializerMethodField()
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
     
     class Meta:
@@ -32,9 +32,10 @@ class EstablishmentSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
     
     def get_address(self, obj):
-        return obj.full_address
+        return obj.address
     
     def get_coordinates(self, obj):
-        if obj.latitude and obj.longitude:
-            return f"{obj.latitude}, {obj.longitude}"
-        return "Not available"
+        return obj.coordinates
+    
+    def get_year(self, obj):
+        return obj.year
