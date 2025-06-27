@@ -76,8 +76,11 @@ export function NavUser({ user, onProfileClick, onLogoutClick }: NavUserProps) {
               </ChangePassword>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onLogoutClick}>
-              <LogOut className="mr-2 h-4 w-4" />
+            <DropdownMenuItem
+              className="text-red-600 hover:text-red-600 bg-red-50"
+              onClick={onLogoutClick}
+            >
+              <LogOut className="mr-2 h-4 w-4 text-red-600" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

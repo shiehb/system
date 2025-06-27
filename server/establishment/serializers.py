@@ -12,24 +12,9 @@ class EstablishmentSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'address', 'coordinates', 'year', 'createdAt',
             'address_line', 'barangay', 'city', 'province', 'region', 
-            'postal_code', 'latitude', 'longitude', 'year_established'
+            'postal_code', 'latitude', 'longitude', 'year_established',
+            'nature_of_business'
         ]
-        extra_kwargs = {
-            'address_line': {'write_only': True},
-            'barangay': {'write_only': True},
-            'city': {'write_only': True},
-            'province': {'write_only': True},
-            'region': {'write_only': True},
-            'postal_code': {'write_only': True},
-            'latitude': {'write_only': True},
-            'longitude': {'write_only': True},
-            'year_established': {'write_only': True},
-        }
-    
-    def create(self, validated_data):
-        # Set owner to current user
-        validated_data['owner'] = self.context['request'].user
-        return super().create(validated_data)
     
     def get_address(self, obj):
         return obj.address
@@ -38,4 +23,4 @@ class EstablishmentSerializer(serializers.ModelSerializer):
         return obj.coordinates
     
     def get_year(self, obj):
-        return obj.year
+        return str(obj.year_established) if obj.year_established else ""

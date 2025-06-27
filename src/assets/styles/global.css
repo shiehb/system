@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@tailwind base;
-@tailwind components;
+/* @tailwind base;
+@tailwind components; */
 @tailwind utilities;
 @plugin "tailwindcss-animate";
 @custom-variant dark (&:is(.dark *));
@@ -216,4 +216,14 @@ S [data-collapsed="true"] .sidebar-group-label {
 
 .focus-visible\:ring-red-500:focus-visible {
   --tw-ring-color: #ef4444;
+}
+
+/* Fix for Leaflet's default icon paths */
+.leaflet-default-icon-path {
+  background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png);
+}
+
+/* Style for selected marker */
+.selected-marker {
+  filter: hue-rotate(120deg) brightness(1.2);
 }

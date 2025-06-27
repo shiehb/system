@@ -11,15 +11,16 @@ export interface Establishment {
   coordinates: string;
   year: string;
   createdAt: string;
-  address_line?: string;
-  barangay?: string;
-  city?: string;
-  province?: string;
-  region?: string;
-  postal_code?: string;
+  address_line: string;
+  barangay: string;
+  city: string;
+  province: string;
+  region: string;
+  postal_code: string;
   latitude?: string;
   longitude?: string;
   year_established?: string | null;
+  nature_of_business?: string;
 }
 
 export interface EstablishmentFormData {
@@ -29,10 +30,11 @@ export interface EstablishmentFormData {
   city: string;
   province: string;
   region: string;
-  postal_code?: string;
+  postal_code: string;
   latitude?: string;
   longitude?: string;
   year_established: string | null;
+  nature_of_business?: string;
 }
 
 export const fetchEstablishments = async (): Promise<Establishment[]> => {

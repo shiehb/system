@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import addressData from "@/data/region-ph.json";
+import { geocodeAddress } from "@/utils/geocoding";
+import { CoordinatesMapPreview } from "@/components/CoordinatesMapPreview";
 import {
   Card,
   CardHeader,
@@ -53,13 +55,31 @@ function usePersistedState<T>(
   return [state, setState];
 }
 
+const businessTypes = [
+  { value: "retail", label: "Retail" },
+  { value: "food", label: "Food & Beverage" },
+  { value: "service", label: "Service" },
+  { value: "manufacturing", label: "Manufacturing" },
+  { value: "hospitality", label: "Hospitality" },
+  { value: "healthcare", label: "Healthcare" },
+  { value: "education", label: "Education" },
+  { value: "other", label: "Other" },
+];
+
+interface AddEstablishmentProps {
+  onAdd: (est: EstablishmentFormData) => Promise<void>;
+  isSubmitting?: boolean;
+  onToggleMapPreview: (
+    show: boolean,
+    coordinates?: { lat: string; lng: string; name?: string }
+  ) => void;
+}
+
 export default function AddEstablishment({
   onAdd,
   isSubmitting,
-}: {
-  onAdd: (est: EstablishmentFormData) => Promise<void>;
-  isSubmitting?: boolean;
-}) {
+  onToggleMapPreview,
+}: AddEstablishmentProps) {
   const [name, setName] = usePersistedState("est_name", "");
   const [addressLine, setAddressLine] = usePersistedState(
     "est_addressLine",
@@ -73,6 +93,11 @@ export default function AddEstablishment({
   const [latitude, setLatitude] = usePersistedState("est_latitude", "");
   const [longitude, setLongitude] = usePersistedState("est_longitude", "");
   const [year, setYear] = usePersistedState("est_year", "");
+  const [natureOfBusiness, setNatureOfBusiness] = usePersistedState(
+    "est_natureOfBusiness",
+    ""
+  );
+  const [isFetchingCoords, setIsFetchingCoords] = useState(false);
 
   const [errors, setErrors] = useState({
     name: "",
@@ -85,6 +110,7 @@ export default function AddEstablishment({
     year: "",
     latitude: "",
     longitude: "",
+    natureOfBusiness: "",
   });
   const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -119,6 +145,56 @@ export default function AddEstablishment({
     }
   }, [city, barangays.length]);
 
+  const updateCoordinatesFromAddress = async () => {
+    if (!barangay && !city && !province) return;
+
+    setIsFetchingCoords(true);
+    try {
+      const addressParts = [barangay, city, province, region, "Philippines"]
+        .filter(Boolean)
+        .join(", ");
+
+      const coords = await geocodeAddress(addressParts);
+      if (coords) {
+        setLatitude(coords.lat);
+        setLongitude(coords.lon);
+        toast.success("Coordinates fetched successfully");
+      } else {
+        toast.warning("No coordinates found for this location");
+      }
+    } catch (error) {
+      toast.error("Failed to fetch coordinates");
+      console.error("Geocoding error:", error);
+    } finally {
+      setIsFetchingCoords(false);
+    }
+  };
+
+  const handleLocationChange = async (
+    level: "region" | "province" | "city" | "barangay",
+    value: string
+  ) => {
+    // Clear downstream selections when changing higher-level locations
+    if (level === "region") {
+      setRegion(value);
+      setProvince("");
+      setCity("");
+      setBarangay("");
+    } else if (level === "province") {
+      setProvince(value);
+      setCity("");
+      setBarangay("");
+    } else if (level === "city") {
+      setCity(value);
+      setBarangay("");
+    } else {
+      setBarangay(value);
+    }
+
+    // Update coordinates after state is set
+    setTimeout(updateCoordinatesFromAddress, 0);
+  };
+
   const validateForm = () => {
     let isValid = true;
     const newErrors = {
@@ -132,6 +208,7 @@ export default function AddEstablishment({
       year: "",
       latitude: "",
       longitude: "",
+      natureOfBusiness: "",
     };
 
     if (!name.trim()) {
@@ -151,7 +228,7 @@ export default function AddEstablishment({
       isValid = false;
     }
     if (!barangay) {
-      newErrors.barangay = " required";
+      newErrors.barangay = "required";
       isValid = false;
     }
     if (!addressLine.trim()) {
@@ -179,7 +256,6 @@ export default function AddEstablishment({
       isValid = false;
     }
 
-    // Validate coordinates
     if (latitude && isNaN(Number(latitude))) {
       newErrors.latitude = "Must be a valid number";
       isValid = false;
@@ -216,6 +292,7 @@ export default function AddEstablishment({
       latitude: latitude || undefined,
       longitude: longitude || undefined,
       year_established: year,
+      nature_of_business: natureOfBusiness || undefined,
     };
 
     try {
@@ -255,6 +332,7 @@ export default function AddEstablishment({
     setLatitude("");
     setLongitude("");
     setYear("");
+    setNatureOfBusiness("");
     setErrors({
       name: "",
       region: "",
@@ -266,6 +344,7 @@ export default function AddEstablishment({
       year: "",
       latitude: "",
       longitude: "",
+      natureOfBusiness: "",
     });
     setApiErrors({});
     if (showToast) {
@@ -282,6 +361,7 @@ export default function AddEstablishment({
       "est_latitude",
       "est_longitude",
       "est_year",
+      "est_natureOfBusiness",
     ].forEach((key) => localStorage.removeItem(key));
   };
 
@@ -317,6 +397,66 @@ export default function AddEstablishment({
           />
         </div>
 
+        {/* Nature of Business Field */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="font-medium">Nature of Business</label>
+            {getErrorMessage("natureOfBusiness") && (
+              <span className="text-sm text-destructive">
+                {getErrorMessage("natureOfBusiness")}
+              </span>
+            )}
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className={`justify-between w-full ${getErrorClass(
+                  "natureOfBusiness"
+                )}`}
+              >
+                {businessTypes.find((type) => type.value === natureOfBusiness)
+                  ?.label || "Select business type"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search business type..." />
+                <CommandEmpty>No business type found.</CommandEmpty>
+                <CommandGroup className="max-h-[300px] overflow-y-auto">
+                  {businessTypes.map((type) => (
+                    <CommandItem
+                      key={type.value}
+                      value={type.value}
+                      onSelect={() => {
+                        setNatureOfBusiness(type.value);
+                        if (errors.natureOfBusiness) {
+                          setErrors((prev) => ({
+                            ...prev,
+                            natureOfBusiness: "",
+                          }));
+                        }
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          natureOfBusiness === type.value
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      {type.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
+
         <div>
           <label className="font-medium text-lg">Address</label>
         </div>
@@ -347,12 +487,7 @@ export default function AddEstablishment({
                       <CommandItem
                         key={r.name}
                         value={r.name}
-                        onSelect={() => {
-                          setRegion(r.name);
-                          setProvince("");
-                          setCity("");
-                          setBarangay("");
-                        }}
+                        onSelect={() => handleLocationChange("region", r.name)}
                       >
                         <Check
                           className={cn(
@@ -403,11 +538,9 @@ export default function AddEstablishment({
                         <CommandItem
                           key={p.name}
                           value={p.name}
-                          onSelect={() => {
-                            setProvince(p.name);
-                            setCity("");
-                            setBarangay("");
-                          }}
+                          onSelect={() =>
+                            handleLocationChange("province", p.name)
+                          }
                         >
                           <Check
                             className={cn(
@@ -459,10 +592,7 @@ export default function AddEstablishment({
                         <CommandItem
                           key={c.name}
                           value={c.name}
-                          onSelect={() => {
-                            setCity(c.name);
-                            setBarangay("");
-                          }}
+                          onSelect={() => handleLocationChange("city", c.name)}
                         >
                           <Check
                             className={cn(
@@ -514,9 +644,7 @@ export default function AddEstablishment({
                         <CommandItem
                           key={b}
                           value={b}
-                          onSelect={() => {
-                            setBarangay(b);
-                          }}
+                          onSelect={() => handleLocationChange("barangay", b)}
                         >
                           <Check
                             className={cn(
@@ -586,13 +714,26 @@ export default function AddEstablishment({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="font-medium">Coordinates</label>
-            {(getErrorMessage("latitude") || getErrorMessage("longitude")) && (
-              <span className="text-sm text-destructive">
-                {getErrorMessage("latitude") || getErrorMessage("longitude")}
-              </span>
-            )}
+            <Button
+              className="mr-10"
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={updateCoordinatesFromAddress}
+              disabled={(!barangay && !city && !province) || isFetchingCoords}
+            >
+              {isFetchingCoords ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              {isFetchingCoords ? "Fetching..." : "Fetch Coordinates"}
+            </Button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          {(getErrorMessage("latitude") || getErrorMessage("longitude")) && (
+            <span className="text-sm text-destructive">
+              {getErrorMessage("latitude") || getErrorMessage("longitude")}
+            </span>
+          )}
+          <div className="grid grid-cols-2 gap-2 relative">
             <div>
               <Input
                 value={latitude}
@@ -607,6 +748,16 @@ export default function AddEstablishment({
                 onChange={(e) => setLongitude(e.target.value)}
                 placeholder="Longitude"
                 className={getErrorClass("longitude")}
+              />
+            </div>
+            <div className="col-span-2">
+              <CoordinatesMapPreview
+                latitude={latitude}
+                longitude={longitude}
+                onCoordinatesChange={(lat, lng) => {
+                  setLatitude(lat.toString());
+                  setLongitude(lng.toString());
+                }}
               />
             </div>
           </div>

@@ -92,6 +92,18 @@ export default function EstablishmentPage() {
     setEditingEstablishment(null);
   };
 
+  // Add this handler
+  const handleToggleMapPreview = (
+    show: boolean,
+    coordinates?: { lat: string; lng: string; name?: string }
+  ) => {
+    // Implement your map preview logic here (e.g., open a modal)
+    // For now, just log to console
+    if (show && coordinates) {
+      console.log("Show map preview:", coordinates);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center p-8">
@@ -121,15 +133,19 @@ export default function EstablishmentPage() {
                 latitude: editingEstablishment.latitude || "",
                 longitude: editingEstablishment.longitude || "",
                 year_established: editingEstablishment.year_established || null,
+                nature_of_business:
+                  editingEstablishment.nature_of_business || "",
               }}
               onUpdate={handleUpdateEstablishment}
               onCancel={handleCancelEdit}
               isSubmitting={isSubmitting}
+              onToggleMapPreview={handleToggleMapPreview} // <-- Add this
             />
           ) : (
             <AddEstablishment
               onAdd={handleAddEstablishment}
               isSubmitting={isSubmitting}
+              onToggleMapPreview={handleToggleMapPreview} // <-- Add this
             />
           )}
         </div>

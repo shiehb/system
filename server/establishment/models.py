@@ -3,6 +3,18 @@ from base.models import User
 from django.utils import timezone
 
 class Establishment(models.Model):
+    # Nature of Business Choices
+    NATURE_CHOICES = [
+        ('retail', 'Retail'),
+        ('food', 'Food & Beverage'),
+        ('service', 'Service'),
+        ('manufacturing', 'Manufacturing'),
+        ('hospitality', 'Hospitality'),
+        ('healthcare', 'Healthcare'),
+        ('education', 'Education'),
+        ('other', 'Other'),
+    ]
+    
     # Basic Information
     name = models.CharField(max_length=255, verbose_name="Establishment Name")
     owner = models.ForeignKey(
@@ -10,23 +22,30 @@ class Establishment(models.Model):
         on_delete=models.CASCADE,
         related_name='establishments',
         verbose_name="Owner",
-        null=True,  # Allow null values
-        blank=True  # Allow blank in forms
+        null=True,
+        blank=True
     )
     year_established = models.PositiveIntegerField(
         verbose_name="Year Established",
         null=True,
         blank=True
     )
+    nature_of_business = models.CharField(
+        max_length=50,
+        choices=NATURE_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Nature of Business"
+    )
     
-    # Address Components (for structured address storage)
+    # Address Components
     address_line = models.CharField(max_length=255, verbose_name="Street Address")
     barangay = models.CharField(max_length=100, verbose_name="Barangay")
     city = models.CharField(max_length=100, verbose_name="City/Municipality")
     province = models.CharField(max_length=100, verbose_name="Province")
     region = models.CharField(max_length=100, verbose_name="Region")
     postal_code = models.CharField(
-        max_length=10, 
+        max_length=4, 
         verbose_name="Postal Code",
         blank=True,
         null=True
@@ -34,15 +53,15 @@ class Establishment(models.Model):
     
     # Geo Coordinates
     latitude = models.DecimalField(
-        max_digits=9, 
-        decimal_places=6,
+        max_digits=18, 
+        decimal_places=15,
         null=True,
         blank=True,
         verbose_name="Latitude"
     )
     longitude = models.DecimalField(
-        max_digits=9, 
-        decimal_places=6,
+        max_digits=18, 
+        decimal_places=15,
         null=True,
         blank=True,
         verbose_name="Longitude"
@@ -82,7 +101,6 @@ class Establishment(models.Model):
     def coordinates(self):
         """Formats coordinates for display in API responses"""
         if self.latitude and self.longitude:
-            # Format to 6 decimal places
             return f"{self.latitude:.6f}, {self.longitude:.6f}"
         return "No coordinates"
 

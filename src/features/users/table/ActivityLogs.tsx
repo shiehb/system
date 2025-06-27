@@ -209,7 +209,7 @@ export default function ActivityLogs() {
         <div className="rounded-md border">
           <Table className="bg-background border-1 border-foreground">
             <ScrollArea className="h-[calc(100vh-315px)] flex-1 w-full">
-              <TableHeader className="bg-primary border-foreground sticky top-0 z-10 ">
+              <TableHeader className="bg-muted border-1 sticky top-0 z-10 ">
                 <TableRow>
                   <TableHead className="w-[200px] border">Admin</TableHead>
                   <TableHead className="w-[200px] border">User</TableHead>

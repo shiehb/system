@@ -21,6 +21,17 @@ import { toast } from "sonner";
 import { deleteEstablishment } from "@/lib/establishmentApi";
 import type { Establishment } from "@/lib/establishmentApi";
 
+const businessTypes = [
+  { value: "retail", label: "Retail" },
+  { value: "food", label: "Food & Beverage" },
+  { value: "service", label: "Service" },
+  { value: "manufacturing", label: "Manufacturing" },
+  { value: "hospitality", label: "Hospitality" },
+  { value: "healthcare", label: "Healthcare" },
+  { value: "education", label: "Education" },
+  { value: "other", label: "Other" },
+];
+
 interface EstablishmentsListProps {
   establishments: Establishment[];
   onDelete?: (id: number) => void;
@@ -44,7 +55,6 @@ export default function EstablishmentsList({
   } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // Handle sorting
   const requestSort = (key: SortableKey) => {
     let direction: "ascending" | "descending" = "ascending";
     if (sortConfig?.key === key && sortConfig.direction === "ascending") {
@@ -53,11 +63,9 @@ export default function EstablishmentsList({
     setSortConfig({ key, direction });
   };
 
-  // Apply sorting and filtering
   const sortedAndFilteredEstablishments = useMemo(() => {
     let filtered = [...establishments];
 
-    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter((est) =>
         Object.values(est).some(
@@ -68,14 +76,11 @@ export default function EstablishmentsList({
       );
     }
 
-    // Apply sorting
     if (sortConfig !== null) {
       filtered.sort((a, b) => {
-        // Handle undefined values by treating them as empty strings for comparison
         const aValue = a[sortConfig.key]?.toString() || "";
         const bValue = b[sortConfig.key]?.toString() || "";
 
-        // Special handling for createdAt to sort by date
         if (sortConfig.key === "createdAt") {
           const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -198,7 +203,16 @@ export default function EstablishmentsList({
               {sortedAndFilteredEstablishments.length > 0 ? (
                 sortedAndFilteredEstablishments.map((est) => (
                   <TableRow key={est.id}>
-                    <TableCell className="font-medium">{est.name}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{est.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {est.nature_of_business
+                          ? businessTypes.find(
+                              (type) => type.value === est.nature_of_business
+                            )?.label || est.nature_of_business
+                          : "Not specified"}
+                      </div>
+                    </TableCell>
                     <TableCell className="max-w-xs truncate">
                       {est.address || "Not specified"}
                     </TableCell>

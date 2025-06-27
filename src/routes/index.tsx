@@ -25,7 +25,7 @@ function AppRoutes() {
     <Router>
       <TooltipProvider>
         <AuthProvider>
-          <Toaster position="top-right" richColors />
+          <Toaster position="top-center" richColors />
 
           <Routes>
             <Route

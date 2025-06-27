@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import addressData from "@/data/region-ph.json";
+import { geocodeAddress } from "@/utils/geocoding";
+import { CoordinatesMapPreview } from "@/components/CoordinatesMapPreview";
 import {
   Card,
   CardHeader,
@@ -37,12 +39,27 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+const businessTypes = [
+  { value: "retail", label: "Retail" },
+  { value: "food", label: "Food & Beverage" },
+  { value: "service", label: "Service" },
+  { value: "manufacturing", label: "Manufacturing" },
+  { value: "hospitality", label: "Hospitality" },
+  { value: "healthcare", label: "Healthcare" },
+  { value: "education", label: "Education" },
+  { value: "other", label: "Other" },
+];
+
 interface EditEstablishmentProps {
   id: number;
   establishment: EstablishmentFormData;
   onUpdate: (id: number, data: EstablishmentFormData) => Promise<void>;
   isSubmitting?: boolean;
   onCancel?: () => void;
+  onToggleMapPreview: (
+    show: boolean,
+    coordinates?: { lat: string; lng: string; name?: string }
+  ) => void;
 }
 
 export default function EditEstablishment({
@@ -51,19 +68,22 @@ export default function EditEstablishment({
   onUpdate,
   isSubmitting,
   onCancel,
+  onToggleMapPreview,
 }: EditEstablishmentProps) {
   const [formData, setFormData] = useState<EstablishmentFormData>({
-    name: establishment.name || "",
-    address_line: establishment.address_line || "",
-    barangay: establishment.barangay || "",
-    city: establishment.city || "",
-    province: establishment.province || "",
-    region: establishment.region || "",
-    postal_code: establishment.postal_code || "",
-    latitude: establishment.latitude || "",
-    longitude: establishment.longitude || "",
-    year_established: establishment.year_established || null,
+    name: establishment.name,
+    address_line: establishment.address_line,
+    barangay: establishment.barangay,
+    city: establishment.city,
+    province: establishment.province,
+    region: establishment.region,
+    postal_code: establishment.postal_code,
+    latitude: establishment.latitude,
+    longitude: establishment.longitude,
+    year_established: establishment.year_established,
+    nature_of_business: establishment.nature_of_business || "",
   });
+  const [isFetchingCoords, setIsFetchingCoords] = useState(false);
 
   const [errors, setErrors] = useState({
     name: "",
@@ -76,6 +96,7 @@ export default function EditEstablishment({
     year_established: "",
     latitude: "",
     longitude: "",
+    nature_of_business: "",
   });
   const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -111,6 +132,77 @@ export default function EditEstablishment({
       setTimeout(() => barangayRef.current?.focus(), 100);
     }
   }, [formData.city, barangays.length]);
+
+  const updateCoordinatesFromAddress = async () => {
+    if (!formData.barangay && !formData.city && !formData.province) return;
+
+    setIsFetchingCoords(true);
+    try {
+      const addressParts = [
+        formData.barangay,
+        formData.city,
+        formData.province,
+        formData.region,
+        "Philippines",
+      ]
+        .filter(Boolean)
+        .join(", ");
+
+      const coords = await geocodeAddress(addressParts);
+      if (coords) {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: coords.lat,
+          longitude: coords.lon,
+        }));
+        toast.success("Coordinates updated successfully");
+      } else {
+        toast.warning("No coordinates found for this location");
+      }
+    } catch (error) {
+      toast.error("Failed to fetch coordinates");
+      console.error("Geocoding error:", error);
+    } finally {
+      setIsFetchingCoords(false);
+    }
+  };
+
+  const handleLocationChange = async (
+    field: keyof EstablishmentFormData,
+    value: string
+  ) => {
+    // Clear downstream selections when changing higher-level locations
+    if (field === "region") {
+      setFormData((prev) => ({
+        ...prev,
+        region: value,
+        province: "",
+        city: "",
+        barangay: "",
+      }));
+    } else if (field === "province") {
+      setFormData((prev) => ({
+        ...prev,
+        province: value,
+        city: "",
+        barangay: "",
+      }));
+    } else if (field === "city") {
+      setFormData((prev) => ({
+        ...prev,
+        city: value,
+        barangay: "",
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
+
+    // Update coordinates after state is set
+    setTimeout(updateCoordinatesFromAddress, 0);
+  };
 
   const handleChange = (field: keyof EstablishmentFormData, value: string) => {
     setFormData((prev) => ({
@@ -154,6 +246,7 @@ export default function EditEstablishment({
         formData.longitude && isNaN(Number(formData.longitude))
           ? "Must be a valid number"
           : "",
+      nature_of_business: "",
     };
 
     setErrors(newErrors);
@@ -178,6 +271,7 @@ export default function EditEstablishment({
         postal_code: formData.postal_code,
         latitude: formData.latitude || undefined,
         longitude: formData.longitude || undefined,
+        nature_of_business: formData.nature_of_business || undefined,
       });
       toast.success("Establishment updated successfully");
     } catch (error) {
@@ -235,8 +329,59 @@ export default function EditEstablishment({
           />
         </div>
 
-        <div>
-          <label className="font-medium text-lg">Address</label>
+        {/* Nature of Business Field */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="font-medium">Nature of Business</label>
+            {getFieldState("nature_of_business").message && (
+              <span className="text-sm text-destructive">
+                {getFieldState("nature_of_business").message}
+              </span>
+            )}
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                className={`justify-between w-full ${
+                  getFieldState("nature_of_business").className
+                }`}
+              >
+                {businessTypes.find(
+                  (type) => type.value === formData.nature_of_business
+                )?.label || "Select business type"}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search business type..." />
+                <CommandEmpty>No business type found.</CommandEmpty>
+                <CommandGroup className="max-h-[300px] overflow-y-auto">
+                  {businessTypes.map((type) => (
+                    <CommandItem
+                      key={type.value}
+                      value={type.value}
+                      onSelect={() =>
+                        handleChange("nature_of_business", type.value)
+                      }
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          formData.nature_of_business === type.value
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      {type.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Region */}
@@ -265,12 +410,7 @@ export default function EditEstablishment({
                       <CommandItem
                         key={r.name}
                         value={r.name}
-                        onSelect={() => {
-                          handleChange("region", r.name);
-                          handleChange("province", "");
-                          handleChange("city", "");
-                          handleChange("barangay", "");
-                        }}
+                        onSelect={() => handleLocationChange("region", r.name)}
                       >
                         <Check
                           className={cn(
@@ -323,11 +463,9 @@ export default function EditEstablishment({
                         <CommandItem
                           key={p.name}
                           value={p.name}
-                          onSelect={() => {
-                            handleChange("province", p.name);
-                            handleChange("city", "");
-                            handleChange("barangay", "");
-                          }}
+                          onSelect={() =>
+                            handleLocationChange("province", p.name)
+                          }
                         >
                           <Check
                             className={cn(
@@ -381,10 +519,7 @@ export default function EditEstablishment({
                         <CommandItem
                           key={c.name}
                           value={c.name}
-                          onSelect={() => {
-                            handleChange("city", c.name);
-                            handleChange("barangay", "");
-                          }}
+                          onSelect={() => handleLocationChange("city", c.name)}
                         >
                           <Check
                             className={cn(
@@ -438,7 +573,7 @@ export default function EditEstablishment({
                         <CommandItem
                           key={b}
                           value={b}
-                          onSelect={() => handleChange("barangay", b)}
+                          onSelect={() => handleLocationChange("barangay", b)}
                         >
                           <Check
                             className={cn(
@@ -510,15 +645,31 @@ export default function EditEstablishment({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="font-medium">Coordinates</label>
-            {(getFieldState("latitude").message ||
-              getFieldState("longitude").message) && (
-              <span className="text-sm text-destructive">
-                {getFieldState("latitude").message ||
-                  getFieldState("longitude").message}
-              </span>
-            )}
+            <Button
+              className="mr-10"
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={updateCoordinatesFromAddress}
+              disabled={
+                (!formData.barangay && !formData.city && !formData.province) ||
+                isFetchingCoords
+              }
+            >
+              {isFetchingCoords ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
+              {isFetchingCoords ? "Fetching..." : "Fetch Coordinates"}
+            </Button>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          {(getFieldState("latitude").message ||
+            getFieldState("longitude").message) && (
+            <span className="text-sm text-destructive">
+              {getFieldState("latitude").message ||
+                getFieldState("longitude").message}
+            </span>
+          )}
+          <div className="grid grid-cols-2 gap-2 relative">
             <div>
               <Input
                 value={formData.latitude}
@@ -536,12 +687,21 @@ export default function EditEstablishment({
               />
             </div>
           </div>
+
+          <CoordinatesMapPreview
+            latitude={formData.latitude || ""}
+            longitude={formData.longitude || ""}
+            onCoordinatesChange={(lat, lng) => {
+              handleChange("latitude", lat.toString());
+              handleChange("longitude", lng.toString());
+            }}
+          />
+
           <p className="text-xs text-muted-foreground">
             Enter coordinates in decimal degrees (e.g., "14.5995" and
             "120.9842")
           </p>
         </div>
-
         {/* Year Established */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
