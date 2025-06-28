@@ -228,7 +228,7 @@ const UsersListTable = ({
   };
 
   return (
-    <Card className="sm:h-auto md:h-[calc(100vh-150px)] w-full bg-muted rounded-none">
+    <Card className="sm:h-auto md:h-[calc(100vh-110px)] w-full bg-muted rounded-none">
       <CardHeader className="flex flex-col md:flex-row justify-between gap-4">
         <CardTitle>User Management</CardTitle>
 
@@ -446,7 +446,7 @@ const UsersListTable = ({
                               <TooltipContent
                                 side="right"
                                 align="start"
-                                className="max-w-[180px] text-foreground"
+                                className="max-w-[180px]"
                                 sideOffset={5}
                               >
                                 {user.user_level === "admin" && (
@@ -482,7 +482,7 @@ const UsersListTable = ({
                                 : "destructive"
                             }
                             className={cn(
-                              "relative capitalize text-center text-foreground border-foreground gap-1.5 py-1 w-20 select-none",
+                              "relative capitalize text-center text-foreground border-foreground gap-1.5 py-1 w-20 select-none rounded-none",
                               {
                                 "bg-green-50 hover:bg-green-400/30":
                                   user.status === "active",
@@ -494,7 +494,6 @@ const UsersListTable = ({
                             {user.status === "active" && (
                               <>
                                 <Check className="h-3.5 w-3.5" />
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-20" />
                               </>
                             )}
                             {user.status === "inactive" && (

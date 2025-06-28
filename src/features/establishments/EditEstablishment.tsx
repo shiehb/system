@@ -2,14 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import addressData from "@/data/region-ph.json";
 import { geocodeAddress } from "@/utils/geocoding";
 import { CoordinatesMapPreview } from "@/components/CoordinatesMapPreview";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, ChevronsUpDown } from "lucide-react";
@@ -70,21 +63,9 @@ export default function EditEstablishment({
   onCancel,
   onToggleMapPreview,
 }: EditEstablishmentProps) {
-  const [formData, setFormData] = useState<EstablishmentFormData>({
-    name: establishment.name,
-    address_line: establishment.address_line,
-    barangay: establishment.barangay,
-    city: establishment.city,
-    province: establishment.province,
-    region: establishment.region,
-    postal_code: establishment.postal_code,
-    latitude: establishment.latitude,
-    longitude: establishment.longitude,
-    year_established: establishment.year_established,
-    nature_of_business: establishment.nature_of_business || "",
-  });
+  const [formData, setFormData] =
+    useState<EstablishmentFormData>(establishment);
   const [isFetchingCoords, setIsFetchingCoords] = useState(false);
-
   const [errors, setErrors] = useState({
     name: "",
     region: "",
@@ -107,6 +88,7 @@ export default function EditEstablishment({
   const barangayRef = useRef<HTMLButtonElement>(null);
 
   const regions = addressData.regions || [];
+  const hasSingleRegion = regions.length === 1;
   const provinces =
     regions.find((r: any) => r.name === formData.region)?.provinces || [];
   const cities =
@@ -114,6 +96,12 @@ export default function EditEstablishment({
     [];
   const barangays =
     cities.find((c: any) => c.name === formData.city)?.barangays || [];
+
+  useEffect(() => {
+    if (hasSingleRegion && !formData.region) {
+      handleLocationChange("region", regions[0].name);
+    }
+  }, [hasSingleRegion, formData.region]);
 
   useEffect(() => {
     if (formData.region && provinceRef.current) {
@@ -171,7 +159,6 @@ export default function EditEstablishment({
     field: keyof EstablishmentFormData,
     value: string
   ) => {
-    // Clear downstream selections when changing higher-level locations
     if (field === "region") {
       setFormData((prev) => ({
         ...prev,
@@ -179,6 +166,7 @@ export default function EditEstablishment({
         province: "",
         city: "",
         barangay: "",
+        postal_code: "",
       }));
     } else if (field === "province") {
       setFormData((prev) => ({
@@ -186,12 +174,15 @@ export default function EditEstablishment({
         province: value,
         city: "",
         barangay: "",
+        postal_code: "",
       }));
     } else if (field === "city") {
+      const selectedCity = cities.find((c: any) => c.name === value);
       setFormData((prev) => ({
         ...prev,
         city: value,
         barangay: "",
+        postal_code: selectedCity?.postal_code || "",
       }));
     } else {
       setFormData((prev) => ({
@@ -200,7 +191,6 @@ export default function EditEstablishment({
       }));
     }
 
-    // Update coordinates after state is set
     setTimeout(updateCoordinatesFromAddress, 0);
   };
 
@@ -219,34 +209,36 @@ export default function EditEstablishment({
 
   const validateForm = (): boolean => {
     const newErrors = {
-      name: !formData.name ? "Name is required" : "",
-      region: !formData.region ? "Region is required" : "",
-      province: !formData.province ? "Province is required" : "",
-      city: !formData.city ? "City is required" : "",
-      barangay: !formData.barangay ? "Barangay is required" : "",
-      address_line: !formData.address_line ? "Address line is required" : "",
+      name: !formData.name ? "Required" : "",
+      region: !formData.region ? "Required" : "",
+      province: !formData.province ? "Required" : "",
+      city: !formData.city ? "Required" : "",
+      barangay: !formData.barangay ? "Required" : "",
+      address_line: !formData.address_line ? "Required" : "",
       postal_code: !formData.postal_code
-        ? "Postal code is required"
+        ? "Required"
         : !/^\d{4}$/.test(formData.postal_code)
         ? "Must be a 4-digit number"
         : "",
       year_established: !formData.year_established
-        ? "Year is required"
+        ? "Required"
         : isNaN(Number(formData.year_established))
         ? "Must be a valid number"
         : Number(formData.year_established) < 1900 ||
           Number(formData.year_established) > new Date().getFullYear()
         ? `Year must be between 1900 and ${new Date().getFullYear()}`
         : "",
-      latitude:
-        formData.latitude && isNaN(Number(formData.latitude))
-          ? "Must be a valid number"
-          : "",
-      longitude:
-        formData.longitude && isNaN(Number(formData.longitude))
-          ? "Must be a valid number"
-          : "",
-      nature_of_business: "",
+      latitude: !formData.latitude
+        ? "Required"
+        : isNaN(Number(formData.latitude))
+        ? "Must be a valid number"
+        : "",
+      longitude: !formData.longitude
+        ? "Required"
+        : isNaN(Number(formData.longitude))
+        ? "Must be a valid number"
+        : "",
+      nature_of_business: !formData.nature_of_business ? "Required" : "",
     };
 
     setErrors(newErrors);
@@ -273,7 +265,6 @@ export default function EditEstablishment({
         longitude: formData.longitude || undefined,
         nature_of_business: formData.nature_of_business || undefined,
       });
-      toast.success("Establishment updated successfully");
     } catch (error) {
       console.error("Update error:", error);
       toast.error("Failed to update establishment");
@@ -283,7 +274,9 @@ export default function EditEstablishment({
   const handleCancel = () => {
     const isModified = Object.keys(formData).some((key) => {
       const formKey = key as keyof EstablishmentFormData;
-      return formData[formKey] !== (establishment[formKey] || "");
+      const originalValue = establishment[formKey] || "";
+      const currentValue = formData[formKey] || "";
+      return currentValue !== originalValue;
     });
 
     if (isModified) {
@@ -295,456 +288,530 @@ export default function EditEstablishment({
 
   const confirmCancel = () => {
     setShowCancelDialog(false);
+    // Clear any local storage items if used
+    [
+      "est_name",
+      "est_addressLine",
+      "est_postalCode",
+      "est_region",
+      "est_province",
+      "est_city",
+      "est_barangay",
+      "est_latitude",
+      "est_longitude",
+      "est_year",
+      "est_natureOfBusiness",
+    ].forEach((key) => localStorage.removeItem(key));
+
     onCancel?.();
   };
 
-  const getFieldState = (field: keyof typeof errors) => ({
-    className: errors[field] || apiErrors[field] ? "border-destructive" : "",
-    message: apiErrors[field] || errors[field],
-  });
+  const getErrorClass = (field: keyof typeof errors) =>
+    errors[field] || apiErrors[field] ? "border-destructive" : "";
+
+  const getErrorMessage = (field: keyof typeof errors) => {
+    return apiErrors[field] || errors[field];
+  };
+
+  const ErrorLabel = ({ field }: { field: keyof typeof errors }) => {
+    const message = getErrorMessage(field);
+    return message ? (
+      <span className="text-sm text-destructive ml-auto">({message})</span>
+    ) : null;
+  };
 
   return (
-    <Card className="md:min-h-[calc(100vh-59px)] rounded-none flex flex-col">
-      <CardHeader>
-        <CardTitle className="m-0 text-xl">Edit Establishment</CardTitle>
-        <Separator />
-      </CardHeader>
-
-      <CardContent className="space-y-2 flex-1">
-        {/* Name Field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Name *</label>
-            {getFieldState("name").message && (
-              <span className="text-sm text-destructive">
-                {getFieldState("name").message}
-              </span>
-            )}
-          </div>
-          <Input
-            value={formData.name}
-            onChange={(e) => handleChange("name", e.target.value)}
-            className={getFieldState("name").className}
-            required
-          />
-        </div>
-
-        {/* Nature of Business Field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Nature of Business</label>
-            {getFieldState("nature_of_business").message && (
-              <span className="text-sm text-destructive">
-                {getFieldState("nature_of_business").message}
-              </span>
-            )}
-          </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                className={`justify-between w-full ${
-                  getFieldState("nature_of_business").className
-                }`}
-              >
-                {businessTypes.find(
-                  (type) => type.value === formData.nature_of_business
-                )?.label || "Select business type"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Search business type..." />
-                <CommandEmpty>No business type found.</CommandEmpty>
-                <CommandGroup className="max-h-[300px] overflow-y-auto">
-                  {businessTypes.map((type) => (
-                    <CommandItem
-                      key={type.value}
-                      value={type.value}
-                      onSelect={() =>
-                        handleChange("nature_of_business", type.value)
-                      }
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          formData.nature_of_business === type.value
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      {type.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        {/* Region */}
-        <div className="space-y-2 grid grid-cols-3">
-          <label className="pl-4 font-medium">Region *</label>
-          <div className="col-span-2">
-            <Popover>
-              <PopoverTrigger asChild>
+    <Card className="md:min-h-[calc(100vh-60px)] rounded-none flex flex-col">
+      <CardContent className="space-y-6 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Form Fields */}
+          <div className="space-y-4">
+            {/* Basic Information Section */}
+            <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    Edit Establishment
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Update the establishment details below
+                  </p>
+                </div>
                 <Button
+                  type="button"
                   variant="outline"
-                  role="combobox"
-                  className={`justify-between w-full ${
-                    getFieldState("region").className
-                  }`}
+                  size="sm"
+                  onClick={() => {
+                    setFormData({
+                      name: establishment.name,
+                      address_line: establishment.address_line,
+                      barangay: establishment.barangay,
+                      city: establishment.city,
+                      province: establishment.province,
+                      region: establishment.region,
+                      postal_code: establishment.postal_code,
+                      latitude: establishment.latitude,
+                      longitude: establishment.longitude,
+                      year_established: establishment.year_established,
+                      nature_of_business:
+                        establishment.nature_of_business || "",
+                    });
+                    toast.success("Changes reset to original values");
+                  }}
+                  className="mt-1"
+                  disabled={isSubmitting}
                 >
-                  {formData.region || "Select Region"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  Reset Changes
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
-                <Command>
-                  <CommandInput placeholder="Search region..." />
-                  <CommandEmpty>No region found.</CommandEmpty>
-                  <CommandGroup className="max-h-[300px] overflow-y-auto">
-                    {regions.map((r: any) => (
-                      <CommandItem
-                        key={r.name}
-                        value={r.name}
-                        onSelect={() => handleLocationChange("region", r.name)}
+              </div>
+
+              {/* Name Field */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="font-medium">Name *</label>
+                  <ErrorLabel field="name" />
+                </div>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  className={getErrorClass("name")}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* Nature of Business Field */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label className="font-medium">Nature of Business *</label>
+                    <ErrorLabel field="nature_of_business" />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={`justify-between w-full ${getErrorClass(
+                          "nature_of_business"
+                        )}`}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            formData.region === r.name
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                        {r.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-          {getFieldState("region").message && (
-            <p className="col-span-2 text-sm text-destructive">
-              {getFieldState("region").message}
-            </p>
-          )}
-        </div>
+                        {businessTypes.find(
+                          (type) => type.value === formData.nature_of_business
+                        )?.label || "Select business type"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search business type..." />
+                        <CommandEmpty>No business type found.</CommandEmpty>
+                        <CommandGroup className="max-h-[300px] overflow-y-auto">
+                          {businessTypes.map((type) => (
+                            <CommandItem
+                              key={type.value}
+                              value={type.value}
+                              onSelect={() =>
+                                handleChange("nature_of_business", type.value)
+                              }
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  formData.nature_of_business === type.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {type.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-        {/* Province */}
-        {formData.region && (
-          <div className="space-y-2 grid grid-cols-3">
-            <label className="pl-4 font-medium">Province *</label>
-            <div className="col-span-2">
-              <Popover>
-                <PopoverTrigger asChild>
+                {/* Year Established Field */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label className="font-medium">Year Established *</label>
+                    <ErrorLabel field="year_established" />
+                  </div>
+                  <Input
+                    type="number"
+                    value={formData.year_established || ""}
+                    onChange={(e) =>
+                      handleChange("year_established", e.target.value)
+                    }
+                    className={getErrorClass("year_established")}
+                    min="1900"
+                    max={new Date().getFullYear()}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Address Section */}
+            <div className="md:min-h-[calc(100vh-440px)]">
+              <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                <h3 className="font-semibold text-lg">Address</h3>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {/* REGION */}
+                  {!hasSingleRegion && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">Region *</label>
+                        <ErrorLabel field="region" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "region"
+                            )}`}
+                          >
+                            {formData.region || "Select Region"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search region..." />
+                            <CommandEmpty>No region found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {regions.map((r: any) => (
+                                <CommandItem
+                                  key={r.name}
+                                  value={r.name}
+                                  onSelect={() =>
+                                    handleLocationChange("region", r.name)
+                                  }
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.region === r.name
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {r.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+
+                  {/* PROVINCE */}
+                  {formData.region && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">Province *</label>
+                        <ErrorLabel field="province" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={provinceRef}
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "province"
+                            )}`}
+                          >
+                            {formData.province || "Select Province"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search province..." />
+                            <CommandEmpty>No province found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {provinces.map((p: any) => (
+                                <CommandItem
+                                  key={p.name}
+                                  value={p.name}
+                                  onSelect={() =>
+                                    handleLocationChange("province", p.name)
+                                  }
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.province === p.name
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {p.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+
+                  {/* CITY */}
+                  {formData.province && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">City *</label>
+                        <ErrorLabel field="city" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={cityRef}
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "city"
+                            )}`}
+                          >
+                            {formData.city || "Select City"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search city..." />
+                            <CommandEmpty>No city found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {cities.map((c: any) => (
+                                <CommandItem
+                                  key={c.name}
+                                  value={c.name}
+                                  onSelect={() =>
+                                    handleLocationChange("city", c.name)
+                                  }
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.city === c.name
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {c.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+
+                  {/* BARANGAY */}
+                  {formData.city && barangays.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">Barangay *</label>
+                        <ErrorLabel field="barangay" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={barangayRef}
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "barangay"
+                            )}`}
+                          >
+                            {formData.barangay || "Select Barangay"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search barangay..." />
+                            <CommandEmpty>No barangay found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {barangays.map((b: any) => (
+                                <CommandItem
+                                  key={b}
+                                  value={b}
+                                  onSelect={() =>
+                                    handleLocationChange("barangay", b)
+                                  }
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      formData.barangay === b
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {b}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Address Line */}
+                  <div className="space-y-2 col-span-2">
+                    <div className="flex items-center gap-2">
+                      <label className="font-medium">Street / Building *</label>
+                      <ErrorLabel field="address_line" />
+                    </div>
+                    <Input
+                      value={formData.address_line}
+                      onChange={(e) =>
+                        handleChange("address_line", e.target.value)
+                      }
+                      className={getErrorClass("address_line")}
+                      required
+                    />
+                  </div>
+
+                  {/* Postal Code */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className="font-medium">Postal Code *</label>
+                      <ErrorLabel field="postal_code" />
+                    </div>
+                    <Input
+                      value={formData.postal_code}
+                      onChange={(e) => {
+                        const value = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 4);
+                        handleChange("postal_code", value);
+                      }}
+                      className={getErrorClass("postal_code")}
+                      placeholder="4-digit postal code"
+                      maxLength={4}
+                      inputMode="numeric"
+                      pattern="\d{4}"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  className="capitalize min-w-[120px]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSubmitting}
+                  className="capitalize min-w-[180px]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Update Establishment"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Map and Coordinates */}
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/50 rounded-lg md:min-h-[calc(100vh-250px)]">
+              {/* Coordinates Section */}
+              <div className="space-y-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="font-medium">Coordinates *</label>
+                    <ErrorLabel field="latitude" />
+                    <ErrorLabel field="longitude" />
+                  </div>
                   <Button
-                    ref={provinceRef}
+                    type="button"
                     variant="outline"
-                    role="combobox"
-                    className={`justify-between w-full ${
-                      getFieldState("province").className
-                    }`}
+                    size="sm"
+                    onClick={updateCoordinatesFromAddress}
+                    disabled={
+                      (!formData.barangay &&
+                        !formData.city &&
+                        !formData.province) ||
+                      isFetchingCoords
+                    }
                   >
-                    {formData.province || "Select Province"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    {isFetchingCoords ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    {isFetchingCoords ? "Fetching..." : "Fetch Coordinates"}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search province..." />
-                    <CommandEmpty>No province found.</CommandEmpty>
-                    <CommandGroup className="max-h-[300px] overflow-y-auto">
-                      {provinces.map((p: any) => (
-                        <CommandItem
-                          key={p.name}
-                          value={p.name}
-                          onSelect={() =>
-                            handleLocationChange("province", p.name)
-                          }
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              formData.province === p.name
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          {p.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            {getFieldState("province").message && (
-              <p className="col-span-2 text-sm text-destructive">
-                {getFieldState("province").message}
-              </p>
-            )}
-          </div>
-        )}
+                </div>
 
-        {/* City */}
-        {formData.province && (
-          <div className="space-y-2 grid grid-cols-3">
-            <label className="pl-4 font-medium">City *</label>
-            <div className="col-span-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    ref={cityRef}
-                    variant="outline"
-                    role="combobox"
-                    className={`justify-between w-full ${
-                      getFieldState("city").className
-                    }`}
-                  >
-                    {formData.city || "Select City"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search city..." />
-                    <CommandEmpty>No city found.</CommandEmpty>
-                    <CommandGroup className="max-h-[300px] overflow-y-auto">
-                      {cities.map((c: any) => (
-                        <CommandItem
-                          key={c.name}
-                          value={c.name}
-                          onSelect={() => handleLocationChange("city", c.name)}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              formData.city === c.name
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          {c.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            {getFieldState("city").message && (
-              <p className="col-span-2 text-sm text-destructive">
-                {getFieldState("city").message}
-              </p>
-            )}
-          </div>
-        )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-sm">Latitude *</label>
+                    <Input
+                      value={formData.latitude || ""}
+                      onChange={(e) => handleChange("latitude", e.target.value)}
+                      placeholder="Latitude"
+                      className={getErrorClass("latitude")}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm">Longitude *</label>
+                    <Input
+                      value={formData.longitude || ""}
+                      onChange={(e) =>
+                        handleChange("longitude", e.target.value)
+                      }
+                      placeholder="Longitude"
+                      className={getErrorClass("longitude")}
+                      required
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter coordinates in decimal degrees (e.g., "14.5995" and
+                  "120.9842")
+                </p>
+              </div>
 
-        {/* Barangay */}
-        {formData.city && barangays.length > 0 && (
-          <div className="space-y-2 grid grid-cols-3">
-            <label className="pl-4 font-medium">Barangay *</label>
-            <div className="col-span-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    ref={barangayRef}
-                    variant="outline"
-                    role="combobox"
-                    className={`justify-between w-full ${
-                      getFieldState("barangay").className
-                    }`}
-                  >
-                    {formData.barangay || "Select Barangay"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search barangay..." />
-                    <CommandEmpty>No barangay found.</CommandEmpty>
-                    <CommandGroup className="max-h-[300px] overflow-y-auto">
-                      {barangays.map((b: any) => (
-                        <CommandItem
-                          key={b}
-                          value={b}
-                          onSelect={() => handleLocationChange("barangay", b)}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              formData.barangay === b
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          {b}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            {getFieldState("barangay").message && (
-              <p className="col-span-2 text-sm text-destructive">
-                {getFieldState("barangay").message}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Address Line */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Street / Building *</label>
-            {getFieldState("address_line").message && (
-              <span className="text-sm text-destructive">
-                {getFieldState("address_line").message}
-              </span>
-            )}
-          </div>
-          <Input
-            value={formData.address_line}
-            onChange={(e) => handleChange("address_line", e.target.value)}
-            className={getFieldState("address_line").className}
-            required
-          />
-        </div>
-
-        {/* Postal Code */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Postal Code *</label>
-            {getFieldState("postal_code").message && (
-              <span className="text-sm text-destructive">
-                {getFieldState("postal_code").message}
-              </span>
-            )}
-          </div>
-          <Input
-            value={formData.postal_code}
-            onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-              handleChange("postal_code", value);
-            }}
-            className={getFieldState("postal_code").className}
-            placeholder="4-digit postal code"
-            maxLength={4}
-            inputMode="numeric"
-            pattern="\d{4}"
-          />
-        </div>
-
-        {/* Coordinates */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Coordinates</label>
-            <Button
-              className="mr-10"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={updateCoordinatesFromAddress}
-              disabled={
-                (!formData.barangay && !formData.city && !formData.province) ||
-                isFetchingCoords
-              }
-            >
-              {isFetchingCoords ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              {isFetchingCoords ? "Fetching..." : "Fetch Coordinates"}
-            </Button>
-          </div>
-          {(getFieldState("latitude").message ||
-            getFieldState("longitude").message) && (
-            <span className="text-sm text-destructive">
-              {getFieldState("latitude").message ||
-                getFieldState("longitude").message}
-            </span>
-          )}
-          <div className="grid grid-cols-2 gap-2 relative">
-            <div>
-              <Input
-                value={formData.latitude}
-                onChange={(e) => handleChange("latitude", e.target.value)}
-                placeholder="Latitude"
-                className={getFieldState("latitude").className}
-              />
-            </div>
-            <div>
-              <Input
-                value={formData.longitude}
-                onChange={(e) => handleChange("longitude", e.target.value)}
-                placeholder="Longitude"
-                className={getFieldState("longitude").className}
-              />
+              {/* Map Preview */}
+              <div className="h-[calc(100vh-300px)] rounded-md overflow-hidden border">
+                <CoordinatesMapPreview
+                  latitude={formData.latitude || ""}
+                  longitude={formData.longitude || ""}
+                  onCoordinatesChange={(lat, lng) => {
+                    handleChange("latitude", lat.toString());
+                    handleChange("longitude", lng.toString());
+                  }}
+                />
+              </div>
             </div>
           </div>
-
-          <CoordinatesMapPreview
-            latitude={formData.latitude || ""}
-            longitude={formData.longitude || ""}
-            onCoordinatesChange={(lat, lng) => {
-              handleChange("latitude", lat.toString());
-              handleChange("longitude", lng.toString());
-            }}
-          />
-
-          <p className="text-xs text-muted-foreground">
-            Enter coordinates in decimal degrees (e.g., "14.5995" and
-            "120.9842")
-          </p>
-        </div>
-        {/* Year Established */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Year Established *</label>
-            {getFieldState("year_established").message && (
-              <span className="text-sm text-destructive">
-                {getFieldState("year_established").message}
-              </span>
-            )}
-          </div>
-          <Input
-            type="number"
-            value={formData.year_established || ""}
-            onChange={(e) => handleChange("year_established", e.target.value)}
-            className={getFieldState("year_established").className}
-            min="1900"
-            max={new Date().getFullYear()}
-            required
-          />
         </div>
       </CardContent>
-
-      <CardFooter className="flex flex-col sm:flex-row gap-3 w-full px-6 mt-auto">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleCancel}
-          disabled={isSubmitting}
-          className="w-full sm:flex-1 capitalize"
-        >
-          CANCEL
-        </Button>
-        <Button
-          onClick={handleSave}
-          disabled={isSubmitting}
-          className="w-full sm:flex-1 capitalize"
-        >
-          {isSubmitting ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          ) : null}
-          {isSubmitting ? "Saving..." : "UPDATE ESTABLISHMENT"}
-        </Button>
-      </CardFooter>
 
       {/* Save Confirmation Dialog */}
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>

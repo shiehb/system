@@ -16,7 +16,17 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Search, Loader2, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowUpDown,
+  Search,
+  Loader2,
+  Pencil,
+  Trash2,
+  CalendarDays,
+  MapPin,
+  Calendar,
+  Plus,
+} from "lucide-react";
 import { toast } from "sonner";
 import { deleteEstablishment } from "@/lib/establishmentApi";
 import type { Establishment } from "@/lib/establishmentApi";
@@ -36,6 +46,7 @@ interface EstablishmentsListProps {
   establishments: Establishment[];
   onDelete?: (id: number) => void;
   onEdit?: (establishment: Establishment) => void;
+  onShowAddForm?: () => void;
 }
 
 type SortableKey = keyof Pick<
@@ -47,17 +58,18 @@ export default function EstablishmentsList({
   establishments,
   onDelete,
   onEdit,
+  onShowAddForm,
 }: EstablishmentsListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
     key: SortableKey;
     direction: "ascending" | "descending";
-  } | null>(null);
+  }>({ key: "createdAt", direction: "descending" });
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const requestSort = (key: SortableKey) => {
     let direction: "ascending" | "descending" = "ascending";
-    if (sortConfig?.key === key && sortConfig.direction === "ascending") {
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
       direction = "descending";
     }
     setSortConfig({ key, direction });
@@ -76,28 +88,26 @@ export default function EstablishmentsList({
       );
     }
 
-    if (sortConfig !== null) {
-      filtered.sort((a, b) => {
-        const aValue = a[sortConfig.key]?.toString() || "";
-        const bValue = b[sortConfig.key]?.toString() || "";
+    filtered.sort((a, b) => {
+      const aValue = a[sortConfig.key]?.toString() || "";
+      const bValue = b[sortConfig.key]?.toString() || "";
 
-        if (sortConfig.key === "createdAt") {
-          const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return sortConfig.direction === "ascending"
-            ? aDate - bDate
-            : bDate - aDate;
-        }
+      if (sortConfig.key === "createdAt") {
+        const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return sortConfig.direction === "ascending"
+          ? aDate - bDate
+          : bDate - aDate;
+      }
 
-        if (aValue < bValue) {
-          return sortConfig.direction === "ascending" ? -1 : 1;
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === "ascending" ? 1 : -1;
-        }
-        return 0;
-      });
-    }
+      if (aValue < bValue) {
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === "ascending" ? 1 : -1;
+      }
+      return 0;
+    });
 
     return filtered;
   }, [establishments, searchTerm, sortConfig]);
@@ -134,14 +144,22 @@ export default function EstablishmentsList({
               {establishments.length} establishments shown
             </CardDescription>
           </div>
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search establishments..."
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex gap-2">
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search establishments..."
+                className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {onShowAddForm && (
+              <Button onClick={onShowAddForm} className="whitespace-nowrap">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Establishment
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -158,34 +176,14 @@ export default function EstablishmentsList({
                   >
                     Name
                     <ArrowUpDown className="ml-2 h-4 w-4" />
+                    {sortConfig.key === "name" && (
+                      <span className="ml-1">
+                        {sortConfig.direction === "ascending" ? "↑" : "↓"}
+                      </span>
+                    )}
                   </Button>
                 </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    className="p-0 hover:bg-transparent w-full justify-start"
-                  >
-                    Address
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    className="p-0 hover:bg-transparent w-full justify-start"
-                  >
-                    Coordinates
-                  </Button>
-                </TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    onClick={() => requestSort("year_established")}
-                    className="p-0 hover:bg-transparent"
-                  >
-                    Year
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
+                <TableHead>Address</TableHead>
                 <TableHead>
                   <Button
                     variant="ghost"
@@ -194,6 +192,11 @@ export default function EstablishmentsList({
                   >
                     Date Created
                     <ArrowUpDown className="ml-2 h-4 w-4" />
+                    {sortConfig.key === "createdAt" && (
+                      <span className="ml-1">
+                        {sortConfig.direction === "ascending" ? "↑" : "↓"}
+                      </span>
+                    )}
                   </Button>
                 </TableHead>
                 <TableHead>Actions</TableHead>
@@ -203,34 +206,70 @@ export default function EstablishmentsList({
               {sortedAndFilteredEstablishments.length > 0 ? (
                 sortedAndFilteredEstablishments.map((est) => (
                   <TableRow key={est.id}>
-                    <TableCell>
+                    <TableCell className="py-3">
                       <div className="font-medium">{est.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {est.nature_of_business
-                          ? businessTypes.find(
-                              (type) => type.value === est.nature_of_business
-                            )?.label || est.nature_of_business
-                          : "Not specified"}
+                      <div className="text-sm text-muted-foreground space-y-1 mt-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                            {est.nature_of_business
+                              ? businessTypes.find(
+                                  (type) =>
+                                    type.value === est.nature_of_business
+                                )?.label || est.nature_of_business
+                              : "Not specified"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Est. {est.year_established || "N/A"}</span>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {est.address || "Not specified"}
+
+                    <TableCell className="py-3">
+                      <div className="font-medium">
+                        {[
+                          est.address_line,
+                          est.barangay,
+                          est.city,
+                          est.province,
+                          est.region,
+                          est.postal_code,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </div>
+                      {est.latitude && est.longitude && (
+                        <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-mono">
+                            {!isNaN(Number(est.latitude)) &&
+                            !isNaN(Number(est.longitude))
+                              ? `${Number(est.latitude).toFixed(6)}, ${Number(
+                                  est.longitude
+                                ).toFixed(6)}`
+                              : "Invalid coordinates"}
+                          </span>
+                        </div>
+                      )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {est.coordinates}
+                    <TableCell className="py-3">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {est.createdAt
+                            ? new Date(est.createdAt).toLocaleDateString()
+                            : "Not available"}
+                        </span>
+                      </div>
                     </TableCell>
-                    <TableCell>{est.year || "N/A"}</TableCell>
-                    <TableCell>
-                      {est.createdAt
-                        ? new Date(est.createdAt).toLocaleDateString()
-                        : "Not available"}
-                    </TableCell>
-                    <TableCell>
+                    <TableCell className="py-3">
                       <div className="flex gap-2">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => onEdit?.(est)}
+                          className="h-8 w-8"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -239,11 +278,12 @@ export default function EstablishmentsList({
                           size="icon"
                           onClick={() => handleDelete(est.id)}
                           disabled={deletingId === est.id}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
                         >
                           {deletingId === est.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            <Trash2 className="h-4 w-4" />
                           )}
                         </Button>
                       </div>
@@ -252,7 +292,7 @@ export default function EstablishmentsList({
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
+                  <TableCell colSpan={4} className="h-24 text-center">
                     No establishments found
                   </TableCell>
                 </TableRow>

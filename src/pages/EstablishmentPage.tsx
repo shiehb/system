@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   AddEstablishment,
   EditEstablishment,
@@ -18,17 +19,43 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 export default function EstablishmentPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEstablishment, setEditingEstablishment] =
     useState<Establishment | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  useEffect(() => {
+    // Check if we're on the add route
+    setShowAddForm(location.pathname === "/establishments/add");
+
+    // Clear editing state if not on edit route
+    if (!location.pathname.startsWith("/establishments/edit")) {
+      setEditingEstablishment(null);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const loadEstablishments = async () => {
       try {
         const data = await fetchEstablishments();
         setEstablishments(data);
+
+        if (id && id !== "add") {
+          const establishmentToEdit = data.find(
+            (est) => est.id === parseInt(id)
+          );
+          if (establishmentToEdit) {
+            setEditingEstablishment(establishmentToEdit);
+          } else {
+            toast.error("Establishment not found");
+            navigate("/establishments");
+          }
+        }
       } catch (error) {
         console.error("Failed to load establishments:", error);
         toast.error("Failed to load establishments");
@@ -37,7 +64,7 @@ export default function EstablishmentPage() {
       }
     };
     loadEstablishments();
-  }, []);
+  }, [id, navigate]);
 
   const handleAddEstablishment = async (est: EstablishmentFormData) => {
     setIsSubmitting(true);
@@ -45,6 +72,7 @@ export default function EstablishmentPage() {
       const newEstablishment = await createEstablishment(est);
       setEstablishments((prev) => [...prev, newEstablishment]);
       toast.success("Establishment created successfully");
+      navigate("/establishments");
     } catch (error) {
       console.error("Failed to add establishment:", error);
       toast.error("Failed to create establishment");
@@ -64,7 +92,7 @@ export default function EstablishmentPage() {
         prev.map((est) => (est.id === id ? updatedEstablishment : est))
       );
       toast.success("Establishment updated successfully");
-      setEditingEstablishment(null);
+      navigate("/establishments");
     } catch (error) {
       console.error("Failed to update establishment:", error);
       toast.error("Failed to update establishment");
@@ -86,22 +114,27 @@ export default function EstablishmentPage() {
 
   const handleEdit = (establishment: Establishment) => {
     setEditingEstablishment(establishment);
+    navigate(`/establishments/edit/${establishment.id}`);
+  };
+
+  const handleShowAddForm = () => {
+    navigate("/establishments/add");
+  };
+
+  const handleCancelAdd = () => {
+    navigate("/establishments");
   };
 
   const handleCancelEdit = () => {
     setEditingEstablishment(null);
+    navigate("/establishments");
   };
 
-  // Add this handler
   const handleToggleMapPreview = (
     show: boolean,
     coordinates?: { lat: string; lng: string; name?: string }
   ) => {
-    // Implement your map preview logic here (e.g., open a modal)
-    // For now, just log to console
-    if (show && coordinates) {
-      console.log("Show map preview:", coordinates);
-    }
+    console.log("Map preview:", show, coordinates);
   };
 
   if (loading) {
@@ -117,8 +150,8 @@ export default function EstablishmentPage() {
       className="flex flex-1 bg-muted"
       style={{ minHeight: "calc(100vh - 64px)" }}
     >
-      <div className="flex flex-col lg:flex-row w-full">
-        <div className="w-full lg:w-[350px] lg:sticky lg:top-8 self-start">
+      <div className="w-full">
+        <div className="w-full">
           {editingEstablishment ? (
             <EditEstablishment
               id={editingEstablishment.id}
@@ -132,29 +165,30 @@ export default function EstablishmentPage() {
                 postal_code: editingEstablishment.postal_code || "",
                 latitude: editingEstablishment.latitude || "",
                 longitude: editingEstablishment.longitude || "",
-                year_established: editingEstablishment.year_established || null,
+                year_established: editingEstablishment.year_established || "",
                 nature_of_business:
                   editingEstablishment.nature_of_business || "",
               }}
               onUpdate={handleUpdateEstablishment}
               onCancel={handleCancelEdit}
               isSubmitting={isSubmitting}
-              onToggleMapPreview={handleToggleMapPreview} // <-- Add this
+              onToggleMapPreview={handleToggleMapPreview}
             />
-          ) : (
+          ) : showAddForm ? (
             <AddEstablishment
               onAdd={handleAddEstablishment}
               isSubmitting={isSubmitting}
-              onToggleMapPreview={handleToggleMapPreview} // <-- Add this
+              onToggleMapPreview={handleToggleMapPreview}
+              onCancel={handleCancelAdd}
+            />
+          ) : (
+            <EstablishmentsList
+              establishments={establishments}
+              onDelete={handleDeleteEstablishment}
+              onEdit={handleEdit}
+              onShowAddForm={handleShowAddForm}
             />
           )}
-        </div>
-        <div className="flex-1 w-full overflow-x-auto bg-background rounded-lg shadow">
-          <EstablishmentsList
-            establishments={establishments}
-            onDelete={handleDeleteEstablishment}
-            onEdit={handleEdit}
-          />
         </div>
       </div>
     </div>

@@ -1,9 +1,6 @@
 // components/CoordinatesMapPreview.tsx
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Map, X } from "lucide-react";
-import { EstablishmentMap } from "./EstablishmentMap";
 import type { Establishment } from "@/lib/establishmentApi";
+import { EstablishmentMap } from "./EstablishmentMap";
 
 interface CoordinatesMapPreviewProps {
   latitude: string;
@@ -18,8 +15,6 @@ export function CoordinatesMapPreview({
   name = "Location",
   onCoordinatesChange,
 }: CoordinatesMapPreviewProps) {
-  const [showMap, setShowMap] = useState(false);
-
   const establishment: Establishment = {
     id: 0,
     name,
@@ -48,35 +43,11 @@ export function CoordinatesMapPreview({
   };
 
   return (
-    <div className="relative">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="absolute right-0 top-0 z-[1000]"
-        onClick={() => setShowMap(!showMap)}
-      >
-        {showMap ? (
-          <>
-            <X className="h-4 w-4 mr-1" />
-          </>
-        ) : (
-          <>
-            <Map className="h-4 w-4 mr-1" />
-          </>
-        )}
-      </Button>
-
-      {showMap && (
-        <div className="mt-2 h-64 rounded-md overflow-hidden border">
-          <EstablishmentMap
-            establishments={latitude && longitude ? [establishment] : []}
-            selectedEstablishment={establishment}
-            onMarkerClick={() => {}}
-            onMapClick={handleMapClick}
-          />
-        </div>
-      )}
-    </div>
+    <EstablishmentMap
+      establishments={latitude && longitude ? [establishment] : []}
+      selectedEstablishment={establishment}
+      onMarkerClick={() => {}}
+      onMapClick={handleMapClick}
+    />
   );
 }

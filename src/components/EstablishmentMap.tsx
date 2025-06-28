@@ -106,12 +106,12 @@ export function EstablishmentMap({
       }
     }
 
-    // Default center (Philippines)
-    return [16.59772031216464, 120.32245620135058];
+    // Default center (DENR La Union Office)
+    return [16.59773215097869, 120.3224520157828];
   };
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full  overflow-hidden relative z-0">
       <MapContainer
         center={getCenter() as [number, number]}
         zoom={selectedEstablishment ? 14 : 6}

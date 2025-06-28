@@ -25,10 +25,10 @@ export default function Page() {
   };
 
   return (
-    <div className="relative py-6">
+    <div className="relative flex flex-col h-full w-full pt-2">
       {/* Conditionally render the button only when users tab is active */}
       {activeTab === "users" && (
-        <div className="absolute flex right-6 top-6 gap-2 ">
+        <div className="absolute flex right-6 top-2 gap-2 ">
           {/* Export button */}
           <ExportUsersButton selectedUserIds={selectedUserIds} users={users} />
 

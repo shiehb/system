@@ -2,14 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import addressData from "@/data/region-ph.json";
 import { geocodeAddress } from "@/utils/geocoding";
 import { CoordinatesMapPreview } from "@/components/CoordinatesMapPreview";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, ChevronsUpDown } from "lucide-react";
@@ -73,12 +66,13 @@ interface AddEstablishmentProps {
     show: boolean,
     coordinates?: { lat: string; lng: string; name?: string }
   ) => void;
+  onCancel?: () => void;
 }
 
 export default function AddEstablishment({
   onAdd,
   isSubmitting,
-  onToggleMapPreview,
+  onCancel,
 }: AddEstablishmentProps) {
   const [name, setName] = usePersistedState("est_name", "");
   const [addressLine, setAddressLine] = usePersistedState(
@@ -115,17 +109,25 @@ export default function AddEstablishment({
   const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const provinceRef = useRef<HTMLButtonElement>(null);
   const cityRef = useRef<HTMLButtonElement>(null);
   const barangayRef = useRef<HTMLButtonElement>(null);
 
   const regions = addressData.regions || [];
+  const hasSingleRegion = regions.length === 1;
   const provinces =
     regions.find((r: any) => r.name === region)?.provinces || [];
   const cities =
     provinces.find((p: any) => p.name === province)?.municipalities || [];
   const barangays = cities.find((c: any) => c.name === city)?.barangays || [];
+
+  useEffect(() => {
+    if (hasSingleRegion && !region) {
+      handleLocationChange("region", regions[0].name);
+    }
+  }, [hasSingleRegion, region]);
 
   useEffect(() => {
     if (region && provinceRef.current) {
@@ -174,24 +176,30 @@ export default function AddEstablishment({
     level: "region" | "province" | "city" | "barangay",
     value: string
   ) => {
-    // Clear downstream selections when changing higher-level locations
     if (level === "region") {
       setRegion(value);
       setProvince("");
       setCity("");
       setBarangay("");
+      setPostalCode("");
     } else if (level === "province") {
       setProvince(value);
       setCity("");
       setBarangay("");
+      setPostalCode("");
     } else if (level === "city") {
       setCity(value);
       setBarangay("");
+      const selectedCity = cities.find((c: any) => c.name === value);
+      if (selectedCity?.postal_code) {
+        setPostalCode(selectedCity.postal_code);
+      } else {
+        setPostalCode("");
+      }
     } else {
       setBarangay(value);
     }
 
-    // Update coordinates after state is set
     setTimeout(updateCoordinatesFromAddress, 0);
   };
 
@@ -212,31 +220,31 @@ export default function AddEstablishment({
     };
 
     if (!name.trim()) {
-      newErrors.name = "required";
+      newErrors.name = "Required";
       isValid = false;
     }
     if (!region) {
-      newErrors.region = "required";
+      newErrors.region = "Required";
       isValid = false;
     }
     if (!province) {
-      newErrors.province = "required";
+      newErrors.province = "Required";
       isValid = false;
     }
     if (!city) {
-      newErrors.city = "required";
+      newErrors.city = "Required";
       isValid = false;
     }
     if (!barangay) {
-      newErrors.barangay = "required";
+      newErrors.barangay = "Required";
       isValid = false;
     }
     if (!addressLine.trim()) {
-      newErrors.addressLine = "required";
+      newErrors.addressLine = "Required";
       isValid = false;
     }
     if (!postalCode) {
-      newErrors.postalCode = "required";
+      newErrors.postalCode = "Required";
       isValid = false;
     } else if (!/^\d{4}$/.test(postalCode)) {
       newErrors.postalCode = "Must be a 4-digit number";
@@ -246,7 +254,7 @@ export default function AddEstablishment({
     const yearNum = Number(year);
     const currentYear = new Date().getFullYear();
     if (!year) {
-      newErrors.year = "required";
+      newErrors.year = "Required";
       isValid = false;
     } else if (isNaN(yearNum)) {
       newErrors.year = "Must be a valid number";
@@ -256,12 +264,24 @@ export default function AddEstablishment({
       isValid = false;
     }
 
-    if (latitude && isNaN(Number(latitude))) {
+    if (!latitude) {
+      newErrors.latitude = "Required";
+      isValid = false;
+    } else if (isNaN(Number(latitude))) {
       newErrors.latitude = "Must be a valid number";
       isValid = false;
     }
-    if (longitude && isNaN(Number(longitude))) {
+
+    if (!longitude) {
+      newErrors.longitude = "Required";
+      isValid = false;
+    } else if (isNaN(Number(longitude))) {
       newErrors.longitude = "Must be a valid number";
+      isValid = false;
+    }
+
+    if (!natureOfBusiness) {
+      newErrors.natureOfBusiness = "Required";
       isValid = false;
     }
 
@@ -325,7 +345,9 @@ export default function AddEstablishment({
     setName("");
     setAddressLine("");
     setPostalCode("");
-    setRegion("");
+    if (!hasSingleRegion) {
+      setRegion("");
+    }
     setProvince("");
     setCity("");
     setBarangay("");
@@ -365,6 +387,33 @@ export default function AddEstablishment({
     ].forEach((key) => localStorage.removeItem(key));
   };
 
+  const handleCancel = () => {
+    const isFormEmpty =
+      !name &&
+      !addressLine &&
+      !postalCode &&
+      !region &&
+      !province &&
+      !city &&
+      !barangay &&
+      !latitude &&
+      !longitude &&
+      !year &&
+      !natureOfBusiness;
+
+    if (isFormEmpty) {
+      onCancel?.();
+    } else {
+      setShowCancelDialog(true);
+    }
+  };
+
+  const confirmCancel = () => {
+    setShowCancelDialog(false);
+    resetForm(false);
+    onCancel?.();
+  };
+
   const getErrorClass = (field: keyof typeof errors) =>
     errors[field] || apiErrors[field] ? "border-destructive" : "";
 
@@ -372,443 +421,488 @@ export default function AddEstablishment({
     return apiErrors[field] || errors[field];
   };
 
+  const ErrorLabel = ({ field }: { field: keyof typeof errors }) => {
+    const message = getErrorMessage(field);
+    return message ? (
+      <span className="text-sm text-destructive ml-auto">({message})</span>
+    ) : null;
+  };
+
   return (
-    <Card className="md:min-h-[calc(100vh-59px)] rounded-none flex flex-col">
-      <CardHeader>
-        <CardTitle className="m-0 text-xl">Add Establishment</CardTitle>
-        <Separator />
-      </CardHeader>
-      <CardContent className="space-y-2 flex-1">
-        {/* Name Field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Name *</label>
-            {getErrorMessage("name") && (
-              <span className="text-sm text-destructive">
-                {getErrorMessage("name")}
-              </span>
-            )}
-          </div>
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={getErrorClass("name")}
-            required
-          />
-        </div>
-
-        {/* Nature of Business Field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Nature of Business</label>
-            {getErrorMessage("natureOfBusiness") && (
-              <span className="text-sm text-destructive">
-                {getErrorMessage("natureOfBusiness")}
-              </span>
-            )}
-          </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                className={`justify-between w-full ${getErrorClass(
-                  "natureOfBusiness"
-                )}`}
-              >
-                {businessTypes.find((type) => type.value === natureOfBusiness)
-                  ?.label || "Select business type"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput placeholder="Search business type..." />
-                <CommandEmpty>No business type found.</CommandEmpty>
-                <CommandGroup className="max-h-[300px] overflow-y-auto">
-                  {businessTypes.map((type) => (
-                    <CommandItem
-                      key={type.value}
-                      value={type.value}
-                      onSelect={() => {
-                        setNatureOfBusiness(type.value);
-                        if (errors.natureOfBusiness) {
-                          setErrors((prev) => ({
-                            ...prev,
-                            natureOfBusiness: "",
-                          }));
-                        }
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          natureOfBusiness === type.value
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      {type.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
-
-        <div>
-          <label className="font-medium text-lg">Address</label>
-        </div>
-
-        {/* REGION */}
-        <div className="space-y-2 grid grid-cols-3">
-          <label className="pl-4 font-medium">Region *</label>
-          <div className="col-span-2">
-            <Popover>
-              <PopoverTrigger asChild>
+    <Card className="md:min-h-[calc(100vh-60px)] rounded-none flex flex-col">
+      <CardContent className="space-y-6 flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Form Fields */}
+          <div className="space-y-4">
+            {/* Basic Information Section */}
+            <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    Add New Establishment
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Fill in the basic information and address details for the
+                    new establishment
+                  </p>
+                </div>
                 <Button
+                  type="button"
                   variant="outline"
-                  role="combobox"
-                  className={`justify-between w-full ${getErrorClass(
-                    "region"
-                  )}`}
+                  size="sm"
+                  onClick={() => setShowClearDialog(true)}
+                  className="mt-1"
+                  disabled={isSubmitting}
                 >
-                  {region || "Select Region"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  Clear Form
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-full p-0">
-                <Command>
-                  <CommandInput placeholder="Search region..." />
-                  <CommandEmpty>No region found.</CommandEmpty>
-                  <CommandGroup className="max-h-[300px] overflow-y-auto">
-                    {regions.map((r: any) => (
-                      <CommandItem
-                        key={r.name}
-                        value={r.name}
-                        onSelect={() => handleLocationChange("region", r.name)}
+              </div>
+
+              {/* Name Field */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="font-medium">Name *</label>
+                  <ErrorLabel field="name" />
+                </div>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={getErrorClass("name")}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* Nature of Business Field */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label className="font-medium">Nature of Business *</label>
+                    <ErrorLabel field="natureOfBusiness" />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={`justify-between w-full ${getErrorClass(
+                          "natureOfBusiness"
+                        )}`}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            region === r.name ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {r.name}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-          {getErrorMessage("region") && (
-            <p className="col-span-2 text-sm text-destructive">
-              {getErrorMessage("region")}
-            </p>
-          )}
-        </div>
+                        {businessTypes.find(
+                          (type) => type.value === natureOfBusiness
+                        )?.label || "Select business type"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search business type..." />
+                        <CommandEmpty>No business type found.</CommandEmpty>
+                        <CommandGroup className="max-h-[300px] overflow-y-auto">
+                          {businessTypes.map((type) => (
+                            <CommandItem
+                              key={type.value}
+                              value={type.value}
+                              onSelect={() => {
+                                setNatureOfBusiness(type.value);
+                                if (errors.natureOfBusiness) {
+                                  setErrors((prev) => ({
+                                    ...prev,
+                                    natureOfBusiness: "",
+                                  }));
+                                }
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  natureOfBusiness === type.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {type.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-        {/* PROVINCE */}
-        {region && (
-          <div className="space-y-2 grid grid-cols-3">
-            <label className="pl-4 font-medium">Province *</label>
-            <div className="col-span-2">
-              <Popover>
-                <PopoverTrigger asChild>
+                {/* Year Established Field */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label className="font-medium">Year Established *</label>
+                    <ErrorLabel field="year" />
+                  </div>
+                  <Input
+                    type="number"
+                    value={year}
+                    onChange={(e) => setYear(e.target.value)}
+                    className={getErrorClass("year")}
+                    min="1900"
+                    max={new Date().getFullYear()}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="md:min-h-[calc(100vh-440px)]">
+              {/* Address Section */}
+              <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                <h3 className="font-semibold text-lg">Address</h3>
+
+                {/* Address Line Field */}
+                <div className="grid grid-cols-3 gap-2">
+                  {/* REGION */}
+                  {!hasSingleRegion && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">Region *</label>
+                        <ErrorLabel field="region" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "region"
+                            )}`}
+                          >
+                            {region || "Select Region"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search region..." />
+                            <CommandEmpty>No region found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {regions.map((r: any) => (
+                                <CommandItem
+                                  key={r.name}
+                                  value={r.name}
+                                  onSelect={() =>
+                                    handleLocationChange("region", r.name)
+                                  }
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      region === r.name
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {r.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+
+                  {/* PROVINCE */}
+                  {region && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">Province *</label>
+                        <ErrorLabel field="province" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={provinceRef}
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full  ${getErrorClass(
+                              "province"
+                            )}`}
+                          >
+                            {province || "Select Province"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search province..." />
+                            <CommandEmpty>No province found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {provinces.map((p: any) => (
+                                <CommandItem
+                                  key={p.name}
+                                  value={p.name}
+                                  onSelect={() =>
+                                    handleLocationChange("province", p.name)
+                                  }
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      province === p.name
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {p.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+
+                  {/* CITY */}
+                  {province && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">City *</label>
+                        <ErrorLabel field="city" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={cityRef}
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "city"
+                            )}`}
+                          >
+                            {city || "Select City"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search city..." />
+                            <CommandEmpty>No city found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {cities.map((c: any) => (
+                                <CommandItem
+                                  key={c.name}
+                                  value={c.name}
+                                  onSelect={() =>
+                                    handleLocationChange("city", c.name)
+                                  }
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      city === c.name
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {c.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+
+                  {/* BARANGAY */}
+                  {city && barangays.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">Barangay *</label>
+                        <ErrorLabel field="barangay" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={barangayRef}
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "barangay"
+                            )}`}
+                          >
+                            {barangay || "Select Barangay"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search barangay..." />
+                            <CommandEmpty>No barangay found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {barangays.map((b: any) => (
+                                <CommandItem
+                                  key={b}
+                                  value={b}
+                                  onSelect={() =>
+                                    handleLocationChange("barangay", b)
+                                  }
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      barangay === b
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {b}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Address Line */}
+                  <div className="space-y-2 col-span-2">
+                    <div className="flex items-center gap-2">
+                      <label className="font-medium">Street / Building *</label>
+                      <ErrorLabel field="addressLine" />
+                    </div>
+                    <Input
+                      value={addressLine}
+                      onChange={(e) => setAddressLine(e.target.value)}
+                      className={getErrorClass("addressLine")}
+                      required
+                    />
+                  </div>
+
+                  {/* Postal Code */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className="font-medium">Postal Code *</label>
+                      <ErrorLabel field="postalCode" />
+                    </div>
+                    <Input
+                      value={postalCode}
+                      onChange={(e) => {
+                        const value = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 4);
+                        setPostalCode(value);
+                      }}
+                      className={getErrorClass("postalCode")}
+                      placeholder="4-digit postal code"
+                      maxLength={4}
+                      inputMode="numeric"
+                      pattern="\d{4}"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  className="capitalize min-w-[120px]"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSubmitting}
+                  className="capitalize min-w-[180px]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Establishment"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column - Map and Coordinates */}
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/50 rounded-lg md:min-h-[calc(100vh-250px)]">
+              {/* Coordinates Section */}
+              <div className="space-y-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <label className="font-medium">Coordinates *</label>
+                    <ErrorLabel field="latitude" />
+                    <ErrorLabel field="longitude" />
+                  </div>
                   <Button
-                    ref={provinceRef}
+                    type="button"
                     variant="outline"
-                    role="combobox"
-                    className={`justify-between w-full ${getErrorClass(
-                      "province"
-                    )}`}
+                    size="sm"
+                    onClick={updateCoordinatesFromAddress}
+                    disabled={
+                      (!barangay && !city && !province) || isFetchingCoords
+                    }
                   >
-                    {province || "Select Province"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    {isFetchingCoords ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    {isFetchingCoords ? "Fetching..." : "Fetch Coordinates"}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search province..." />
-                    <CommandEmpty>No province found.</CommandEmpty>
-                    <CommandGroup className="max-h-[300px] overflow-y-auto">
-                      {provinces.map((p: any) => (
-                        <CommandItem
-                          key={p.name}
-                          value={p.name}
-                          onSelect={() =>
-                            handleLocationChange("province", p.name)
-                          }
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              province === p.name ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {p.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            {getErrorMessage("province") && (
-              <p className="col-span-2 text-sm text-destructive">
-                {getErrorMessage("province")}
-              </p>
-            )}
-          </div>
-        )}
+                </div>
 
-        {/* CITY */}
-        {province && (
-          <div className="space-y-2 grid grid-cols-3">
-            <label className="pl-4 font-medium">City *</label>
-            <div className="col-span-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    ref={cityRef}
-                    variant="outline"
-                    role="combobox"
-                    className={`justify-between w-full ${getErrorClass(
-                      "city"
-                    )}`}
-                  >
-                    {city || "Select City"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search city..." />
-                    <CommandEmpty>No city found.</CommandEmpty>
-                    <CommandGroup className="max-h-[300px] overflow-y-auto">
-                      {cities.map((c: any) => (
-                        <CommandItem
-                          key={c.name}
-                          value={c.name}
-                          onSelect={() => handleLocationChange("city", c.name)}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              city === c.name ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {c.name}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            {getErrorMessage("city") && (
-              <p className="col-span-2 text-sm text-destructive">
-                {getErrorMessage("city")}
-              </p>
-            )}
-          </div>
-        )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-sm">Latitude *</label>
+                    <Input
+                      value={latitude}
+                      onChange={(e) => setLatitude(e.target.value)}
+                      placeholder="Latitude"
+                      className={getErrorClass("latitude")}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm">Longitude *</label>
+                    <Input
+                      value={longitude}
+                      onChange={(e) => setLongitude(e.target.value)}
+                      placeholder="Longitude"
+                      className={getErrorClass("longitude")}
+                      required
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter coordinates in decimal degrees (e.g., "14.5995" and
+                  "120.9842")
+                </p>
+              </div>
 
-        {/* BARANGAY */}
-        {city && barangays.length > 0 && (
-          <div className="space-y-2 grid grid-cols-3">
-            <label className="pl-4 font-medium">Barangay *</label>
-            <div className="col-span-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    ref={barangayRef}
-                    variant="outline"
-                    role="combobox"
-                    className={`justify-between w-full ${getErrorClass(
-                      "barangay"
-                    )}`}
-                  >
-                    {barangay || "Select Barangay"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search barangay..." />
-                    <CommandEmpty>No barangay found.</CommandEmpty>
-                    <CommandGroup className="max-h-[300px] overflow-y-auto">
-                      {barangays.map((b: any) => (
-                        <CommandItem
-                          key={b}
-                          value={b}
-                          onSelect={() => handleLocationChange("barangay", b)}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              barangay === b ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {b}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            {getErrorMessage("barangay") && (
-              <p className="col-span-2 text-sm text-destructive">
-                {getErrorMessage("barangay")}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Address Line Field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Street / Building *</label>
-            {getErrorMessage("addressLine") && (
-              <span className="text-sm text-destructive">
-                {getErrorMessage("addressLine")}
-              </span>
-            )}
-          </div>
-          <Input
-            value={addressLine}
-            onChange={(e) => setAddressLine(e.target.value)}
-            className={getErrorClass("addressLine")}
-            required
-          />
-        </div>
-
-        {/* Postal Code Field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Postal Code *</label>
-            {getErrorMessage("postalCode") && (
-              <span className="text-sm text-destructive">
-                {getErrorMessage("postalCode")}
-              </span>
-            )}
-          </div>
-          <Input
-            value={postalCode}
-            onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, "").slice(0, 4);
-              setPostalCode(value);
-            }}
-            className={getErrorClass("postalCode")}
-            placeholder="4-digit postal code"
-            maxLength={4}
-            inputMode="numeric"
-            pattern="\d{4}"
-          />
-        </div>
-
-        {/* Coordinates Field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Coordinates</label>
-            <Button
-              className="mr-10"
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={updateCoordinatesFromAddress}
-              disabled={(!barangay && !city && !province) || isFetchingCoords}
-            >
-              {isFetchingCoords ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
-              {isFetchingCoords ? "Fetching..." : "Fetch Coordinates"}
-            </Button>
-          </div>
-          {(getErrorMessage("latitude") || getErrorMessage("longitude")) && (
-            <span className="text-sm text-destructive">
-              {getErrorMessage("latitude") || getErrorMessage("longitude")}
-            </span>
-          )}
-          <div className="grid grid-cols-2 gap-2 relative">
-            <div>
-              <Input
-                value={latitude}
-                onChange={(e) => setLatitude(e.target.value)}
-                placeholder="Latitude"
-                className={getErrorClass("latitude")}
-              />
-            </div>
-            <div>
-              <Input
-                value={longitude}
-                onChange={(e) => setLongitude(e.target.value)}
-                placeholder="Longitude"
-                className={getErrorClass("longitude")}
-              />
-            </div>
-            <div className="col-span-2">
-              <CoordinatesMapPreview
-                latitude={latitude}
-                longitude={longitude}
-                onCoordinatesChange={(lat, lng) => {
-                  setLatitude(lat.toString());
-                  setLongitude(lng.toString());
-                }}
-              />
+              {/* Map Preview */}
+              <div className="h-[calc(100vh-300px)] rounded-md overflow-hidden border">
+                <CoordinatesMapPreview
+                  latitude={latitude}
+                  longitude={longitude}
+                  onCoordinatesChange={(lat, lng) => {
+                    setLatitude(lat.toString());
+                    setLongitude(lng.toString());
+                  }}
+                />
+              </div>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Enter coordinates in decimal degrees (e.g., "14.5995" and
-            "120.9842")
-          </p>
-        </div>
-
-        {/* Year Field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="font-medium">Year Established *</label>
-            {getErrorMessage("year") && (
-              <span className="text-sm text-destructive">
-                {getErrorMessage("year")}
-              </span>
-            )}
-          </div>
-          <Input
-            type="number"
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className={getErrorClass("year")}
-            min="1900"
-            max={new Date().getFullYear()}
-            required
-          />
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row gap-3 w-full px-6 mt-auto">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setShowClearDialog(true)}
-          disabled={isSubmitting}
-          className="w-full sm:flex-1 capitalize"
-        >
-          CLEAR FORM
-        </Button>
-        <Button
-          onClick={handleSave}
-          disabled={isSubmitting}
-          className="w-full sm:flex-1 capitalize"
-        >
-          {isSubmitting ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          ) : null}
-          {isSubmitting ? "Saving..." : "SAVE ESTABLISHMENT"}
-        </Button>
-      </CardFooter>
 
       {/* Save Confirmation Dialog */}
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
@@ -844,6 +938,24 @@ export default function AddEstablishment({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => resetForm(true)}>
               Clear Form
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Cancel</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel? All unsaved changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Editing</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel}>
+              Confirm Cancel
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

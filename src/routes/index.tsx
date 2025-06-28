@@ -8,7 +8,9 @@ import { PrivateRoute } from "@/routes/PrivateRoute";
 import { PublicRoute } from "@/routes/PublicRoute";
 
 import { SiteHeader } from "@/components/site-header";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 // Pages
 import LoginPage from "@/pages/LoginPage";
@@ -36,51 +38,71 @@ function AppRoutes() {
                 </PublicRoute>
               }
             />
-
             {/* All protected routes */}
             <Route
               path="/dashboard"
               element={
                 <PrivateRoute>
-                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
-                    <SiteHeader />
-                    <DashboardPage />
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <DashboardPage />
+                    </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/"
               element={
                 <PrivateRoute>
-                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
-                    <SiteHeader />
-                    <DashboardPage />
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <DashboardPage />
+                    </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
               }
             />
-
             <Route
               path="*"
               element={
                 <PrivateRoute>
-                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
-                    <SiteHeader />
-                    <DashboardPage />
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <DashboardPage />
+                    </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/maps"
               element={
                 <PrivateRoute>
-                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
-                    <SiteHeader />
-                    <MapPage />
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <MapPage />
+                    </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
               }
@@ -89,57 +111,117 @@ function AppRoutes() {
               path="/establishments"
               element={
                 <PrivateRoute>
-                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
-                    <SiteHeader />
-                    <EstablishmentPage />
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <EstablishmentPage />
+                    </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
               }
             />
-
+            <Route
+              path="/establishments/add"
+              element={
+                <PrivateRoute>
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <EstablishmentPage />
+                    </SidebarInset>
+                  </SidebarProvider>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/establishments/edit/:id"
+              element={
+                <PrivateRoute>
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <EstablishmentPage />
+                    </SidebarInset>
+                  </SidebarProvider>
+                </PrivateRoute>
+              }
+            />
             <Route
               path="/inspection"
               element={
                 <PrivateRoute>
-                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
-                    <SiteHeader />
-                    <InspectionPage />
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <InspectionPage />
+                    </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/reports"
               element={
                 <PrivateRoute>
-                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
-                    <SiteHeader />
-                    <ReportPage />
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <ReportPage />
+                    </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/user-management"
               element={
                 <PrivateRoute>
-                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
-                    <SiteHeader />
-                    <UserManagementPage />
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <UserManagementPage />
+                    </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/profile"
               element={
                 <PrivateRoute>
-                  <SidebarProvider className="flex flex-col [--header-height:calc(theme(spacing.14))]">
-                    <SiteHeader />
-                    <ProfilePage />
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <ProfilePage />
+                    </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
               }
