@@ -1,3 +1,4 @@
+// components/EstablishmentMap.tsx
 import {
   MapContainer,
   TileLayer,
@@ -5,6 +6,7 @@ import {
   Popup,
   useMapEvents,
   useMap,
+  LayersControl,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -22,6 +24,19 @@ const defaultIcon = L.icon({
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
 });
+
+// Add CSS for cursor behavior
+const mapStyle = `
+  .leaflet-container {
+    cursor: default !important;
+  }
+  .leaflet-dragging .leaflet-container {
+    cursor: grabbing !important;
+  }
+  .leaflet-draggable {
+    cursor: move !important;
+  }
+`;
 
 // Add a component to handle centering on the selected establishment
 function CenterOnSelected({
@@ -58,6 +73,8 @@ interface EstablishmentMapProps {
   selectedEstablishment: Establishment | null;
   onMarkerClick: (est: Establishment) => void;
   onMapClick?: (lat: number, lng: number) => void;
+  onMarkerDragEnd?: (e: any) => void;
+  draggable?: boolean;
 }
 
 export function EstablishmentMap({
@@ -65,6 +82,8 @@ export function EstablishmentMap({
   selectedEstablishment,
   onMarkerClick,
   onMapClick,
+  onMarkerDragEnd,
+  draggable = false,
 }: EstablishmentMapProps) {
   // Handle map click events if onMapClick is provided
   const MapClickHandler = () => {
@@ -111,16 +130,24 @@ export function EstablishmentMap({
   };
 
   return (
-    <div className="h-full w-full  overflow-hidden relative z-0">
+    <div className="h-full w-full overflow-hidden relative z-0">
+      {/* Add the style for cursor behavior */}
+      <style>{mapStyle}</style>
+
       <MapContainer
         center={getCenter() as [number, number]}
         zoom={selectedEstablishment ? 14 : 6}
         style={{ height: "100%", width: "100%", borderRadius: "0.5rem" }}
       >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          // attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer checked name="Street Map">
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          </LayersControl.BaseLayer>
+
+          <LayersControl.BaseLayer name="Satellite">
+            <TileLayer url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}" />
+          </LayersControl.BaseLayer>
+        </LayersControl>
 
         {onMapClick && <MapClickHandler />}
 
@@ -142,10 +169,12 @@ export function EstablishmentMap({
                     })
                   : defaultIcon
               }
+              draggable={draggable}
               eventHandlers={{
                 click: () => {
                   onMarkerClick(est);
                 },
+                dragend: onMarkerDragEnd,
               }}
             >
               <Popup>

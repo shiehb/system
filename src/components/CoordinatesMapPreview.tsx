@@ -37,7 +37,13 @@ export function CoordinatesMapPreview({
 
   const handleMapClick = (lat: number, lng: number) => {
     if (onCoordinatesChange) {
-      // Convert to strings without any digit limitation
+      onCoordinatesChange(lat.toString(), lng.toString());
+    }
+  };
+
+  const handleMarkerDragEnd = (e: any) => {
+    if (onCoordinatesChange) {
+      const { lat, lng } = e.target.getLatLng();
       onCoordinatesChange(lat.toString(), lng.toString());
     }
   };
@@ -48,6 +54,8 @@ export function CoordinatesMapPreview({
       selectedEstablishment={establishment}
       onMarkerClick={() => {}}
       onMapClick={handleMapClick}
+      onMarkerDragEnd={handleMarkerDragEnd}
+      draggable={true}
     />
   );
 }

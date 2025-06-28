@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -154,7 +152,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="h-14 pt-4  ">
+      <SidebarHeader className="h-14 pt-4 flex justify-end pr-4">
         <SidebarTrigger />
       </SidebarHeader>
       <SidebarContent>
