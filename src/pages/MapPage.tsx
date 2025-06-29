@@ -1,82 +1,73 @@
-import React, { useEffect, useState } from "react";
-import Map from "@/components/map/map";
-import { LayersControl, TileLayer } from "react-leaflet";
-import PulsingDot from "@/components/map/pulsing-dot";
-import "leaflet/dist/leaflet.css";
+// @/pages/MapPage.tsx
+import { useEffect, useState } from "react";
+import { fetchEstablishments } from "@/lib/establishmentApi";
+import type { Establishment } from "@/lib/establishmentApi";
+import { EstablishmentMap } from "@/components/map/EstablishmentMap";
+import { EstablishmentMapList } from "@/features/map/EstablishmentMapList";
 
-const MapPage: React.FC = () => {
-  const [zoom, setZoom] = useState(13);
-  const [center, setCenter] = useState<[number, number]>([16.6156, 120.3166]);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(
-    null
-  );
+export default function MapPage() {
+  const [establishments, setEstablishments] = useState<Establishment[]>([]);
+  const [selectedEstablishment, setSelectedEstablishment] =
+    useState<Establishment | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const coords: [number, number] = [
-          position.coords.latitude,
-          position.coords.longitude,
-        ];
-        setUserLocation(coords);
-        setCenter(coords);
-      },
-      (error) => {
-        console.error("Geolocation error:", error);
+    const loadEstablishments = async () => {
+      try {
+        setIsLoading(true);
+        const data = await fetchEstablishments();
+        setEstablishments(data);
+        if (data.length > 0) {
+          setSelectedEstablishment(data[0]);
+        }
+      } catch (err) {
+        setError("Failed to load establishments");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
       }
-    );
+    };
+
+    loadEstablishments();
   }, []);
 
+  const handleEstablishmentSelect = (est: Establishment) => {
+    setSelectedEstablishment(est);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        Loading...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen text-red-800">
+        {error}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-1">
-      <div className="flex flex-1 flex-col gap-4 p-4 relative">
-        <h1 className="text-xl font-semibold mb-2">Map with Layers</h1>
-        <p className="text-sm text-muted-foreground mb-1">
-          Zoom: {zoom} | Center: {center[0].toFixed(4)}, {center[1].toFixed(4)}
-        </p>
-
-        <div className="border rounded shadow h-[calc(100vh-var(--header-height)-8rem)] overflow-hidden relative z-0">
-          <Map
-            center={center}
-            zoom={zoom}
-            minZoom={1}
-            maxZoom={18}
-            style={{ height: "100%", width: "100%" }}
-            onZoomChange={setZoom}
-            onCenterChange={setCenter}
-          >
-            <LayersControl position="topright">
-              <LayersControl.BaseLayer checked name="OpenStreetMap">
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              </LayersControl.BaseLayer>
-
-              <LayersControl.BaseLayer name="Satellite">
-                <TileLayer
-                  url="https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
-                  subdomains={["mt0", "mt1", "mt2", "mt3"]}
-                />
-              </LayersControl.BaseLayer>
-
-              <LayersControl.BaseLayer name="Terrain">
-                <TileLayer
-                  url="https://{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}"
-                  subdomains={["mt0", "mt1", "mt2", "mt3"]}
-                />
-              </LayersControl.BaseLayer>
-
-              {userLocation && (
-                <LayersControl.Overlay checked name="Your Location">
-                  <PulsingDot position={userLocation} />
-                </LayersControl.Overlay>
-              )}
-            </LayersControl>
-          </Map>
-        </div>
+    <div className="flex flex-1 md:min-h-[calc(100vh-64px)]">
+      <div className="w-[350px] h-full border-l border-gray-200 overflow-y-auto">
+        <EstablishmentMapList
+          establishments={establishments}
+          selectedEstablishment={selectedEstablishment}
+          onSelect={handleEstablishmentSelect}
+        />
+      </div>
+      <div className="flex-1 h-full  pl-0 p-2">
+        <EstablishmentMap
+          establishments={establishments}
+          selectedEstablishment={selectedEstablishment}
+          onMarkerClick={handleEstablishmentSelect}
+        />
       </div>
     </div>
   );
-};
-
-export default MapPage;
+}

@@ -146,10 +146,7 @@ export default function EstablishmentPage() {
   }
 
   return (
-    <div
-      className="flex flex-1 bg-muted"
-      style={{ minHeight: "calc(100vh - 64px)" }}
-    >
+    <div className="flex flex-1 bg-muted min-h-[calc(100vh - 64px)]">
       <div className="w-full">
         <div className="w-full">
           {editingEstablishment ? (

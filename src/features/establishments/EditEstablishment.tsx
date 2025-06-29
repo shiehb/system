@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import addressData from "@/data/region-ph.json";
 import { geocodeAddress } from "@/utils/geocoding";
-import { CoordinatesMapPreview } from "@/components/CoordinatesMapPreview";
+import { CoordinatesMapPreview } from "@/components/map/CoordinatesMapPreview";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

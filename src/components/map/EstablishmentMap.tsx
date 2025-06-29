@@ -1,4 +1,3 @@
-// components/EstablishmentMap.tsx
 import {
   MapContainer,
   TileLayer,
@@ -13,7 +12,7 @@ import "leaflet/dist/leaflet.css";
 import { useEffect } from "react";
 import type { Establishment } from "@/lib/establishmentApi";
 
-// Fix for default marker icons in Leaflet
+// Default marker icon
 const defaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
   iconRetinaUrl:
@@ -25,7 +24,21 @@ const defaultIcon = L.icon({
   shadowSize: [41, 41],
 });
 
-// Add CSS for cursor behavior
+// Green marker icon for selected establishments
+const greenIcon = L.icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+  iconRetinaUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+
+// CSS for cursor behavior
 const mapStyle = `
   .leaflet-container {
     cursor: default !important;
@@ -38,7 +51,7 @@ const mapStyle = `
   }
 `;
 
-// Add a component to handle centering on the selected establishment
+// Component to handle centering on selected establishment
 function CenterOnSelected({
   selectedEstablishment,
 }: {
@@ -57,9 +70,9 @@ function CenterOnSelected({
           parseFloat(selectedEstablishment.latitude),
           parseFloat(selectedEstablishment.longitude),
         ],
-        18, // Zoom level
+        18,
         {
-          duration: 1, // Animation duration in seconds
+          duration: 1,
         }
       );
     }
@@ -85,7 +98,7 @@ export function EstablishmentMap({
   onMarkerDragEnd,
   draggable = false,
 }: EstablishmentMapProps) {
-  // Handle map click events if onMapClick is provided
+  // Handle map click events
   const MapClickHandler = () => {
     useMapEvents({
       click: (e) => {
@@ -131,7 +144,6 @@ export function EstablishmentMap({
 
   return (
     <div className="h-full w-full overflow-hidden relative z-0">
-      {/* Add the style for cursor behavior */}
       <style>{mapStyle}</style>
 
       <MapContainer
@@ -151,7 +163,6 @@ export function EstablishmentMap({
 
         {onMapClick && <MapClickHandler />}
 
-        {/* Add the center control */}
         <CenterOnSelected selectedEstablishment={selectedEstablishment} />
 
         {establishments.map((est) => {
@@ -162,12 +173,7 @@ export function EstablishmentMap({
               key={est.id}
               position={[parseFloat(est.latitude), parseFloat(est.longitude)]}
               icon={
-                selectedEstablishment?.id === est.id
-                  ? L.icon({
-                      ...defaultIcon.options,
-                      className: "selected-marker",
-                    })
-                  : defaultIcon
+                selectedEstablishment?.id === est.id ? greenIcon : defaultIcon
               }
               draggable={draggable}
               eventHandlers={{
