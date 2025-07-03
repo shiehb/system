@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { YearPicker } from "@/components/YearPicker";
 
 const businessTypes = [
   { value: "retail", label: "Retail" },
@@ -61,7 +62,6 @@ export default function EditEstablishment({
   onUpdate,
   isSubmitting,
   onCancel,
-  onToggleMapPreview,
 }: EditEstablishmentProps) {
   const [formData, setFormData] =
     useState<EstablishmentFormData>(establishment);
@@ -288,7 +288,6 @@ export default function EditEstablishment({
 
   const confirmCancel = () => {
     setShowCancelDialog(false);
-    // Clear any local storage items if used
     [
       "est_name",
       "est_addressLine",
@@ -379,9 +378,9 @@ export default function EditEstablishment({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {/* Nature of Business Field */}
-                <div className="space-y-2">
+                <div className="col-span-2 space-y-2">
                   <div className="flex items-center gap-2">
                     <label className="font-medium">Nature of Business *</label>
                     <ErrorLabel field="nature_of_business" />
@@ -432,21 +431,17 @@ export default function EditEstablishment({
                 </div>
 
                 {/* Year Established Field */}
-                <div className="space-y-2">
+                <div className="space-y-2 w-full">
                   <div className="flex items-center gap-2">
                     <label className="font-medium">Year Established *</label>
                     <ErrorLabel field="year_established" />
                   </div>
-                  <Input
-                    type="number"
+                  <YearPicker
                     value={formData.year_established || ""}
-                    onChange={(e) =>
-                      handleChange("year_established", e.target.value)
-                    }
-                    className={getErrorClass("year_established")}
-                    min="1900"
-                    max={new Date().getFullYear()}
-                    required
+                    onChange={(newYear) => {
+                      handleChange("year_established", newYear);
+                    }}
+                    error={!!errors.year_established}
                   />
                 </div>
               </div>

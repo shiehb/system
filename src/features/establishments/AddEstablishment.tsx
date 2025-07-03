@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { YearPicker } from "@/components/YearPicker";
 
 function usePersistedState<T>(
   key: string,
@@ -468,13 +469,14 @@ export default function AddEstablishment({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className={getErrorClass("name")}
+                  placeholder="Enter establishment name..."
                   required
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {/* Nature of Business Field */}
-                <div className="space-y-2">
+                <div className="col-span-2 space-y-2">
                   <div className="flex items-center gap-2">
                     <label className="font-medium">Nature of Business *</label>
                     <ErrorLabel field="natureOfBusiness" />
@@ -490,15 +492,15 @@ export default function AddEstablishment({
                       >
                         {businessTypes.find(
                           (type) => type.value === natureOfBusiness
-                        )?.label || "Select business type"}
+                        )?.label || "Select business type..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
+                    <PopoverContent className="w-[435px] p-0">
                       <Command>
                         <CommandInput placeholder="Search business type..." />
                         <CommandEmpty>No business type found.</CommandEmpty>
-                        <CommandGroup className="max-h-[300px] overflow-y-auto">
+                        <CommandGroup className="max-h-[150px] overflow-y-auto">
                           {businessTypes.map((type) => (
                             <CommandItem
                               key={type.value}
@@ -531,19 +533,20 @@ export default function AddEstablishment({
                 </div>
 
                 {/* Year Established Field */}
-                <div className="space-y-2">
+                <div className="space-y-2 w-full">
                   <div className="flex items-center gap-2">
                     <label className="font-medium">Year Established *</label>
                     <ErrorLabel field="year" />
                   </div>
-                  <Input
-                    type="number"
+                  <YearPicker
                     value={year}
-                    onChange={(e) => setYear(e.target.value)}
-                    className={getErrorClass("year")}
-                    min="1900"
-                    max={new Date().getFullYear()}
-                    required
+                    onChange={(newYear) => {
+                      setYear(newYear);
+                      if (errors.year) {
+                        setErrors((prev) => ({ ...prev, year: "" }));
+                      }
+                    }}
+                    error={!!errors.year}
                   />
                 </div>
               </div>
@@ -775,6 +778,7 @@ export default function AddEstablishment({
                       value={addressLine}
                       onChange={(e) => setAddressLine(e.target.value)}
                       className={getErrorClass("addressLine")}
+                      placeholder="Enter street or building name..."
                       required
                     />
                   </div>

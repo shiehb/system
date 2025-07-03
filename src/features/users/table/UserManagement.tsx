@@ -228,7 +228,7 @@ const UsersListTable = ({
   };
 
   return (
-    <Card className="sm:h-auto md:h-[calc(100vh-110px)] w-full bg-muted rounded-none">
+    <Card className="sm:h-auto md:h-[calc(100vh-110px)] w-full rounded-none border-0">
       <CardHeader className="flex flex-col md:flex-row justify-between gap-4">
         <CardTitle>User Management</CardTitle>
 
@@ -310,12 +310,12 @@ const UsersListTable = ({
         <div className=" overflow-hidden w-full">
           {/* Desktop Table */}
           <div className="hidden sm:block ">
-            <Table className="bg-background border-1 border-foreground min-w-lg ">
+            <Table className="bg-background border-1 rounded-none ">
               <ScrollArea className="h-[calc(100vh-310px)] md:h-[calc(100vh-275px)]  xl:h-[calc(100vh-260px)]">
-                <TableHeader className=" border-foreground sticky top-0 z-10">
+                <TableHeader className="sticky bg-muted top-0 z-10">
                   <TableRow>
                     {/* Selection checkbox */}
-                    <TableHead className="w-[10px] min-w-[10px] border-y border-b-foreground text-center p-2">
+                    <TableHead className="w-[10px] min-w-[10px] text-center p-2">
                       <Checkbox
                         checked={
                           users.length > 0 &&
@@ -323,45 +323,41 @@ const UsersListTable = ({
                         }
                         onCheckedChange={handleSelectAll}
                         aria-label="Select all users"
-                        className="cursor-pointer bg-white mx-auto"
+                        className="cursor-pointer mx-auto"
                       />
                     </TableHead>
 
                     {/* ID */}
-                    <TableHead className="w-[90px] min-w-[90px] border-y border-b-foreground text-left">
+                    <TableHead className="w-[90px] min-w-[90px] text-left">
                       ID Number
                     </TableHead>
 
                     {/* User Info */}
-                    <TableHead className="w-[200px] border-y border-b-foreground text-left">
-                      Name
-                    </TableHead>
+                    <TableHead className="w-[200px] text-left">Name</TableHead>
 
-                    <TableHead className="w-[200px]  border-y border-b-foreground text-left">
-                      Email
-                    </TableHead>
+                    <TableHead className="w-[200px] text-left">Email</TableHead>
 
                     {/* Role/Level */}
-                    <TableHead className="w-[100px] min-w-[100px] border-y border-b-foreground text-center">
+                    <TableHead className="w-[100px] min-w-[100px] text-center">
                       User Level
                     </TableHead>
 
                     {/* Timestamps */}
-                    <TableHead className="w-[120px] min-w-[120px] border-y border-b-foreground text-center">
+                    <TableHead className="w-[120px] min-w-[120px] text-center">
                       Created At
                     </TableHead>
 
-                    <TableHead className="w-[120px] min-w-[120px] border-y border-b-foreground text-center">
+                    <TableHead className="w-[120px] min-w-[120px] text-center">
                       Updated At
                     </TableHead>
 
                     {/* Status */}
-                    <TableHead className="w-[100px] min-w-[100px] border-y border-b-foreground text-center">
+                    <TableHead className="w-[100px] min-w-[100px] text-center">
                       Status
                     </TableHead>
 
                     {/* Actions */}
-                    <TableHead className="w-8 min-w-8 border-y border-b-foreground text-center">
+                    <TableHead className="w-8 min-w-8 text-center">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -371,7 +367,7 @@ const UsersListTable = ({
                   {users.length > 0 ? (
                     users.map((user) => (
                       <TableRow key={user.id} className="hover:bg-muted ">
-                        <TableCell className="border-b text-center">
+                        <TableCell className="text-center">
                           <Checkbox
                             checked={selectedUserIds.includes(user.id)}
                             onCheckedChange={() => handleUserSelect(user.id)}
@@ -379,19 +375,19 @@ const UsersListTable = ({
                             className="cursor-pointer"
                           />
                         </TableCell>
-                        <TableCell className="border-b text-left font-bold">
+                        <TableCell className="text-left font-bold">
                           {user.id_number}
                         </TableCell>
-                        <TableCell className="border text-left">
+                        <TableCell className=" text-left">
                           <span className="font-medium">{user.last_name}</span>
                           {", "}
                           {user.first_name} {user.middle_name}
                         </TableCell>
-                        <TableCell className="border text-left">
+                        <TableCell className="text-left">
                           {user.email}
                         </TableCell>
                         {/* User Level cell with role-specific titles */}
-                        <TableCell className="border text-center">
+                        <TableCell className="text-center">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -468,13 +464,13 @@ const UsersListTable = ({
                             </Tooltip>
                           </TooltipProvider>
                         </TableCell>
-                        <TableCell className="border text-center font-medium">
+                        <TableCell className="text-center font-medium">
                           {new Date(user.created_at).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="border text-center font-medium">
+                        <TableCell className="text-center font-medium">
                           {new Date(user.updated_at).toLocaleDateString()}
                         </TableCell>
-                        <TableCell className="border text-center">
+                        <TableCell className="text-center">
                           <Badge
                             variant={
                               user.status === "active"
@@ -502,7 +498,7 @@ const UsersListTable = ({
                             {user.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="border text-center">
+                        <TableCell className="text-center">
                           <UserActionsDropdown userId={user.id} />
                         </TableCell>
                       </TableRow>

@@ -76,7 +76,7 @@ export default function ActivityLogs() {
   const [filters, setFilters] = useState({
     action: "",
     search: "",
-    page_size: 100,
+    page_size: 250,
   });
   // New state for search input value
   const [searchInput, setSearchInput] = useState("");
@@ -151,7 +151,7 @@ export default function ActivityLogs() {
   // };
 
   return (
-    <Card className="h-[calc(100vh-150px)] w-full bg-muted">
+    <Card className="h-[calc(100vh-110px)] w-full border-0 rounded-none">
       <CardHeader className="flex flex-col md:flex-row justify-between gap-4">
         <CardTitle>Activity Logs</CardTitle>
         <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
@@ -205,83 +205,77 @@ export default function ActivityLogs() {
         </div>
       </CardHeader>
 
-      <CardContent>
-        <div className="rounded-md border">
-          <Table className="bg-background border-1 border-foreground">
-            <ScrollArea className="h-[calc(100vh-315px)] flex-1 w-full">
-              <TableHeader className="bg-muted border-1 sticky top-0 z-10 ">
-                <TableRow>
-                  <TableHead className="w-[200px] border">Admin</TableHead>
-                  <TableHead className="w-[200px] border">User</TableHead>
-                  <TableHead className="w-[200px] border text-center">
-                    Action
-                  </TableHead>
+      <CardContent className="rounded-none">
+        <Table className="bg-background border-1 rounded-none">
+          <ScrollArea className="h-[calc(100vh-260px)] flex-1 w-full">
+            <TableHeader className="bg-muted border-1 sticky top-0 z-10 ">
+              <TableRow>
+                <TableHead className="w-[200px]">Admin</TableHead>
+                <TableHead className="w-[200px]">User</TableHead>
+                <TableHead className="w-[200px]">Action</TableHead>
 
-                  {/* <TableHead>Details</TableHead> */}
-                  <TableHead className="w-[200px] border text-center">
-                    Date
-                  </TableHead>
+                {/* <TableHead>Details</TableHead> */}
+                <TableHead className="w-[200px]">Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow className="hover:bg-muted/50">
+                  <TableCell
+                    colSpan={5}
+                    className="h-[calc(100vh-260px)] text-center"
+                  >
+                    Loading User logs...
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow className="hover:bg-muted/50">
-                    <TableCell
-                      colSpan={5}
-                      className="h-[calc(100vh-355px)] text-center"
-                    >
-                      Loading User logs...
+              ) : data.logs.length === 0 ? (
+                <TableRow className="hover:bg-muted/50">
+                  <TableCell
+                    colSpan={5}
+                    className="h-[calc(100vh-260px)] text-center"
+                  >
+                    No activity logs found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                data.logs.map((log) => (
+                  <TableRow key={log.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      {log.admin
+                        ? `${log.admin.first_name} ${log.admin.last_name}`
+                        : "System"}
                     </TableCell>
-                  </TableRow>
-                ) : data.logs.length === 0 ? (
-                  <TableRow className="hover:bg-muted/50">
-                    <TableCell
-                      colSpan={5}
-                      className="h-[calc(100vh-355px)] text-center"
-                    >
-                      No activity logs found
+                    <TableCell>
+                      {log.user
+                        ? `${log.user.first_name} ${log.user.last_name}`
+                        : "N/A"}
                     </TableCell>
-                  </TableRow>
-                ) : (
-                  data.logs.map((log) => (
-                    <TableRow key={log.id} className="hover:bg-muted/50">
-                      <TableCell className="border">
-                        {log.admin
-                          ? `${log.admin.first_name} ${log.admin.last_name}`
-                          : "System"}
-                      </TableCell>
-                      <TableCell className="border">
-                        {log.user
-                          ? `${log.user.first_name} ${log.user.last_name}`
-                          : "N/A"}
-                      </TableCell>
-                      <TableCell className="border text-center">
-                        <Badge variant="secondary" className="text-center">
-                          <div className="flex items-center">
-                            {actionIcons[
-                              log.action as keyof typeof actionIcons
-                            ] || <UserIcon className="w-4 h-4 mr-2" />}
-                            <span>
-                              {actionNames[
-                                log.action as keyof typeof actionNames
-                              ] || log.action}
-                            </span>
-                          </div>
-                        </Badge>
-                      </TableCell>
-                      {/* <TableCell className="max-w-[300px] truncate">
+                    <TableCell>
+                      <Badge variant="secondary" className="text-center">
+                        <div className="flex items-center">
+                          {actionIcons[
+                            log.action as keyof typeof actionIcons
+                          ] || <UserIcon className="w-4 h-4 mr-2" />}
+                          <span>
+                            {actionNames[
+                              log.action as keyof typeof actionNames
+                            ] || log.action}
+                          </span>
+                        </div>
+                      </Badge>
+                    </TableCell>
+                    {/* <TableCell className="max-w-[300px] truncate">
                         {formatDetails(log.action, log.details)}
                       </TableCell> */}
-                      <TableCell className=" border text-center">
-                        {format(new Date(log.created_at), "MMM dd, yyyy HH:mm")}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </ScrollArea>
-          </Table>
-        </div>
+                    <TableCell className="text-center">
+                      {format(new Date(log.created_at), "MMM dd, yyyy HH:mm")}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </ScrollArea>
+        </Table>
 
         {data.totalPages > 1 && (
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { fetchEstablishments } from "@/lib/establishmentApi";
 import type { Establishment } from "@/lib/establishmentApi";
 import { EstablishmentMap } from "@/components/map/EstablishmentMap";
+import { EstablishmentDetails } from "@/features/map/EstablishmentDetails";
 import { EstablishmentMapList } from "@/features/map/EstablishmentMapList";
 
 export default function MapPage() {
@@ -61,12 +62,17 @@ export default function MapPage() {
           onSelect={handleEstablishmentSelect}
         />
       </div>
-      <div className="flex-1 h-full  pl-0 p-2">
-        <EstablishmentMap
-          establishments={establishments}
-          selectedEstablishment={selectedEstablishment}
-          onMarkerClick={handleEstablishmentSelect}
-        />
+      <div className="flex-1 h-full pl-0 pb-0 p-2 flex flex-col">
+        <div className="flex-1">
+          <EstablishmentMap
+            establishments={establishments}
+            selectedEstablishment={selectedEstablishment}
+            onMarkerClick={handleEstablishmentSelect}
+          />
+        </div>
+        <div className="bg-muted/50 p-4 mt-2 border">
+          <EstablishmentDetails establishment={selectedEstablishment} />
+        </div>
       </div>
     </div>
   );

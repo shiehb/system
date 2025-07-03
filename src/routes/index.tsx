@@ -20,6 +20,8 @@ import ProfilePage from "@/pages/ProfilePage";
 import MapPage from "@/pages/MapPage";
 import EstablishmentPage from "@/pages/EstablishmentPage";
 import InspectionPage from "@/pages/InspectionPage";
+import InspectionDivisionHeadPage from "@/pages/InspectionDivisionHeadPage";
+import AssignInspectionPage from "@/pages/AssignInspectionPage";
 import ReportPage from "@/pages/ReportPage";
 
 import NotFound from "@/components/NotFound";
@@ -157,6 +159,40 @@ function AppRoutes() {
                       </header>
                       <Separator />
                       <InspectionPage />
+                    </SidebarInset>
+                  </SidebarProvider>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/a/inspection"
+              element={
+                <PrivateRoute>
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <InspectionDivisionHeadPage />
+                    </SidebarInset>
+                  </SidebarProvider>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/a/inspection/assign"
+              element={
+                <PrivateRoute>
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <AssignInspectionPage />
                     </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>

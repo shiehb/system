@@ -1,7 +1,7 @@
 // @/features/map/EstablishmentMapList.tsx
 import { useState, useMemo } from "react";
 import type { Establishment } from "@/lib/establishmentApi";
-import { Search } from "lucide-react";
+import { Search, Building } from "lucide-react";
 
 interface EstablishmentMapListProps {
   establishments: Establishment[];
@@ -64,24 +64,23 @@ export function EstablishmentMapList({
               <div
                 key={est.id}
                 className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  selectedEstablishment?.id === est.id ? "bg-blue-50" : ""
+                  selectedEstablishment?.id === est.id
+                    ? "bg-blue-50 border-l-4 border-blue-500"
+                    : ""
                 }`}
                 onClick={() => onSelect(est)}
               >
-                <h3 className="font-medium">{est.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  {est.address_line}, {est.city}
-                </p>
-                {est.latitude && est.longitude && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Coordinates: {est.latitude}, {est.longitude}
-                  </p>
-                )}
-                {est.nature_of_business && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Business: {est.nature_of_business}
-                  </p>
-                )}
+                <div className="flex items-start gap-3">
+                  <div className="bg-gray-100 p-2 rounded-lg">
+                    <Building className="h-5 w-5 text-gray-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium truncate">{est.name}</h3>
+                    <p className="text-sm text-gray-600 truncate mt-1">
+                      {est.address_line}, {est.city}
+                    </p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>

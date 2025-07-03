@@ -363,12 +363,7 @@ export function ProfileInfo() {
                 <span className="p-2 text-base font-medium text-right">
                   Email:
                 </span>
-                <input
-                  type="email"
-                  value={profile.email}
-                  readOnly
-                  className="p-1 text-base font-medium border border-foreground rounded-md"
-                />
+                <span>{profile.email}</span>
               </div>
             )}
 
@@ -377,12 +372,7 @@ export function ProfileInfo() {
                 <span className="p-2 text-base font-medium text-right">
                   User Level:
                 </span>
-                <input
-                  type="text"
-                  value={profile.user_level}
-                  readOnly
-                  className="p-1 text-base font-medium border border-foreground rounded-md"
-                />
+                <span>{profile.user_level}</span>
               </div>
             )}
           </CardContent>

@@ -11,13 +11,10 @@ import {
   ClipboardList,
   BarChart,
   Users,
-  PieChart,
-  Briefcase,
   Plus,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-import { NavProjects } from "@/components/nav-projects";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -51,6 +48,39 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         isActive: currentPath.startsWith("/maps"),
       },
       {
+        title: "Inspection",
+        url: "/inspection",
+        icon: ClipboardList,
+        isActive: currentPath.startsWith("/inspection"),
+        items: [
+          {
+            title: "Overview",
+            url: "/inspection",
+            icon: ClipboardList,
+          },
+        ],
+      },
+      {
+        title: "Reports",
+        url: "/reports",
+        icon: BarChart,
+        isActive: currentPath.startsWith("/reports"),
+        items: [
+          {
+            title: "Report Overview",
+            url: "/reports",
+            icon: BarChart,
+          },
+        ],
+      },
+    ];
+  };
+
+  const getManagementItems = () => {
+    const currentPath = location.pathname;
+
+    return [
+      {
         title: "Establishments",
         url: "/establishments",
         icon: Building,
@@ -69,49 +99,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ],
       },
       {
-        title: "Inspection",
-        url: "/inspection",
-        icon: ClipboardList,
-        isActive: currentPath.startsWith("/inspection"),
-        items: [
-          {
-            title: "Overview",
-            url: "/inspection",
-          },
-        ],
-      },
-      {
-        title: "Reports",
-        url: "/reports",
-        icon: BarChart,
-        isActive: currentPath.startsWith("/reports"),
-        items: [{ title: "Report Overview", url: "/reports" }],
-      },
-      {
         title: "User Management",
         url: "/user-management",
         icon: Users,
         isActive: currentPath.startsWith("/user-management"),
-      },
-    ];
-  };
-
-  const getProjectItems = () => {
-    return [
-      {
-        name: "Main Project",
-        url: "/projects/main",
-        icon: Briefcase,
-      },
-      {
-        name: "Sales & Marketing",
-        url: "/projects/sales",
-        icon: PieChart,
-      },
-      {
-        name: "Travel",
-        url: "/projects/travel",
-        icon: Map,
       },
     ];
   };
@@ -152,12 +143,27 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="h-14 pt-4 flex justify-end pr-4">
-        <SidebarTrigger />
+      <SidebarHeader className="h-14 grid grid-cols-[100%]">
+        {/* Single column (100%) */}
+        <div className="flex items-center gap-2 min-w-[32px]">
+          <img
+            src="/assets/DENR-Logo.svg"
+            className="size-8 shrink-0"
+            alt="DENR Logo"
+          />
+          <div className="transition-all duration-300 overflow-hidden data-[collapsed=true]:w-0 data-[collapsed=true]:opacity-0">
+            <div className="text-xs font-medium whitespace-nowrap">
+              Integrated Establishment Regulatory
+            </div>
+            <div className="text-xs font-medium whitespace-nowrap">
+              Management System
+            </div>
+          </div>
+        </div>
       </SidebarHeader>
+
       <SidebarContent>
-        <NavMain items={getNavItems()} />
-        <NavProjects projects={getProjectItems()} />
+        <NavMain items={getNavItems()} managementItems={getManagementItems()} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser

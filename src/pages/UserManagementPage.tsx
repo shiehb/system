@@ -54,7 +54,7 @@ export default function Page() {
         >
           <TabsTrigger
             value="users"
-            className={`p-4 border-1  cursor-pointer transition duration-300 ease-in ${
+            className={`p-4 cursor-pointer transition duration-300 ease-in ${
               activeTab === "users" ? "text-foreground  " : ""
             }`}
             aria-selected={activeTab === "users"}
@@ -64,7 +64,7 @@ export default function Page() {
           </TabsTrigger>
           <TabsTrigger
             value="logs"
-            className={`p-4 border-1 cursor-pointer transition duration-300 ease-in ${
+            className={`p-4 cursor-pointer transition duration-300 ease-in ${
               activeTab === "logs" ? "text-foreground " : ""
             }`}
             aria-selected={activeTab === "logs"}
