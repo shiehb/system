@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { getUsers } from "@/lib/api";
 import { useAuth } from "@/contexts/useAuth";
-import type { User } from "@/types";
+import type { User, UserLevel } from "@/types";
 import { ResetPassword } from "@/features/users/form/reset-password-form";
 
 import {
@@ -48,6 +48,22 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { EditUserForm } from "@/features/users/form/edit-user-form";
 import { ChangeStatus } from "@/features/users/form/change-status-form";
 
+const USER_LEVELS: UserLevel[] = [
+  "administrator",
+  "division_chief",
+  "eia_air_water_section_chief",
+  "toxic_hazardous_section_chief",
+  "solid_waste_section_chief",
+  "eia_monitoring_unit_head",
+  "air_quality_unit_head",
+  "water_quality_unit_head",
+  "eia_monitoring_personnel",
+  "air_quality_monitoring_personnel",
+  "water_quality_monitoring_personnel",
+  "toxic_chemicals_monitoring_personnel",
+  "solid_waste_monitoring_personnel",
+];
+
 interface UsersListTableProps {
   onSelectionChange?: (ids: number[]) => void;
   onUsersData?: (users: User[]) => void;
@@ -69,12 +85,8 @@ const UsersListTable = ({
     "active",
     "inactive",
   ]);
-  const [userLevelFilter, setUserLevelFilter] = useState<string[]>([
-    "admin",
-    "manager",
-    "inspector",
-    "chief",
-  ]);
+  const [userLevelFilter, setUserLevelFilter] =
+    useState<UserLevel[]>(USER_LEVELS);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -112,7 +124,7 @@ const UsersListTable = ({
 
   const filteredUsers = users.filter(
     (user) =>
-      `${user.first_name} ${user.last_name} ${user.email} ${user.id_number}`
+      `${user.first_name} ${user.last_name} ${user.email}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) &&
       statusFilter.includes(user.status) &&
@@ -142,7 +154,7 @@ const UsersListTable = ({
     );
   };
 
-  const toggleUserLevelFilter = (level: string) => {
+  const toggleUserLevelFilter = (level: UserLevel) => {
     setUserLevelFilter((prev) =>
       prev.includes(level) ? prev.filter((l) => l !== level) : [...prev, level]
     );
@@ -211,7 +223,7 @@ const UsersListTable = ({
             className="cursor-pointer"
           >
             <ResetPassword
-              idNumber={user.id_number}
+              email={user.email}
               userName={`${user.first_name} ${user.last_name}`}
             />
           </DropdownMenuItem>
@@ -225,6 +237,19 @@ const UsersListTable = ({
         />
       </DropdownMenu>
     );
+  };
+
+  const getUserLevelBadgeVariant = (userLevel: UserLevel) => {
+    if (userLevel.includes("administrator")) return "default";
+    if (userLevel.includes("chief")) return "secondary";
+    if (userLevel.includes("head")) return "outline";
+    return "outline";
+  };
+
+  const formatUserLevel = (userLevel: UserLevel) => {
+    return userLevel
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
   return (
@@ -244,7 +269,7 @@ const UsersListTable = ({
           <div className="relative flex-1">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search users by name, email or ID..."
+              placeholder="Search users by name or email..."
               className="pl-8 w-full md:w-85 lg:w-100 bg-background border-foreground"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -283,38 +308,28 @@ const UsersListTable = ({
               <DropdownMenuSeparator />
               <DropdownMenuLabel>User Level</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuCheckboxItem
-                checked={userLevelFilter.includes("admin")}
-                onCheckedChange={() => toggleUserLevelFilter("admin")}
-              >
-                Admin
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={userLevelFilter.includes("manager")}
-                onCheckedChange={() => toggleUserLevelFilter("manager")}
-              >
-                Manager
-              </DropdownMenuCheckboxItem>
-              <DropdownMenuCheckboxItem
-                checked={userLevelFilter.includes("inspector")}
-                onCheckedChange={() => toggleUserLevelFilter("inspector")}
-              >
-                Inspector
-              </DropdownMenuCheckboxItem>
+              {USER_LEVELS.map((level) => (
+                <DropdownMenuCheckboxItem
+                  key={level}
+                  checked={userLevelFilter.includes(level)}
+                  onCheckedChange={() => toggleUserLevelFilter(level)}
+                >
+                  {formatUserLevel(level)}
+                </DropdownMenuCheckboxItem>
+              ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </CardHeader>
 
       <CardContent>
-        <div className=" overflow-hidden w-full">
+        <div className="overflow-hidden w-full">
           {/* Desktop Table */}
-          <div className="hidden sm:block ">
-            <Table className="bg-background border-1 rounded-none ">
-              <ScrollArea className="h-[calc(100vh-310px)] md:h-[calc(100vh-275px)]  xl:h-[calc(100vh-260px)]">
+          <div className="hidden sm:block">
+            <Table className="bg-background border-1 rounded-none">
+              <ScrollArea className="h-[calc(100vh-310px)] md:h-[calc(100vh-275px)] xl:h-[calc(100vh-260px)]">
                 <TableHeader className="sticky bg-muted top-0 z-10">
                   <TableRow>
-                    {/* Selection checkbox */}
                     <TableHead className="w-[10px] min-w-[10px] text-center p-2">
                       <Checkbox
                         checked={
@@ -327,22 +342,14 @@ const UsersListTable = ({
                       />
                     </TableHead>
 
-                    {/* ID */}
-                    <TableHead className="w-[90px] min-w-[90px] text-left">
-                      ID Number
-                    </TableHead>
-
-                    {/* User Info */}
                     <TableHead className="w-[200px] text-left">Name</TableHead>
 
                     <TableHead className="w-[200px] text-left">Email</TableHead>
 
-                    {/* Role/Level */}
-                    <TableHead className="w-[100px] min-w-[100px] text-center">
+                    <TableHead className="w-[150px] min-w-[150px] text-center">
                       User Level
                     </TableHead>
 
-                    {/* Timestamps */}
                     <TableHead className="w-[120px] min-w-[120px] text-center">
                       Created At
                     </TableHead>
@@ -351,12 +358,10 @@ const UsersListTable = ({
                       Updated At
                     </TableHead>
 
-                    {/* Status */}
                     <TableHead className="w-[100px] min-w-[100px] text-center">
                       Status
                     </TableHead>
 
-                    {/* Actions */}
                     <TableHead className="w-8 min-w-8 text-center">
                       Actions
                     </TableHead>
@@ -366,7 +371,7 @@ const UsersListTable = ({
                 <TableBody>
                   {users.length > 0 ? (
                     users.map((user) => (
-                      <TableRow key={user.id} className="hover:bg-muted ">
+                      <TableRow key={user.id} className="hover:bg-muted">
                         <TableCell className="text-center">
                           <Checkbox
                             checked={selectedUserIds.includes(user.id)}
@@ -375,10 +380,7 @@ const UsersListTable = ({
                             className="cursor-pointer"
                           />
                         </TableCell>
-                        <TableCell className="text-left font-bold">
-                          {user.id_number}
-                        </TableCell>
-                        <TableCell className=" text-left">
+                        <TableCell className="text-left">
                           <span className="font-medium">{user.last_name}</span>
                           {", "}
                           {user.first_name} {user.middle_name}
@@ -386,57 +388,17 @@ const UsersListTable = ({
                         <TableCell className="text-left">
                           {user.email}
                         </TableCell>
-                        {/* User Level cell with role-specific titles */}
                         <TableCell className="text-center">
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Badge
-                                  variant={
-                                    user.user_level === "admin"
-                                      ? "default"
-                                      : user.user_level === "manager"
-                                      ? "secondary"
-                                      : "outline"
-                                  }
-                                  className={cn(
-                                    "capitalize py-1 w-45 bg-transparent border-1 select-none",
-                                    {
-                                      "border-red-600 hover:bg-red-50 text-red-700":
-                                        user.user_level === "admin",
-                                      "border-yellow-600 hover:bg-yellow-50 text-yellow-700":
-                                        user.user_level === "manager",
-                                      "border-green-600 hover:bg-green-50 text-green-700":
-                                        user.user_level === "inspector",
-                                      "border-blue-600 hover:bg-blue-50 text-blue-700":
-                                        user.user_level === "chief",
-                                    }
+                                  variant={getUserLevelBadgeVariant(
+                                    user.user_level
                                   )}
+                                  className="capitalize"
                                 >
-                                  {user.user_level === "admin"
-                                    ? "admin"
-                                    : user.user_level === "manager"
-                                    ? "manager"
-                                    : user.user_level === "chief" ||
-                                      user.user_level === "inspector"
-                                    ? user.role === "RA-6969"
-                                      ? user.user_level === "chief"
-                                        ? "Chief of Waste Management"
-                                        : "Waste Inspector"
-                                      : user.role === "RA-8749"
-                                      ? user.user_level === "chief"
-                                        ? "Chief of Air Quality"
-                                        : "Air Quality Inspector"
-                                      : user.role === "RA-9275"
-                                      ? user.user_level === "chief"
-                                        ? "Chief of Water Quality"
-                                        : "Water Quality Inspector"
-                                      : user.role === "RA-9003"
-                                      ? user.user_level === "chief"
-                                        ? "Chief of Solid Waste"
-                                        : "Solid Waste Inspector"
-                                      : user.user_level
-                                    : user.user_level}
+                                  {formatUserLevel(user.user_level)}
                                 </Badge>
                               </TooltipTrigger>
                               <TooltipContent
@@ -445,21 +407,7 @@ const UsersListTable = ({
                                 className="max-w-[180px]"
                                 sideOffset={5}
                               >
-                                {user.user_level === "admin" && (
-                                  <p>Administrator: Full system access</p>
-                                )}
-                                {user.user_level === "manager" && (
-                                  <p>Manager: Department management access</p>
-                                )}
-                                {user.user_level === "inspector" && (
-                                  <p>Inspector: Field inspection access</p>
-                                )}
-                                {user.user_level === "chief" && (
-                                  <p>
-                                    Chief Inspector: Senior field inspection
-                                    access
-                                  </p>
-                                )}
+                                {user.user_level.replace(/_/g, " ")}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -505,7 +453,7 @@ const UsersListTable = ({
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={10} className="h-24 text-center">
+                      <TableCell colSpan={8} className="h-24 text-center">
                         {searchTerm
                           ? "No matching users found"
                           : "No users available"}
@@ -519,7 +467,7 @@ const UsersListTable = ({
 
           {/* Mobile Card View */}
           <ScrollArea className="h-[calc(100vh-340px)] sm:hidden pr-2 border border-foreground">
-            <div className="block p-2 space-y-4  ">
+            <div className="block p-2 space-y-4">
               {users.length > 0 ? (
                 users.map((user) => (
                   <div
@@ -538,10 +486,9 @@ const UsersListTable = ({
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="text-sm">ID: {user.id_number}</div>
                       <div className="text-sm">Email: {user.email}</div>
-                      <div className="text-sm capitalize">
-                        User Level: {user.user_level}
+                      <div className="text-sm">
+                        User Level: {formatUserLevel(user.user_level)}
                       </div>
                       <div className="text-sm capitalize">
                         Status: {user.status}

@@ -2,25 +2,24 @@ import { toast } from "sonner";
 
 interface AuthService {
   login: (
-    username: string,
+    email: string,
     password: string,
-    loginUser: (username: string, password: string) => Promise<void>
+    loginUser: (email: string, password: string) => Promise<void>
   ) => Promise<void>;
   handleForgotPassword: () => void;
 }
 
 export const authService: AuthService = {
-  async login(username, password, loginUser) {
-    // Basic validation
-    if (!username.trim() || !password.trim()) {
-      toast.error("Please enter both ID number and password", {
+  async login(email, password, loginUser) {
+    if (!email.trim() || !password.trim()) {
+      toast.error("Please enter both email and password", {
         duration: 5000,
       });
-      throw new Error("Please enter both ID number and password");
+      throw new Error("Please enter both email and password");
     }
 
     try {
-      await loginUser(username, password);
+      await loginUser(email, password);
       toast.success("Login Successful", {
         duration: 5000,
       });

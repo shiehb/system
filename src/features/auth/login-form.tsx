@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Eye, EyeOff, User2, KeyRound } from "lucide-react";
-
+import { Eye, EyeOff, Mail, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
 import { useAuth } from "@/contexts/useAuth";
 import { authService } from "./authService";
 import { Terms } from "./terms";
@@ -28,11 +26,11 @@ export function LoginForm({
   ...props
 }: LoginFormProps) {
   const { login_user } = useAuth();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [isUsernameFocused, setIsUsernameFocused] = useState(false);
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,15 +41,14 @@ export function LoginForm({
     setError("");
 
     try {
-      await authService.login(username, password, login_user);
-      // Redirect to intended path or default
+      await authService.login(email, password, login_user);
       const redirectPath = location.state?.from?.pathname || "/dashboard";
       navigate(redirectPath);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An unexpected error occurred";
       setError(errorMessage);
-      setUsername("");
+      setEmail("");
       setPassword("");
     } finally {
       onLoadingChange(false);
@@ -62,8 +59,8 @@ export function LoginForm({
     setShowPassword(!showPassword);
   };
 
-  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setUsername(e.target.value);
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
     if (error) setError("");
   };
 
@@ -72,8 +69,7 @@ export function LoginForm({
     if (error) setError("");
   };
 
-  // Determine if we should show error styling
-  const showUsernameError = error && !isUsernameFocused;
+  const showEmailError = error && !isEmailFocused;
   const showPasswordError = error && !isPasswordFocused;
 
   return (
@@ -90,7 +86,7 @@ export function LoginForm({
           </div>
           <CardTitle>
             <div className="flex items-center justify-center gap-2 text-lg md:text-xl font-bold text-muted-foreground">
-              <User2 className="text-primary" size={22} />
+              <Mail className="text-primary" size={22} />
               Account Login
             </div>
           </CardTitle>
@@ -103,31 +99,28 @@ export function LoginForm({
               </div>
             )}
             <div className="grid gap-6">
-              {/* ID Number Input */}
               <div className="grid gap-2">
-                <Label htmlFor="id">ID Number</Label>
+                <Label htmlFor="email">Email</Label>
                 <div className="relative">
                   <Input
-                    id="id"
-                    value={username}
-                    onChange={handleUsernameChange}
-                    onFocus={() => setIsUsernameFocused(true)}
-                    onBlur={() => setIsUsernameFocused(false)}
+                    id="email"
+                    value={email}
+                    onChange={handleEmailChange}
+                    onFocus={() => setIsEmailFocused(true)}
+                    onBlur={() => setIsEmailFocused(false)}
                     className={cn(
                       "pl-10",
-                      showUsernameError &&
+                      showEmailError &&
                         "border-destructive focus-visible:ring-destructive"
                     )}
-                    type="tel"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="e.g. 12345678"
+                    type="email"
+                    placeholder="user@example.com"
                     required
                   />
-                  <User2
+                  <Mail
                     className={cn(
                       "absolute left-3 top-1/2 -translate-y-1/2",
-                      showUsernameError
+                      showEmailError
                         ? "text-destructive"
                         : "text-muted-foreground"
                     )}
@@ -135,7 +128,7 @@ export function LoginForm({
                   />
                 </div>
               </div>
-              {/* Password Input */}
+
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
@@ -190,8 +183,7 @@ export function LoginForm({
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <Button type="submit" className="w-full  hover:scale-95">
+              <Button type="submit" className="w-full hover:scale-95">
                 LOGIN
               </Button>
             </div>

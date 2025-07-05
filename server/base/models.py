@@ -6,15 +6,12 @@ def default_avatar():
     return 'avatars/default.jpg'
 
 class UserManager(BaseUserManager):
-    def create_user(self, id_number, email, first_name, last_name, password=None, **extra_fields):
-        if not id_number:
-            raise ValueError('Users must have an ID number')
+    def create_user(self, email, first_name, last_name, password=None, **extra_fields):
         if not email:
             raise ValueError('Users must have an email address')
         
         email = self.normalize_email(email)
         user = self.model(
-            id_number=id_number,
             email=email,
             first_name=first_name,
             last_name=last_name,
@@ -24,10 +21,10 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, id_number, email, first_name, last_name, password=None, **extra_fields):
+    def create_superuser(self, email, first_name, last_name, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('user_level', 'admin')
+        extra_fields.setdefault('user_level', 'administrator')
         extra_fields.setdefault('status', 'active')
 
         if extra_fields.get('is_staff') is not True:
@@ -36,7 +33,6 @@ class UserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
 
         return self.create_user(
-            id_number=id_number,
             email=email,
             first_name=first_name,
             last_name=last_name,
@@ -46,36 +42,33 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser):
     USER_LEVEL_CHOICES = [
-        ('admin', 'Admin'),
-        ('manager', 'Manager'),
-        ('chief', 'Chief'),
-        ('inspector', 'Inspector'),
+        ('administrator', 'Administrator'),
+        ('division_chief', 'Division Chief'),
+        ('eia_air_water_section_chief', 'EIA Air Water Section Chief'),
+        ('toxic_hazardous_section_chief', 'Toxic Hazardous Section Chief'),
+        ('solid_waste_section_chief', 'Solid Waste Section Chief'),
+        ('eia_monitoring_unit_head', 'EIA Monitoring Unit Head'),
+        ('air_quality_unit_head', 'Air Quality Unit Head'),
+        ('water_quality_unit_head', 'Water Quality Unit Head'),
+        ('eia_monitoring_personnel', 'EIA Monitoring Personnel'),
+        ('air_quality_monitoring_personnel', 'Air Quality Monitoring Personnel'),
+        ('water_quality_monitoring_personnel', 'Water Quality Monitoring Personnel'),
+        ('toxic_chemicals_monitoring_personnel', 'Toxic Chemicals Monitoring Personnel'),
+        ('solid_waste_monitoring_personnel', 'Solid Waste Monitoring Personnel'),
     ]
     
     STATUS_CHOICES = [
         ('active', 'Active'),
         ('inactive', 'Inactive'),
     ]
-    
-    ROLE_CHOICES = [
-        ('RA-6969', 'RA-6969'),
-        ('RA-8749', 'RA-8749'),
-        ('RA-9275', 'RA-9275'),
-        ('RA-9003', 'RA-9003'),
-    ]
 
     username = models.CharField(max_length=150, null=True, blank=True, unique=False)
-    id_number = models.CharField(max_length=50, unique=True)
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
     middle_name = models.CharField(max_length=150, blank=True)
-    user_level = models.CharField(max_length=20, choices=USER_LEVEL_CHOICES, default='inspector')
+    user_level = models.CharField(max_length=50, choices=USER_LEVEL_CHOICES, default='eia_monitoring_personnel')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
-    role = models.CharField(
-        max_length=20,
-        choices=ROLE_CHOICES,
-        blank=True,
-        null=True,
-        help_text='Applicable only for Inspector and Chief roles'
-    )
     avatar = models.ImageField(
         upload_to='avatars/',
         null=True,
@@ -85,8 +78,8 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    USERNAME_FIELD = 'id_number'
-    REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name']
 
     objects = UserManager()
 
@@ -109,14 +102,11 @@ class User(AbstractUser):
 
     def save(self, *args, **kwargs):
         if not self.username:
-            self.username = self.id_number
-        # Clear role if user is not inspector or chief
-        if self.user_level not in ['inspector', 'chief']:
-            self.role = None
+            self.username = self.email
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.id_number})"
+        return f"{self.first_name} {self.last_name} ({self.email})"
 
 class ActivityLog(models.Model):
     ACTION_CHOICES = [

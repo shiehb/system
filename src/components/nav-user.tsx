@@ -1,7 +1,7 @@
 "use client";
 
 import { User, LogOut, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -49,7 +49,7 @@ export function NavUser({
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const handleLogoutClick = async () => {
+  const handleLogoutClick = useCallback(async () => {
     if (!onLogoutClick) return;
 
     setIsLoggingOut(true);
@@ -57,13 +57,10 @@ export function NavUser({
       await onLogoutClick();
       toast.success("You've been logged out", {
         description: "Your session has ended securely",
-        action: {
-          label: "Close",
-          onClick: () => {},
-        },
         duration: 5000,
       });
     } catch (error) {
+      console.error("Logout failed:", error);
       toast.error("Logout failed", {
         description: "Couldn't end your session. Please try again.",
       });
@@ -71,7 +68,14 @@ export function NavUser({
       setIsLoggingOut(false);
       setShowLogoutDialog(false);
     }
-  };
+  }, [onLogoutClick]);
+
+  const getInitials = useCallback((name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("");
+  }, []);
 
   return (
     <>
@@ -84,21 +88,18 @@ export function NavUser({
                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border-none"
               >
                 <Avatar className="h-8 w-8 rounded-full">
-                  {!loading && user.avatar ? (
+                  {!loading && user.avatar && (
                     <AvatarImage
-                      className="object-cover"
                       src={user.avatar}
                       alt={user.name}
+                      className="object-cover"
                     />
-                  ) : null}
+                  )}
                   <AvatarFallback className="rounded-full">
                     {loading || isLoggingOut ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
+                      getInitials(user.name)
                     )}
                   </AvatarFallback>
                 </Avatar>
@@ -123,15 +124,12 @@ export function NavUser({
                 <DropdownMenuLabel className="flex items-center gap-3">
                   <Avatar className="h-8 w-8 rounded-full">
                     <AvatarImage
-                      className="object-cover"
                       src={user.avatar}
                       alt={user.name}
+                      className="object-cover"
                     />
                     <AvatarFallback className="rounded-full">
-                      {user.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")}
+                      {getInitials(user.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">

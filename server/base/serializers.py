@@ -13,51 +13,41 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
     middle_name = serializers.CharField(required=False, allow_blank=True)
-    user_level = serializers.CharField(required=False, default='inspector')
+    user_level = serializers.CharField(required=False, default='eia_monitoring_personnel')
     status = serializers.CharField(required=False, default='active')
-    role = serializers.CharField(required=False, allow_null=True)
     
     class Meta:
         model = User
         fields = [
-            'id_number', 
+            'email',
             'password',
             'first_name',
             'last_name',
             'middle_name',
-            'email',
             'user_level',
-            'status',
-            'role'
+            'status'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
             'user_level': {'required': False},
             'status': {'required': False},
-            'role': {'required': False},
         }
 
-    def validate(self, data):
-        user_level = data.get('user_level', 'inspector')
-        role = data.get('role')
-        
-        if user_level in ['inspector', 'chief'] and not role:
-            raise serializers.ValidationError({"role": "Role is required for Inspector and Chief users"})
-        elif user_level not in ['inspector', 'chief'] and role:
-            raise serializers.ValidationError({"role": "Role is only applicable for Inspector and Chief users"})
-        
-        return data
-
-    def validate_id_number(self, value):
-        if User.objects.filter(id_number=value).exists():
-            raise serializers.ValidationError("A user with this ID number already exists.")
-        return value
-
     def validate_email(self, value):
-        value = self.initial_data.get('email', value)
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
         return value
+
+    def validate(self, data):
+        user_level = data.get('user_level', 'eia_monitoring_personnel')
+        valid_levels = [choice[0] for choice in User.USER_LEVEL_CHOICES]
+        
+        if user_level not in valid_levels:
+            raise serializers.ValidationError({
+                "user_level": f"Invalid user level. Must be one of: {', '.join(valid_levels)}"
+            })
+        
+        return data
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
@@ -66,15 +56,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
         try:
             user = User.objects.create_user(
-                id_number=validated_data['id_number'],
                 email=validated_data['email'],
                 first_name=validated_data['first_name'],
                 last_name=validated_data['last_name'],
                 password=password,
                 middle_name=validated_data.get('middle_name', ''),
-                user_level=validated_data.get('user_level', 'inspector'),
-                status=validated_data.get('status', 'active'),
-                role=validated_data.get('role')
+                user_level=validated_data.get('user_level', 'eia_monitoring_personnel'),
+                status=validated_data.get('status', 'active')
             )
             return user
         except Exception as e:
@@ -87,34 +75,21 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id',
-            'id_number',
+            'email',
             'first_name',
             'last_name',
             'middle_name',
-            'email',
             'user_level',
             'status',
-            'role',
             'avatar',
             'avatar_url',
             'created_at',
             'updated_at'
         ]
         extra_kwargs = {
-            'id_number': {'read_only': True},
+            'email': {'read_only': True},
             'avatar': {'write_only': True}
         }
-    
-    def validate(self, data):
-        user_level = data.get('user_level', self.instance.user_level if self.instance else 'inspector')
-        role = data.get('role', self.instance.role if self.instance else None)
-        
-        if user_level in ['inspector', 'chief'] and not role:
-            raise serializers.ValidationError({"role": "Role is required for Inspector and Chief users"})
-        elif user_level not in ['inspector', 'chief'] and role:
-            raise serializers.ValidationError({"role": "Role is only applicable for Inspector and Chief users"})
-        
-        return data
     
     def get_avatar_url(self, obj):
         if obj.avatar:

@@ -33,46 +33,48 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import type { UserLevel } from "@/types";
 
-// Type definitions for role descriptions
-type RoleDescription = {
-  chief: string;
-  inspector: string;
-};
-
-const roleDescriptions: Record<string, RoleDescription> = {
-  "RA-6969": {
-    chief:
-      "This Chief will oversee Toxic Substances and Hazardous and Nuclear Wastes Control",
-    inspector:
-      "This Inspector will handle Toxic Substances and Hazardous and Nuclear Wastes Control",
-  },
-  "RA-8749": {
-    chief: "This Chief will oversee Air Quality Management",
-    inspector: "This Inspector will handle Air Quality Management",
-  },
-  "RA-9275": {
-    chief: "This Chief will oversee Water Quality Management",
-    inspector: "This Inspector will handle Water Quality Management",
-  },
-  "RA-9003": {
-    chief: "This Chief will oversee Ecological Solid Waste Management",
-    inspector: "This Inspector will handle Ecological Solid Waste Management",
-  },
-};
+const USER_LEVELS: UserLevel[] = [
+  "administrator",
+  "division_chief",
+  "eia_air_water_section_chief",
+  "toxic_hazardous_section_chief",
+  "solid_waste_section_chief",
+  "eia_monitoring_unit_head",
+  "air_quality_unit_head",
+  "water_quality_unit_head",
+  "eia_monitoring_personnel",
+  "air_quality_monitoring_personnel",
+  "water_quality_monitoring_personnel",
+  "toxic_chemicals_monitoring_personnel",
+  "solid_waste_monitoring_personnel",
+];
 
 const userSchema = z
   .object({
-    id_number: z.string().min(3, "ID Number must be at least 8 characters"),
+    email: z.string().email("Invalid email address"),
     first_name: z.string().min(2, "First name is required"),
     last_name: z.string().min(2, "Last name is required"),
-    middle_name: z.string().min(2, "Middle name is required"),
-    email: z.string().email("Invalid email address"),
+    middle_name: z.string().optional(),
     password: z.string().optional(),
     cPassword: z.string().optional(),
-    user_level: z.enum(["admin", "manager", "inspector", "chief"]),
+    user_level: z.enum([
+      "administrator",
+      "division_chief",
+      "eia_air_water_section_chief",
+      "toxic_hazardous_section_chief",
+      "solid_waste_section_chief",
+      "eia_monitoring_unit_head",
+      "air_quality_unit_head",
+      "water_quality_unit_head",
+      "eia_monitoring_personnel",
+      "air_quality_monitoring_personnel",
+      "water_quality_monitoring_personnel",
+      "toxic_chemicals_monitoring_personnel",
+      "solid_waste_monitoring_personnel",
+    ]),
     status: z.enum(["active", "inactive"]),
-    role: z.string().optional(),
     showPasswordFields: z.boolean(),
   })
   .superRefine((data, ctx) => {
@@ -84,22 +86,6 @@ const userSchema = z
           path: ["cPassword"],
         });
       }
-    }
-
-    if (["inspector", "chief"].includes(data.user_level) && !data.role) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Role is required for Inspector and Chief",
-        path: ["role"],
-      });
-    }
-
-    if (!["inspector", "chief"].includes(data.user_level) && data.role) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Role is only applicable for Inspector and Chief",
-        path: ["role"],
-      });
     }
   });
 
@@ -122,16 +108,14 @@ export function AddUserForm({
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      id_number: "",
+      email: "",
       first_name: "",
       last_name: "",
       middle_name: "",
-      email: "",
       password: "",
       cPassword: "",
-      user_level: "inspector",
+      user_level: "eia_monitoring_personnel",
       status: "active",
-      role: "",
       showPasswordFields: false,
     },
   });
@@ -141,16 +125,14 @@ export function AddUserForm({
       setFormErrors({});
     } else {
       form.reset({
-        id_number: "",
+        email: "",
         first_name: "",
         last_name: "",
         middle_name: "",
-        email: "",
         password: "",
         cPassword: "",
-        user_level: "inspector",
+        user_level: "eia_monitoring_personnel",
         status: "active",
-        role: "",
         showPasswordFields: false,
       });
     }
@@ -163,16 +145,13 @@ export function AddUserForm({
       setFormErrors({});
 
       await register_user(
-        userData.id_number,
+        userData.email,
         userData.first_name,
         userData.last_name,
         userData.middle_name || "",
-        userData.email,
         showPasswordFields ? userData.password || "" : "",
         userData.user_level,
-        userData.status,
-        showPasswordFields ? cPassword || "" : "",
-        userData.role || ""
+        userData.status
       );
 
       toast.success("User added successfully");
@@ -212,7 +191,12 @@ export function AddUserForm({
 
   const showPasswordFields = form.watch("showPasswordFields");
   const userLevel = form.watch("user_level");
-  const selectedRole = form.watch("role");
+
+  const formatUserLevel = (level: UserLevel) => {
+    return level
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -248,30 +232,7 @@ export function AddUserForm({
             )}
 
             <div className="space-y-4 gap-4">
-              <div className="grid grid-cols-2 gap-2">
-                <FormField
-                  control={form.control}
-                  name="id_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="e.g. (12345678)"
-                          required
-                          className={
-                            form.formState.errors.id_number
-                              ? "border-destructive"
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+              <div className="grid grid-cols-1 gap-2">
                 <FormField
                   control={form.control}
                   name="email"
@@ -305,7 +266,7 @@ export function AddUserForm({
                     <FormItem>
                       <FormLabel>First Name</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="first_name" required />
+                        <Input {...field} placeholder="First name" required />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -319,7 +280,7 @@ export function AddUserForm({
                     <FormItem>
                       <FormLabel>Last Name</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="last_name" required />
+                        <Input {...field} placeholder="Last name" required />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -333,7 +294,7 @@ export function AddUserForm({
                     <FormItem>
                       <FormLabel>Middle Name</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="middle_name" />
+                        <Input {...field} placeholder="Middle name" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -346,7 +307,7 @@ export function AddUserForm({
                   control={form.control}
                   name="showPasswordFields"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-y-0 ">
+                    <FormItem className="flex flex-row items-start space-y-0">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -441,7 +402,7 @@ export function AddUserForm({
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                {/* <FormField
+                <FormField
                   control={form.control}
                   name="status"
                   render={({ field }) => (
@@ -464,7 +425,8 @@ export function AddUserForm({
                       <FormMessage />
                     </FormItem>
                   )}
-                /> */}
+                />
+
                 <FormField
                   control={form.control}
                   name="user_level"
@@ -481,62 +443,26 @@ export function AddUserForm({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="w-full">
-                          <SelectItem value="inspector">Inspector</SelectItem>
-                          <SelectItem value="chief">Chief</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="admin">Administrator</SelectItem>
+                          {USER_LEVELS.map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {formatUserLevel(level)}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                {["inspector", "chief"].includes(userLevel) && (
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel>Section</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select Section" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="w-full">
-                            <SelectItem value="RA-6969">RA-6969</SelectItem>
-                            <SelectItem value="RA-8749">RA-8749</SelectItem>
-                            <SelectItem value="RA-9275">RA-9275</SelectItem>
-                            <SelectItem value="RA-9003">RA-9003</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
               </div>
 
-              {["inspector", "chief"].includes(userLevel) && (
-                <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
-                  <Info className="h-4 w-4 mb-2" />
-                  <AlertTitle>
-                    {userLevel === "chief" ? "Chief" : "Inspector"} Information
-                  </AlertTitle>
-                  <AlertDescription>
-                    {selectedRole
-                      ? roleDescriptions[selectedRole][
-                          userLevel as "chief" | "inspector"
-                        ]
-                      : `Please select a section for this ${userLevel}`}
-                  </AlertDescription>
-                </Alert>
-              )}
+              <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
+                <Info className="h-4 w-4 mb-2" />
+                <AlertTitle>User Level Information</AlertTitle>
+                <AlertDescription>
+                  {formatUserLevel(userLevel)}: {userLevel.replace(/_/g, " ")}
+                </AlertDescription>
+              </Alert>
             </div>
 
             <div className="flex justify-end gap-4 pt-4">

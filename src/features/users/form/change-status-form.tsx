@@ -15,7 +15,7 @@ import { Ban, CheckCircle } from "lucide-react";
 
 interface ChangeStatusProps {
   userId: number;
-  currentStatus: string;
+  currentStatus: "active" | "inactive";
   userName: string;
   onStatusChanged: () => void;
   children?: React.ReactNode;
@@ -32,17 +32,22 @@ export function ChangeStatus({
 
   const newStatus = currentStatus === "active" ? "inactive" : "active";
   const actionText = currentStatus === "active" ? "Deactivate" : "Activate";
+  const statusMessage =
+    currentStatus === "active"
+      ? "They will no longer be able to access the system."
+      : "They will regain access to the system.";
 
   const handleConfirm = async () => {
     try {
       setLoading(true);
-      await changeUserStatus(userId, newStatus);
-      toast.success(
-        `User ${
-          newStatus === "active" ? "activated" : "deactivated"
-        } successfully`
-      );
-      onStatusChanged();
+      const response = await changeUserStatus(userId, newStatus);
+
+      if (response.success) {
+        toast.success(`User ${actionText.toLowerCase()} successfully`);
+        onStatusChanged();
+      } else {
+        throw new Error(response.message || "Failed to change status");
+      }
     } catch (error) {
       toast.error("Failed to change status", {
         description:
@@ -57,7 +62,7 @@ export function ChangeStatus({
   return (
     <>
       <div
-        className="cursor-pointer flex items-center w-full"
+        className="flex items-center w-full cursor-pointer"
         onClick={() => setOpen(true)}
       >
         {currentStatus === "active" ? (
@@ -79,10 +84,8 @@ export function ChangeStatus({
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to {actionText.toLowerCase()} {userName}?
-              {currentStatus === "active"
-                ? " They will no longer be able to access the system."
-                : " They will regain access to the system."}
+              Are you sure you want to {actionText.toLowerCase()} {userName}?{" "}
+              {statusMessage}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -93,10 +96,10 @@ export function ChangeStatus({
               className={
                 currentStatus === "active"
                   ? "bg-destructive hover:bg-destructive/80"
-                  : "bg-primary text-foreground hover:bg-primary/80"
+                  : "bg-primary hover:bg-primary/80"
               }
             >
-              {loading ? "Processing..." : `Confirm ${actionText}`}
+              {loading ? "Processing..." : actionText}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

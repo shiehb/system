@@ -1,7 +1,6 @@
 import os
 from datetime import datetime
 from django.conf import settings
-
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
@@ -10,18 +9,15 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
 from .models import Todo, User, ActivityLog
 from .serializers import TodoSerializer, UserRegisterSerializer, UserSerializer, ActivityLogSerializer
-from .utils import log_admin_action
-
 from django.core.paginator import Paginator, EmptyPage
 from django.db.models import Q
 
-# --- Login ---
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         try:
+            request.data['email'] = request.data.get('id_number', request.data.get('email'))
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             user = serializer.user
@@ -35,7 +31,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             response = super().post(request, *args, **kwargs)
             tokens = response.data
 
-            # Log successful login
             ActivityLog.objects.create(
                 user=user,
                 action='login',
@@ -67,7 +62,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         except AuthenticationFailed:
             return Response({
                 'success': False,
-                'message': 'Invalid ID number or password.'
+                'message': 'Invalid email or password.'
             }, status=400)
 
         except Exception as e:
@@ -85,7 +80,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             ip = request.META.get('REMOTE_ADDR')
         return ip
 
-# --- Check Login Status ---
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def is_logged_in(request):
@@ -98,7 +92,6 @@ def is_logged_in(request):
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
 
-# --- Token Refresh ---
 class CustomTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         try:
@@ -120,12 +113,10 @@ class CustomTokenRefreshView(TokenRefreshView):
             print(e)
             return Response({'refreshed': False}, status=400)
 
-# --- Logout ---
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout(request):
     try:
-        # Log logout action
         ActivityLog.objects.create(
             user=request.user,
             action='logout'
@@ -139,26 +130,15 @@ def logout(request):
         print(e)
         return Response({'success': False}, status=400)
 
-# --- Register New User ---
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])  # Admin only
+@permission_classes([IsAuthenticated])
 def register(request):
-    if request.user.user_level != 'admin':
+    if request.user.user_level != 'administrator':
         return Response({
             'success': False,
             'message': 'Only admin users can create new accounts'
         }, status=403) 
 
-    # Check for duplicate ID number
-    if User.objects.filter(id_number=request.data.get('id_number')).exists():
-        return Response({
-            'success': False,
-            'message': 'Validation failed',
-            'errors': {
-                'id_number': ['A user with this ID number already exists.']
-            }
-        }, status=400)
-    
     if User.objects.filter(email=request.data.get('email')).exists():
         return Response({
             'success': False,
@@ -173,13 +153,11 @@ def register(request):
         try:
             user = serializer.save()
             
-            # Enhanced logging with more details
             ActivityLog.objects.create(
                 admin=request.user,
                 user=user,
                 action='user_created',
                 details={
-                    'id_number': user.id_number,
                     'email': user.email,
                     'user_level': user.user_level,
                     'status': user.status,
@@ -205,11 +183,10 @@ def register(request):
         'errors': serializer.errors
     }, status=400)
 
-# --- Delete User (Admin only) ---
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_user(request, pk):
-    if request.user.user_level != 'admin':
+    if request.user.user_level != 'administrator':
         return Response({
             'success': False,
             'message': 'Only admin users can delete accounts'
@@ -223,13 +200,11 @@ def delete_user(request, pk):
             'message': 'User not found'
         }, status=404)
     
-    # Log before deletion
     ActivityLog.objects.create(
         admin=request.user,
         user=user,
         action='user_deleted',
         details={
-            'id_number': user.id_number,
             'email': user.email,
             'user_level': user.user_level
         }
@@ -242,11 +217,10 @@ def delete_user(request, pk):
         'message': 'User deleted successfully'
     })
 
-# --- Update User (Admin only) ---
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_user(request, pk):
-    if request.user.user_level != 'admin':
+    if request.user.user_level != 'administrator':
         return Response({
             'success': False,
             'message': 'Only admin users can update users'
@@ -260,9 +234,7 @@ def update_user(request, pk):
             'message': 'User not found'
         }, status=404)
     
-    # Store original data for logging
     original_data = {
-        'id_number': user.id_number,
         'email': user.email,
         'user_level': user.user_level,
         'status': user.status,
@@ -270,18 +242,6 @@ def update_user(request, pk):
         'last_name': user.last_name,
         'middle_name': user.middle_name
     }
-    
-    # Check for duplicate ID number (excluding current user)
-    if 'id_number' in request.data:
-        id_number = request.data['id_number']
-        if User.objects.filter(id_number=id_number).exclude(pk=user.pk).exists():
-            return Response({
-                'success': False,
-                'message': 'Validation failed',
-                'errors': {
-                    'id_number': ['A user with this ID number already exists.']
-                }
-            }, status=400)
     
     if 'email' in request.data:
         email = request.data['email']
@@ -298,10 +258,8 @@ def update_user(request, pk):
     if serializer.is_valid():
         serializer.save()
         
-        # Get updated data
         updated_user = User.objects.get(pk=pk)
         updated_data = {
-            'id_number': updated_user.id_number,
             'email': updated_user.email,
             'user_level': updated_user.user_level,
             'status': updated_user.status,
@@ -310,16 +268,14 @@ def update_user(request, pk):
             'middle_name': updated_user.middle_name
         }
         
-        # Determine what changed
         changes = {}
-        for field in ['id_number', 'email', 'user_level', 'status', 'first_name', 'last_name', 'middle_name']:
+        for field in ['email', 'user_level', 'status', 'first_name', 'last_name', 'middle_name']:
             if original_data[field] != updated_data[field]:
                 changes[field] = {
                     'from': original_data[field],
                     'to': updated_data[field]
                 }
         
-        # Log the user update action if anything changed
         if changes:
             ActivityLog.objects.create(
                 admin=request.user,
@@ -342,11 +298,10 @@ def update_user(request, pk):
         'errors': serializer.errors
     }, status=400)
 
-# --- Change User Status (Admin only) ---
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def change_user_status(request, pk):
-    if request.user.user_level != 'admin':
+    if request.user.user_level != 'administrator':
         return Response({
             'success': False,
             'message': 'Only admin users can change user status'
@@ -371,7 +326,6 @@ def change_user_status(request, pk):
     user.status = status
     user.save()
     
-    # Enhanced status change logging
     ActivityLog.objects.create(
         admin=request.user,
         user=user,
@@ -379,7 +333,7 @@ def change_user_status(request, pk):
         details={
             'from': original_status,
             'to': status,
-            'id_number': user.id_number,
+            'email': user.email,
             'full_name': f"{user.first_name} {user.last_name}"
         }
     )
@@ -390,11 +344,10 @@ def change_user_status(request, pk):
         'user': UserSerializer(user).data
     })
 
-# --- Get All Users (Admin only) ---
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_users(request):
-    if request.user.user_level != 'admin':
+    if request.user.user_level != 'administrator':
         raise PermissionDenied("Only admin users can view the user list")
 
     queryset = User.objects.exclude(id=request.user.id)
@@ -405,22 +358,19 @@ def get_users(request):
     if user_level := request.query_params.get('user_level'):
         queryset = queryset.filter(user_level=user_level)
 
-    queryset = queryset.order_by('id_number')
+    queryset = queryset.order_by('email')
     serializer = UserSerializer(queryset, many=True)
     return Response(serializer.data)
 
-# --- Reset Password (Admin only) ---
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def admin_reset_password(request):
-    # Verify admin status
-    if request.user.user_level != 'admin':
+    if request.user.user_level != 'administrator':
         return Response({
             'success': False,
             'message': 'Only admin users can reset passwords'
         }, status=403)
 
-    # Verify admin password
     admin_password = request.data.get('admin_password')
     if not admin_password or not request.user.check_password(admin_password):
         return Response({
@@ -428,34 +378,30 @@ def admin_reset_password(request):
             'message': 'Admin password is incorrect'
         }, status=400)
 
-    # Get target user using id_number
-    id_number = request.data.get('id_number')
-
-    if not id_number:
+    email = request.data.get('email')
+    if not email:
         return Response({
             'success': False,
-            'message': 'ID Number is required'
+            'message': 'Email is required'
         }, status=400)
 
     try:
-        user = User.objects.get(id_number=id_number)
+        user = User.objects.get(email=email)
     except User.DoesNotExist:
         return Response({
             'success': False,
-            'message': 'User not found with this ID number'
+            'message': 'User not found with this email'
         }, status=404)
 
-    # Reset password to default
     user.set_password(settings.DEFAULT_USER_PASSWORD)
     user.save()
 
-    # Enhanced password reset logging
     ActivityLog.objects.create(
         admin=request.user,
         user=user,
         action='password_reset',
         details={
-            'id_number': user.id_number,
+            'email': user.email,
             'full_name': f"{user.first_name} {user.last_name}",
             'reset_to_default': True
         }
@@ -465,27 +411,23 @@ def admin_reset_password(request):
         'success': True,
         'message': 'Password reset successfully to default',
         'user': {
-            'id_number': user.id_number,
-            'full_name': f"{user.first_name} {user.last_name}",
-            'email': user.email
+            'email': user.email,
+            'full_name': f"{user.first_name} {user.last_name}"
         }
     })
 
-# --- Get Current User Profile ---
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_my_profile(request):
     serializer = UserSerializer(request.user, context={'request': request})
     return Response(serializer.data)
 
-# --- Update Current User Profile ---
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_profile(request):
     user = request.user
     data = request.data.copy()
     
-    # Handle password update
     if 'new_password' in data and data['new_password']:
         if 'current_password' not in data or not data['current_password']:
             return Response({
@@ -493,23 +435,19 @@ def update_profile(request):
                 'message': 'Current password is required'
             }, status=400)
         
-        # Verify current password
         if not user.check_password(data['current_password']):
             return Response({
                 'success': False,
                 'message': 'Current password is incorrect'
             }, status=400)
         
-        # Set new password
         user.set_password(data['new_password'])
     
-    # Handle avatar update
     if 'avatar' in request.FILES:
         user.avatar = request.FILES['avatar']
     
     user.save()
     
-    # Log profile update
     ActivityLog.objects.create(
         user=user,
         action='profile_updated',
@@ -524,7 +462,6 @@ def update_profile(request):
         'user': UserSerializer(user).data
     })
 
-# --- Update Avatar ---
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def update_avatar(request):
@@ -537,12 +474,9 @@ def update_avatar(request):
             'message': 'No avatar file provided'
         }, status=400)
 
-    # Delete old avatar file if it exists and isn't the default
     if user.avatar and user.avatar.name != 'avatars/default.jpg':
         try:
-            # Get the storage instance
             storage = user.avatar.storage
-            # Delete the file
             storage.delete(user.avatar.name)
         except Exception as e:
             print(f"Error deleting old avatar: {e}")
@@ -550,7 +484,6 @@ def update_avatar(request):
     user.avatar = avatar
     user.save()
 
-    # Log avatar update
     ActivityLog.objects.create(
         user=user,
         action='avatar_updated',
@@ -569,7 +502,6 @@ def update_avatar(request):
         'avatar_url': avatar_url
     })
 
-# --- Get Todos for Current User ---
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_todos(request):
@@ -577,17 +509,15 @@ def get_todos(request):
     serializer = TodoSerializer(todos, many=True)
     return Response(serializer.data)
 
-# --- Get Activity Logs (Admin only) ---
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_activity_logs(request):
-    if request.user.user_level != 'admin':
+    if request.user.user_level != 'administrator':
         return Response({
             'success': False,
             'message': 'Only admin users can view activity logs'
         }, status=403)
     
-    # Optional filters
     action = request.query_params.get('action')
     user_id = request.query_params.get('user_id')
     admin_id = request.query_params.get('admin_id')
@@ -603,16 +533,15 @@ def get_activity_logs(request):
         logs = logs.filter(admin__id=admin_id)
     if search:
         logs = logs.filter(
-            Q(user__id_number__icontains=search) |
+            Q(user__email__icontains=search) |
             Q(user__first_name__icontains=search) |
             Q(user__last_name__icontains=search) |
-            Q(admin__id_number__icontains=search) |
+            Q(admin__email__icontains=search) |
             Q(admin__first_name__icontains=search) |
             Q(admin__last_name__icontains=search) |
             Q(details__icontains=search)
         )
     
-    # Pagination
     page = request.query_params.get('page', 1)
     page_size = request.query_params.get('page_size', 20)
     paginator = Paginator(logs, page_size)

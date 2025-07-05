@@ -11,11 +11,14 @@ def log_admin_action(admin_user, action, user=None, details=None):
         details=details or {}
     )
 
-def log_user_login(user):
+def log_user_login(user, ip_address=None):
+    details = {}
+    if ip_address:
+        details['ip_address'] = ip_address
     ActivityLog.objects.create(
         user=user,
         action='login',
-        details={'ip_address': "Get from request if available"}
+        details=details
     )
 
 def log_user_logout(user):
@@ -24,16 +27,14 @@ def log_user_logout(user):
         action='logout'
     )
 
-def log_avatar_update(admin, user):
+def log_avatar_update(user):
     ActivityLog.objects.create(
-        admin=admin,
         user=user,
         action='avatar_updated'
     )
 
-def log_profile_update(admin, user):
+def log_profile_update(user):
     ActivityLog.objects.create(
-        admin=admin,
         user=user,
         action='profile_updated'
     )

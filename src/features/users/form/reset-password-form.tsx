@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,23 +31,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { adminResetPassword } from "@/lib/api";
-
 import { ShieldCheck, Info } from "lucide-react";
 
 const formSchema = z.object({
-  idNumber: z.string().min(1, "ID Number is required"),
+  email: z.string().email("Invalid email address"),
   adminPassword: z.string().min(1, "Your admin password is required"),
 });
 
 type ResetPasswordFormValues = z.infer<typeof formSchema>;
 
 interface ResetPasswordProps {
-  idNumber: string;
+  email: string;
   userName?: string;
   children?: React.ReactNode;
 }
 
-export function ResetPassword({ idNumber, userName }: ResetPasswordProps) {
+export function ResetPassword({ email, userName }: ResetPasswordProps) {
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -55,7 +54,7 @@ export function ResetPassword({ idNumber, userName }: ResetPasswordProps) {
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      idNumber,
+      email,
       adminPassword: "",
     },
   });
@@ -69,14 +68,20 @@ export function ResetPassword({ idNumber, userName }: ResetPasswordProps) {
       setLoading(true);
       const values = form.getValues();
 
-      await adminResetPassword(values.idNumber, values.adminPassword);
+      const response = await adminResetPassword(
+        values.email,
+        values.adminPassword
+      );
 
-      toast.success("Password reset to default successfully");
-      form.reset({
-        idNumber,
-        adminPassword: "",
-      });
-      setOpen(false);
+      if (response.success) {
+        toast.success("Password reset successfully", {
+          description: response.message || "Password has been reset to default",
+        });
+        form.reset();
+        setOpen(false);
+      } else {
+        throw new Error(response.message || "Failed to reset password");
+      }
     } catch (error) {
       toast.error("Failed to reset password", {
         description:
@@ -92,14 +97,14 @@ export function ResetPassword({ idNumber, userName }: ResetPasswordProps) {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <div className="flex items-center text-blue-500">
-            <ShieldCheck className="mr-2 h-4 w-4 text-blue-500" />
-            <span>Reset Password</span>
-          </div>
+          <Button variant="ghost" className="text-blue-500 hover:text-blue-600">
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            Reset Password
+          </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader className="mt-6">
-            <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
+          <DialogHeader>
+            <Alert className="text-center">
               <Info className="h-4 w-4 mb-2" />
               <AlertTitle>Reset Password</AlertTitle>
               <AlertDescription>
@@ -112,15 +117,16 @@ export function ResetPassword({ idNumber, userName }: ResetPasswordProps) {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="idNumber"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ID Number</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder="Enter ID number"
-                        disabled={!!idNumber}
+                        type="email"
+                        placeholder="user@example.com"
+                        disabled={!!email}
                       />
                     </FormControl>
                     <FormMessage />
@@ -156,7 +162,7 @@ export function ResetPassword({ idNumber, userName }: ResetPasswordProps) {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Processing..." : "Reset Password"}
+                  {loading ? "Processing..." : "Continue"}
                 </Button>
               </div>
             </form>

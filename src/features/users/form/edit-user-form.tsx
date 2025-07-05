@@ -31,68 +31,43 @@ import {
 import { updateUser } from "@/lib/api";
 import { toast } from "sonner";
 
-// Type definitions for role descriptions
-type RoleDescription = {
-  chief: string;
-  inspector: string;
-};
+const USER_LEVELS = [
+  "administrator",
+  "division_chief",
+  "eia_air_water_section_chief",
+  "toxic_hazardous_section_chief",
+  "solid_waste_section_chief",
+  "eia_monitoring_unit_head",
+  "air_quality_unit_head",
+  "water_quality_unit_head",
+  "eia_monitoring_personnel",
+  "air_quality_monitoring_personnel",
+  "water_quality_monitoring_personnel",
+  "toxic_chemicals_monitoring_personnel",
+  "solid_waste_monitoring_personnel",
+] as const;
 
-const roleDescriptions: Record<string, RoleDescription> = {
-  "RA-6969": {
-    chief:
-      "This Chief will oversee Toxic Substances and Hazardous and Nuclear Wastes Control",
-    inspector:
-      "This Inspector will handle Toxic Substances and Hazardous and Nuclear Wastes Control",
-  },
-  "RA-8749": {
-    chief: "This Chief will oversee Air Quality Management",
-    inspector: "This Inspector will handle Air Quality Management",
-  },
-  "RA-9275": {
-    chief: "This Chief will oversee Water Quality Management",
-    inspector: "This Inspector will handle Water Quality Management",
-  },
-  "RA-9003": {
-    chief: "This Chief will oversee Ecological Solid Waste Management",
-    inspector: "This Inspector will handle Ecological Solid Waste Management",
-  },
-};
-
-const userSchema = z
-  .object({
-    id_number: z.string().min(3, "ID Number must be at least 3 characters"),
-    first_name: z.string().min(2, "First name is required"),
-    last_name: z.string().min(2, "Last name is required"),
-    middle_name: z.string().min(2, "Middle name is required"),
-    email: z.string().email("Invalid email address"),
-    user_level: z.enum(["admin", "manager", "inspector", "chief"]),
-    status: z.enum(["active", "inactive"]),
-    role: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    // Role validation for inspector/chief
-    if (["inspector", "chief"].includes(data.user_level) && !data.role) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Role is required for Inspector and Chief",
-        path: ["role"],
-      });
-    }
-
-    // Clear role if not inspector/chief
-    if (!["inspector", "chief"].includes(data.user_level) && data.role) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Role is only applicable for Inspector and Chief",
-        path: ["role"],
-      });
-    }
-  });
+const userSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  first_name: z.string().min(2, "First name is required"),
+  last_name: z.string().min(2, "Last name is required"),
+  middle_name: z.string().optional(),
+  user_level: z.enum(USER_LEVELS),
+  status: z.enum(["active", "inactive"]),
+});
 
 type UserFormValues = z.infer<typeof userSchema>;
 
 interface EditUserFormProps {
-  user: any;
+  user: {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+    middle_name?: string;
+    user_level: (typeof USER_LEVELS)[number];
+    status: "active" | "inactive";
+  };
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUserUpdated: () => void;
@@ -110,32 +85,24 @@ export function EditUserForm({
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      id_number: user?.id_number || "",
+      email: user?.email || "",
       first_name: user?.first_name || "",
       last_name: user?.last_name || "",
       middle_name: user?.middle_name || "",
-      email: user?.email || "",
-      user_level: user?.user_level || "inspector",
+      user_level: user?.user_level || "eia_monitoring_personnel",
       status: user?.status || "active",
-      role: user?.role || "",
     },
   });
-
-  // Watch user_level and role to conditionally show role field and alert
-  const userLevel = form.watch("user_level");
-  const selectedRole = form.watch("role");
 
   useEffect(() => {
     if (user && open) {
       form.reset({
-        id_number: user.id_number,
+        email: user.email,
         first_name: user.first_name,
         last_name: user.last_name,
         middle_name: user.middle_name || "",
-        email: user.email,
         user_level: user.user_level,
         status: user.status,
-        role: user.role || "",
       });
       setFormErrors({});
     }
@@ -146,7 +113,15 @@ export function EditUserForm({
       setLoading(true);
       setFormErrors({});
 
-      await updateUser(user.id, values);
+      await updateUser(user.id, {
+        email: values.email,
+        first_name: values.first_name,
+        last_name: values.last_name,
+        middle_name: values.middle_name,
+        user_level: values.user_level,
+        status: values.status,
+      });
+
       toast.success("User updated successfully");
       onUserUpdated();
       onOpenChange(false);
@@ -184,6 +159,12 @@ export function EditUserForm({
     }
   };
 
+  const formatUserLevel = (level: (typeof USER_LEVELS)[number]) => {
+    return level
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -211,30 +192,7 @@ export function EditUserForm({
             )}
 
             <div className="space-y-4 gap-4">
-              <div className="grid grid-cols-2 gap-2">
-                <FormField
-                  control={form.control}
-                  name="id_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="e.g. (12345678)"
-                          readOnly
-                          className={
-                            form.formState.errors.id_number
-                              ? "border-destructive"
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
+              <div className="grid grid-cols-1 gap-2">
                 <FormField
                   control={form.control}
                   name="email"
@@ -304,7 +262,7 @@ export function EditUserForm({
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                {/* <FormField
+                <FormField
                   control={form.control}
                   name="status"
                   render={({ field }) => (
@@ -327,7 +285,7 @@ export function EditUserForm({
                       <FormMessage />
                     </FormItem>
                   )}
-                /> */}
+                />
 
                 <FormField
                   control={form.control}
@@ -345,62 +303,26 @@ export function EditUserForm({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="w-full">
-                          <SelectItem value="inspector">Inspector</SelectItem>
-                          <SelectItem value="chief">Chief</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="admin">Administrator</SelectItem>
+                          {USER_LEVELS.map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {formatUserLevel(level)}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                {["inspector", "chief"].includes(userLevel) && (
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel>Section</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select section" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="w-full">
-                            <SelectItem value="RA-6969">RA-6969</SelectItem>
-                            <SelectItem value="RA-8749">RA-8749</SelectItem>
-                            <SelectItem value="RA-9275">RA-9275</SelectItem>
-                            <SelectItem value="RA-9003">RA-9003</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
               </div>
 
-              {["inspector", "chief"].includes(userLevel) && (
-                <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
-                  <Info className="h-4 w-4 mb-2" />
-                  <AlertTitle>
-                    {userLevel === "chief" ? "Chief" : "Inspector"} Information
-                  </AlertTitle>
-                  <AlertDescription>
-                    {selectedRole
-                      ? roleDescriptions[selectedRole][
-                          userLevel as "chief" | "inspector"
-                        ]
-                      : `Please select a section for this ${userLevel}`}
-                  </AlertDescription>
-                </Alert>
-              )}
+              <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
+                <Info className="h-4 w-4 mb-2" />
+                <AlertTitle>User Level Information</AlertTitle>
+                <AlertDescription>
+                  {formatUserLevel(form.watch("user_level"))}
+                </AlertDescription>
+              </Alert>
             </div>
 
             <div className="flex justify-end gap-4 pt-4">

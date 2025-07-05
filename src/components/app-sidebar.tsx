@@ -1,9 +1,11 @@
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { logout, getMyProfile } from "@/lib/api";
 import { useNavigate, useLocation } from "react-router-dom";
-
+import { useAuth } from "@/contexts/useAuth";
+import { type User, type UserLevel } from "@/types";
+import { type NavItem } from "@/types/sidebar-types";
 import {
   LayoutDashboard,
   Map,
@@ -18,7 +20,6 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
-  SidebarTrigger,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
@@ -28,13 +29,44 @@ import {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  const getNavItems = () => {
+  const managementLevels: UserLevel[] = [
+    "administrator",
+    "division_chief",
+    "eia_air_water_section_chief",
+    "toxic_hazardous_section_chief",
+    "solid_waste_section_chief",
+  ];
+
+  const inspectionLevels: UserLevel[] = [
+    "eia_monitoring_personnel",
+    "air_quality_monitoring_personnel",
+    "water_quality_monitoring_personnel",
+    "toxic_chemicals_monitoring_personnel",
+    "solid_waste_monitoring_personnel",
+    ...managementLevels,
+  ];
+
+  const isManagementLevel = useCallback(
+    (level: UserLevel | undefined): boolean => {
+      return level ? managementLevels.includes(level) : false;
+    },
+    []
+  );
+
+  const isInspectionLevel = useCallback(
+    (level: UserLevel | undefined): boolean => {
+      return level ? inspectionLevels.includes(level) : false;
+    },
+    []
+  );
+
+  const getNavItems = useCallback((): NavItem[] => {
     const currentPath = location.pathname;
-
-    return [
+    const baseItems: NavItem[] = [
       {
         title: "Dashboard",
         url: "/dashboard",
@@ -47,7 +79,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: Map,
         isActive: currentPath.startsWith("/maps"),
       },
-      {
+    ];
+
+    if (isInspectionLevel(user?.user_level)) {
+      baseItems.push({
         title: "Inspection",
         url: "/inspection",
         icon: ClipboardList,
@@ -59,28 +94,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: ClipboardList,
           },
         ],
-      },
-      {
-        title: "Reports",
-        url: "/reports",
-        icon: BarChart,
-        isActive: currentPath.startsWith("/reports"),
-        items: [
-          {
-            title: "Report Overview",
-            url: "/reports",
-            icon: BarChart,
-          },
-        ],
-      },
-    ];
-  };
+      });
+    }
 
-  const getManagementItems = () => {
+    baseItems.push({
+      title: "Reports",
+      url: "/reports",
+      icon: BarChart,
+      isActive: currentPath.startsWith("/reports"),
+      items: [
+        {
+          title: "Report Overview",
+          url: "/reports",
+          icon: BarChart,
+        },
+      ],
+    });
+
+    return baseItems;
+  }, [location.pathname, user?.user_level, isInspectionLevel]);
+
+  const getManagementItems = useCallback((): NavItem[] => {
     const currentPath = location.pathname;
+    const managementItems: NavItem[] = [];
 
-    return [
-      {
+    if (isManagementLevel(user?.user_level)) {
+      managementItems.push({
         title: "Establishments",
         url: "/establishments",
         icon: Building,
@@ -97,33 +136,48 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             icon: Plus,
           },
         ],
-      },
-      {
-        title: "User Management",
-        url: "/user-management",
-        icon: Users,
-        isActive: currentPath.startsWith("/user-management"),
-      },
-    ];
-  };
+      });
+
+      if (user?.user_level === "administrator") {
+        managementItems.push({
+          title: "User Management",
+          url: "/user-management",
+          icon: Users,
+          isActive: currentPath.startsWith("/user-management"),
+        });
+      }
+    }
+
+    return managementItems;
+  }, [location.pathname, user?.user_level, isManagementLevel]);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchProfile = async () => {
       try {
         const data = await getMyProfile();
-        setProfile(data);
+        if (isMounted) {
+          setProfile(data);
+        }
       } catch (error) {
         console.error("Failed to load profile:", error);
         toast.error("Failed to load user profile");
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProfile();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await logout();
       setProfile(null);
@@ -134,17 +188,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       });
 
       navigate("/login");
-    } catch {
+    } catch (error) {
+      console.error("Logout failed:", error);
       toast.error("Logout failed.", {
         description: "Please try again.",
       });
     }
-  };
+  }, [navigate]);
 
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader className="h-14 grid grid-cols-[100%]">
-        {/* Single column (100%) */}
         <div className="flex items-center gap-2 min-w-[32px]">
           <img
             src="/assets/DENR-Logo.svg"
