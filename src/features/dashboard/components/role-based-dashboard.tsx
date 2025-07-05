@@ -2,6 +2,8 @@ import { useAuth } from "@/contexts/useAuth";
 import { AdminDashboard } from "./admin-dashboard";
 import { InspectorDashboard } from "./inspector-dashboard";
 import { ChiefDashboard } from "./chief-dashboard";
+import { SectionChiefDashboard } from "./sectionchief-dashboard";
+import { UnitHeadDashboard } from "./unithead-dashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { type UserLevel } from "@/types";
 import { type ReactElement } from "react";
@@ -27,13 +29,15 @@ export function RoleBasedDashboard() {
       case "administrator":
         return <AdminDashboard />;
       case "division_chief":
+        return <ChiefDashboard />;
       case "eia_air_water_section_chief":
       case "toxic_hazardous_section_chief":
       case "solid_waste_section_chief":
-        return <ChiefDashboard />;
+        return <SectionChiefDashboard />;
       case "eia_monitoring_unit_head":
       case "air_quality_unit_head":
       case "water_quality_unit_head":
+        return <UnitHeadDashboard />;
       case "eia_monitoring_personnel":
       case "air_quality_monitoring_personnel":
       case "water_quality_monitoring_personnel":
