@@ -24,6 +24,7 @@ export interface User {
   avatar_url?: string;
   created_at: string;
   updated_at: string;
+  using_default_password?: boolean;
 }
 
 export type ActivityLogDetails = {

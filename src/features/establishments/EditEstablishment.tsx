@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import addressData from "@/data/region-ph.json";
 import { geocodeAddress } from "@/utils/geocoding";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CoordinatesMapPreview } from "@/components/map/CoordinatesMapPreview";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Check, ChevronsUpDown, Plus } from "lucide-react";
 import type { EstablishmentFormData } from "@/lib/establishmentApi";
 import { toast } from "sonner";
 import {
@@ -32,20 +33,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { YearPicker } from "@/components/YearPicker";
-
-const businessTypes = [
-  { value: "retail", label: "Retail" },
-  { value: "food", label: "Food & Beverage" },
-  { value: "service", label: "Service" },
-  { value: "manufacturing", label: "Manufacturing" },
-  { value: "hospitality", label: "Hospitality" },
-  { value: "healthcare", label: "Healthcare" },
-  { value: "education", label: "Education" },
-  { value: "other", label: "Other" },
-];
+import { fetchNatureOfBusinessOptions } from "@/lib/establishmentApi";
 
 interface EditEstablishmentProps {
   id: number;
+  businessTypes: { id: number; name: string }[];
   establishment: EstablishmentFormData;
   onUpdate: (id: number, data: EstablishmentFormData) => Promise<void>;
   isSubmitting?: boolean;
@@ -66,6 +58,12 @@ export default function EditEstablishment({
   const [formData, setFormData] =
     useState<EstablishmentFormData>(establishment);
   const [isFetchingCoords, setIsFetchingCoords] = useState(false);
+  const [businessTypes, setBusinessTypes] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [errors, setErrors] = useState({
     name: "",
     region: "",
@@ -77,7 +75,7 @@ export default function EditEstablishment({
     year_established: "",
     latitude: "",
     longitude: "",
-    nature_of_business: "",
+    nature_of_business_id: "",
   });
   const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -96,6 +94,20 @@ export default function EditEstablishment({
     [];
   const barangays =
     cities.find((c: any) => c.name === formData.city)?.barangays || [];
+
+  useEffect(() => {
+    const fetchBusinessTypes = async () => {
+      try {
+        const types = await fetchNatureOfBusinessOptions();
+        setBusinessTypes(types);
+      } catch (error) {
+        toast.error("Failed to load business types");
+      } finally {
+        setLoadingBusinessTypes(false);
+      }
+    };
+    fetchBusinessTypes();
+  }, []);
 
   useEffect(() => {
     if (hasSingleRegion && !formData.region) {
@@ -238,7 +250,7 @@ export default function EditEstablishment({
         : isNaN(Number(formData.longitude))
         ? "Must be a valid number"
         : "",
-      nature_of_business: !formData.nature_of_business ? "Required" : "",
+      nature_of_business_id: !formData.nature_of_business_id ? "Required" : "",
     };
 
     setErrors(newErrors);
@@ -263,7 +275,9 @@ export default function EditEstablishment({
         postal_code: formData.postal_code,
         latitude: formData.latitude || undefined,
         longitude: formData.longitude || undefined,
-        nature_of_business: formData.nature_of_business || undefined,
+        nature_of_business_id: formData.nature_of_business_id
+          ? parseInt(String(formData.nature_of_business_id))
+          : undefined,
       });
     } catch (error) {
       console.error("Update error:", error);
@@ -352,8 +366,8 @@ export default function EditEstablishment({
                       latitude: establishment.latitude,
                       longitude: establishment.longitude,
                       year_established: establishment.year_established,
-                      nature_of_business:
-                        establishment.nature_of_business || "",
+                      nature_of_business_id:
+                        establishment.nature_of_business_id ?? null,
                     });
                     toast.success("Changes reset to original values");
                   }}
@@ -383,7 +397,7 @@ export default function EditEstablishment({
                 <div className="col-span-2 space-y-2">
                   <div className="flex items-center gap-2">
                     <label className="font-medium">Nature of Business *</label>
-                    <ErrorLabel field="nature_of_business" />
+                    <ErrorLabel field="nature_of_business_id" />
                   </div>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -391,39 +405,78 @@ export default function EditEstablishment({
                         variant="outline"
                         role="combobox"
                         className={`justify-between w-full ${getErrorClass(
-                          "nature_of_business"
+                          "nature_of_business_id"
                         )}`}
                       >
                         {businessTypes.find(
-                          (type) => type.value === formData.nature_of_business
-                        )?.label || "Select business type"}
+                          (type) =>
+                            type.id.toString() ===
+                            String(formData.nature_of_business_id)
+                        )?.name || "Select business type"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-full p-0">
                       <Command>
                         <CommandInput placeholder="Search business type..." />
-                        <CommandEmpty>No business type found.</CommandEmpty>
-                        <CommandGroup className="max-h-[300px] overflow-y-auto">
-                          {businessTypes.map((type) => (
-                            <CommandItem
-                              key={type.value}
-                              value={type.value}
-                              onSelect={() =>
-                                handleChange("nature_of_business", type.value)
+                        <CommandEmpty>
+                          <div className="flex flex-col items-center gap-2 p-4">
+                            <span>No business type found.</span>
+                            <Button
+                              variant="link"
+                              className="text-primary"
+                              onClick={() =>
+                                navigate("/nature-of-business", {
+                                  state: { from: location.pathname },
+                                })
                               }
                             >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  formData.nature_of_business === type.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {type.label}
-                            </CommandItem>
-                          ))}
+                              + Add New Business Type
+                            </Button>
+                          </div>
+                        </CommandEmpty>
+                        <CommandGroup className="max-h-[300px] overflow-y-auto">
+                          {loadingBusinessTypes ? (
+                            <div className="flex justify-center p-4">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                          ) : (
+                            <>
+                              {businessTypes.map((type) => (
+                                <CommandItem
+                                  key={type.id}
+                                  value={type.name}
+                                  onSelect={() =>
+                                    handleChange(
+                                      "nature_of_business_id" as keyof EstablishmentFormData,
+                                      type.id.toString()
+                                    )
+                                  }
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      String(formData.nature_of_business_id) ===
+                                        type.id.toString()
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {type.name}
+                                </CommandItem>
+                              ))}
+                              <CommandItem
+                                value="add-new"
+                                onSelect={() => {
+                                  window.location.href = "/nature-of-business";
+                                }}
+                                className="text-primary font-medium"
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add New Business Type
+                              </CommandItem>
+                            </>
+                          )}
                         </CommandGroup>
                       </Command>
                     </PopoverContent>

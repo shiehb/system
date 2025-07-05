@@ -70,6 +70,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
+    using_default_password = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -83,6 +84,7 @@ class UserSerializer(serializers.ModelSerializer):
             'status',
             'avatar',
             'avatar_url',
+            'using_default_password',
             'created_at',
             'updated_at'
         ]
@@ -95,9 +97,13 @@ class UserSerializer(serializers.ModelSerializer):
         if obj.avatar:
             request = self.context.get('request')
             if request:
-                return request.build_absolute_uri(obj.avatar.url)
+                url = request.build_absolute_uri(obj.avatar.url)
+                return f"{url}?t={int(obj.updated_at.timestamp())}"
             return obj.avatar.url
         return None
+    
+    def get_using_default_password(self, obj):
+        return obj.using_default_password
 
 class ActivityLogSerializer(serializers.ModelSerializer):
     admin = UserSerializer(read_only=True)

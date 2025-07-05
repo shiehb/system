@@ -1,3 +1,4 @@
+// add_user-form.tsx
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,7 +75,6 @@ const userSchema = z
       "toxic_chemicals_monitoring_personnel",
       "solid_waste_monitoring_personnel",
     ]),
-    status: z.enum(["active", "inactive"]),
     showPasswordFields: z.boolean(),
   })
   .superRefine((data, ctx) => {
@@ -115,7 +115,6 @@ export function AddUserForm({
       password: "",
       cPassword: "",
       user_level: "eia_monitoring_personnel",
-      status: "active",
       showPasswordFields: false,
     },
   });
@@ -132,7 +131,6 @@ export function AddUserForm({
         password: "",
         cPassword: "",
         user_level: "eia_monitoring_personnel",
-        status: "active",
         showPasswordFields: false,
       });
     }
@@ -150,8 +148,7 @@ export function AddUserForm({
         userData.last_name,
         userData.middle_name || "",
         showPasswordFields ? userData.password || "" : "",
-        userData.user_level,
-        userData.status
+        userData.user_level
       );
 
       toast.success("User added successfully");
@@ -232,32 +229,6 @@ export function AddUserForm({
             )}
 
             <div className="space-y-4 gap-4">
-              <div className="grid grid-cols-1 gap-2">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="email"
-                          placeholder="user@example.com"
-                          required
-                          className={
-                            form.formState.errors.email
-                              ? "border-destructive"
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
               <div className="grid grid-cols-3 gap-2">
                 <FormField
                   control={form.control}
@@ -296,6 +267,59 @@ export function AddUserForm({
                       <FormControl>
                         <Input {...field} placeholder="Middle name" />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder="user@example.com"
+                          required
+                          className={
+                            form.formState.errors.email
+                              ? "border-destructive"
+                              : ""
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="user_level"
+                  render={({ field }) => (
+                    <FormItem className="w-full">
+                      <FormLabel>User Level</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select user level" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="w-full">
+                          {USER_LEVELS.map((level) => (
+                            <SelectItem key={level} value={level}>
+                              {formatUserLevel(level)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -399,61 +423,6 @@ export function AddUserForm({
                     )}
                   />
                 )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>Status</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="w-full">
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="user_level"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>User Level</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select user level" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="w-full">
-                          {USER_LEVELS.map((level) => (
-                            <SelectItem key={level} value={level}>
-                              {formatUserLevel(level)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               <Alert className="col-span-2 flex flex-col items-center justify-center text-center">

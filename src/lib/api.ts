@@ -2,7 +2,6 @@ import axios, { AxiosError } from "axios";
 import type { AxiosResponse } from "axios";
 
 // Base configuration
-// const BASE_URL = "http://127.0.0.1:8000/api/";
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Authentication endpoints
@@ -37,7 +36,6 @@ interface RefreshResponse {
 }
 
 interface UserData {
-  id_number?: string;
   first_name?: string;
   last_name?: string;
   middle_name?: string;
@@ -51,13 +49,13 @@ interface ActivityLog {
   id: number;
   admin: {
     id: number;
-    id_number: string;
+    email: string;
     first_name: string;
     last_name: string;
   } | null;
   user: {
     id: number;
-    id_number: string;
+    email: string;
     first_name: string;
     last_name: string;
   } | null;
@@ -109,11 +107,11 @@ const callWithRefresh = async <T>(
 };
 
 // Authentication services
-export const login = async (id_number: string, password: string) => {
+export const login = async (email: string, password: string) => {
   try {
     const response = await axios.post(
       LOGIN_URL,
-      { id_number, password },
+      { email, password },
       {
         withCredentials: true,
       }
@@ -171,13 +169,13 @@ export const register = async (userData: UserData) => {
 };
 
 export const adminResetPassword = async (
-  idNumber: string,
+  email: string,
   adminPassword: string
 ) => {
   try {
     const response = await axios.post(
       RESET_PASSWORD_URL,
-      { id_number: idNumber, admin_password: adminPassword },
+      { email, admin_password: adminPassword },
       { withCredentials: true }
     );
     return response.data;
@@ -280,7 +278,9 @@ export const updateProfile = async (data: {
         "Content-Type": "multipart/form-data",
       },
     });
-    return response.data;
+
+    // Ensure we return a success status
+    return { success: true, ...response.data };
   } catch (error) {
     return handleApiError(error);
   }
@@ -297,6 +297,12 @@ export const updateAvatar = async (avatarFile: File) => {
         "Content-Type": "multipart/form-data",
       },
     });
+
+    // Add timestamp to avatar URL to bust cache
+    const timestamp = Date.now();
+    if (response.data.avatar_url) {
+      response.data.avatar_url = `${response.data.avatar_url}?t=${timestamp}`;
+    }
     return response.data;
   } catch (error) {
     return handleApiError(error);

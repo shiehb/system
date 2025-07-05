@@ -31,15 +31,22 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             response = super().post(request, *args, **kwargs)
             tokens = response.data
 
+            # Check if password is default
+            using_default_password = user.using_default_password
+
             ActivityLog.objects.create(
                 user=user,
                 action='login',
                 details={
-                    'ip_address': self._get_client_ip(request)
+                    'ip_address': self._get_client_ip(request),
+                    'using_default_password': using_default_password
                 }
             )
 
-            res = Response({'success': True})
+            res = Response({
+                'success': True,
+                'using_default_password': using_default_password
+            })
             res.set_cookie(
                 key='access_token',
                 value=tokens['access'],
@@ -90,7 +97,10 @@ def is_logged_in(request):
         }, status=403)
 
     serializer = UserSerializer(request.user)
-    return Response(serializer.data)
+    return Response({
+        **serializer.data,
+        'using_default_password': request.user.using_default_password
+    })
 
 class CustomTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
@@ -420,7 +430,10 @@ def admin_reset_password(request):
 @permission_classes([IsAuthenticated])
 def get_my_profile(request):
     serializer = UserSerializer(request.user, context={'request': request})
-    return Response(serializer.data)
+    return Response({
+        **serializer.data,
+        'using_default_password': request.user.using_default_password
+    })
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
@@ -442,24 +455,13 @@ def update_profile(request):
             }, status=400)
         
         user.set_password(data['new_password'])
+        user.save()
     
-    if 'avatar' in request.FILES:
-        user.avatar = request.FILES['avatar']
-    
-    user.save()
-    
-    ActivityLog.objects.create(
-        user=user,
-        action='profile_updated',
-        details={
-            'fields_updated': list(data.keys())
-        }
-    )
+    # ... (other profile updates)
     
     return Response({
         'success': True,
-        'message': 'Profile updated successfully',
-        'user': UserSerializer(user).data
+        'message': 'Profile updated successfully'
     })
 
 @api_view(['PATCH'])
@@ -492,9 +494,10 @@ def update_avatar(request):
         }
     )
 
-    cache_buster = int(datetime.now().timestamp())
+    # Get updated timestamp for cache busting
+    timestamp = int(datetime.now().timestamp())
     serializer = UserSerializer(user, context={'request': request})
-    avatar_url = f"{serializer.data['avatar_url']}?t={cache_buster}"
+    avatar_url = f"{serializer.data['avatar_url'].split('?')[0]}?t={timestamp}"
 
     return Response({
         'success': True,

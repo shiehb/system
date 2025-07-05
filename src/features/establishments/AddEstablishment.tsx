@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import addressData from "@/data/region-ph.json";
 import { geocodeAddress } from "@/utils/geocoding";
 import { CoordinatesMapPreview } from "@/components/map/CoordinatesMapPreview";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { Loader2, Check, ChevronsUpDown, Plus } from "lucide-react";
 import type { EstablishmentFormData } from "@/lib/establishmentApi";
 import { toast } from "sonner";
 import {
@@ -32,6 +33,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { YearPicker } from "@/components/YearPicker";
+import { fetchNatureOfBusinessOptions } from "@/lib/establishmentApi";
 
 function usePersistedState<T>(
   key: string,
@@ -49,18 +51,8 @@ function usePersistedState<T>(
   return [state, setState];
 }
 
-const businessTypes = [
-  { value: "retail", label: "Retail" },
-  { value: "food", label: "Food & Beverage" },
-  { value: "service", label: "Service" },
-  { value: "manufacturing", label: "Manufacturing" },
-  { value: "hospitality", label: "Hospitality" },
-  { value: "healthcare", label: "Healthcare" },
-  { value: "education", label: "Education" },
-  { value: "other", label: "Other" },
-];
-
 interface AddEstablishmentProps {
+  businessTypes: { id: number; name: string }[];
   onAdd: (est: EstablishmentFormData) => Promise<void>;
   isSubmitting?: boolean;
   onToggleMapPreview: (
@@ -93,7 +85,12 @@ export default function AddEstablishment({
     ""
   );
   const [isFetchingCoords, setIsFetchingCoords] = useState(false);
-
+  const [businessTypes, setBusinessTypes] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(true);
+  const navigate = useNavigate();
+  const location = useLocation();
   const [errors, setErrors] = useState({
     name: "",
     region: "",
@@ -123,6 +120,20 @@ export default function AddEstablishment({
   const cities =
     provinces.find((p: any) => p.name === province)?.municipalities || [];
   const barangays = cities.find((c: any) => c.name === city)?.barangays || [];
+
+  useEffect(() => {
+    const fetchBusinessTypes = async () => {
+      try {
+        const types = await fetchNatureOfBusinessOptions();
+        setBusinessTypes(types);
+      } catch (error) {
+        toast.error("Failed to load business types");
+      } finally {
+        setLoadingBusinessTypes(false);
+      }
+    };
+    fetchBusinessTypes();
+  }, []);
 
   useEffect(() => {
     if (hasSingleRegion && !region) {
@@ -313,7 +324,10 @@ export default function AddEstablishment({
       latitude: latitude || undefined,
       longitude: longitude || undefined,
       year_established: year,
-      nature_of_business: natureOfBusiness || undefined,
+      // Use the correct property name here:
+      nature_of_business_id: natureOfBusiness
+        ? parseInt(natureOfBusiness)
+        : undefined,
     };
 
     try {
@@ -491,41 +505,74 @@ export default function AddEstablishment({
                         )}`}
                       >
                         {businessTypes.find(
-                          (type) => type.value === natureOfBusiness
-                        )?.label || "Select business type..."}
+                          (type) => type.id.toString() === natureOfBusiness
+                        )?.name || "Select business type..."}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[435px] p-0">
                       <Command>
                         <CommandInput placeholder="Search business type..." />
-                        <CommandEmpty>No business type found.</CommandEmpty>
-                        <CommandGroup className="max-h-[150px] overflow-y-auto">
-                          {businessTypes.map((type) => (
-                            <CommandItem
-                              key={type.value}
-                              value={type.value}
-                              onSelect={() => {
-                                setNatureOfBusiness(type.value);
-                                if (errors.natureOfBusiness) {
-                                  setErrors((prev) => ({
-                                    ...prev,
-                                    natureOfBusiness: "",
-                                  }));
-                                }
-                              }}
+                        <CommandEmpty>
+                          <div className="flex flex-col items-center gap-2 p-4">
+                            <span>No business type found.</span>
+                            <Button
+                              variant="link"
+                              className="text-primary"
+                              onClick={() =>
+                                navigate("/nature-of-business", {
+                                  state: { from: location.pathname },
+                                })
+                              }
                             >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  natureOfBusiness === type.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {type.label}
-                            </CommandItem>
-                          ))}
+                              + Add New Business Type
+                            </Button>
+                          </div>
+                        </CommandEmpty>
+                        <CommandGroup className="max-h-[150px] overflow-y-auto">
+                          {loadingBusinessTypes ? (
+                            <div className="flex justify-center p-4">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                          ) : (
+                            <>
+                              {businessTypes.map((type) => (
+                                <CommandItem
+                                  key={type.id}
+                                  value={type.name}
+                                  onSelect={() => {
+                                    setNatureOfBusiness(type.id.toString());
+                                    if (errors.natureOfBusiness) {
+                                      setErrors((prev) => ({
+                                        ...prev,
+                                        natureOfBusiness: "",
+                                      }));
+                                    }
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      natureOfBusiness === type.id.toString()
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {type.name}
+                                </CommandItem>
+                              ))}
+                              <CommandItem
+                                value="add-new"
+                                onSelect={() => {
+                                  window.location.href = "/nature-of-business";
+                                }}
+                                className="text-primary font-medium"
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add New Business Type
+                              </CommandItem>
+                            </>
+                          )}
                         </CommandGroup>
                       </Command>
                     </PopoverContent>

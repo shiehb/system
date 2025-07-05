@@ -12,8 +12,7 @@ export interface AuthContextType {
     last_name: string,
     middle_name: string,
     password: string,
-    user_level: UserLevel,
-    status: "active" | "inactive"
+    user_level: UserLevel
   ) => Promise<void>;
   logout: () => Promise<void>;
 }

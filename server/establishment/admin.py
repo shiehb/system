@@ -1,30 +1,21 @@
 from django.contrib import admin
-from .models import Establishment
+from .models import Establishment, NatureOfBusiness, EstablishmentPolygon
+
+@admin.register(NatureOfBusiness)
+class NatureOfBusinessAdmin(admin.ModelAdmin):
+    list_display = ('name', 'created_at', 'updated_at')
+    search_fields = ('name', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+
+@admin.register(EstablishmentPolygon)
+class EstablishmentPolygonAdmin(admin.ModelAdmin):
+    list_display = ('establishment', 'created_at', 'updated_at')
+    search_fields = ('establishment__name',)
+    readonly_fields = ('created_at', 'updated_at')
 
 @admin.register(Establishment)
 class EstablishmentAdmin(admin.ModelAdmin):
     list_display = ('name', 'owner', 'city', 'province', 'created_at')
-    list_filter = ('region', 'province', 'city')
+    list_filter = ('region', 'province', 'city', 'nature_of_business')
     search_fields = ('name', 'address_line', 'barangay')
     readonly_fields = ('created_at', 'updated_at')
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('name', 'owner', 'year_established')
-        }),
-        ('Address Details', {
-            'fields': (
-                'address_line',
-                'barangay',
-                'city',
-                'province',
-                'region',
-                'postal_code'
-            )
-        }),
-        ('Geo Location', {
-            'fields': ('latitude', 'longitude')
-        }),
-        ('Metadata', {
-            'fields': ('created_at', 'updated_at')
-        }),
-    )

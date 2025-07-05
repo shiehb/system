@@ -1,3 +1,4 @@
+// edit-user-form.tsx
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -53,7 +54,6 @@ const userSchema = z.object({
   last_name: z.string().min(2, "Last name is required"),
   middle_name: z.string().optional(),
   user_level: z.enum(USER_LEVELS),
-  status: z.enum(["active", "inactive"]),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
@@ -66,7 +66,6 @@ interface EditUserFormProps {
     last_name: string;
     middle_name?: string;
     user_level: (typeof USER_LEVELS)[number];
-    status: "active" | "inactive";
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -90,7 +89,6 @@ export function EditUserForm({
       last_name: user?.last_name || "",
       middle_name: user?.middle_name || "",
       user_level: user?.user_level || "eia_monitoring_personnel",
-      status: user?.status || "active",
     },
   });
 
@@ -102,7 +100,6 @@ export function EditUserForm({
         last_name: user.last_name,
         middle_name: user.middle_name || "",
         user_level: user.user_level,
-        status: user.status,
       });
       setFormErrors({});
     }
@@ -119,7 +116,6 @@ export function EditUserForm({
         last_name: values.last_name,
         middle_name: values.middle_name,
         user_level: values.user_level,
-        status: values.status,
       });
 
       toast.success("User updated successfully");
@@ -192,31 +188,6 @@ export function EditUserForm({
             )}
 
             <div className="space-y-4 gap-4">
-              <div className="grid grid-cols-1 gap-2">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="email"
-                          placeholder="user@example.com"
-                          className={
-                            form.formState.errors.email
-                              ? "border-destructive"
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
               <div className="grid grid-cols-3 gap-2">
                 <FormField
                   control={form.control}
@@ -260,33 +231,29 @@ export function EditUserForm({
                   )}
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-2">
                 <FormField
                   control={form.control}
-                  name="status"
+                  name="email"
                   render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>Status</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="w-full">
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="email"
+                          placeholder="user@example.com"
+                          className={
+                            form.formState.errors.email
+                              ? "border-destructive"
+                              : ""
+                          }
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="user_level"

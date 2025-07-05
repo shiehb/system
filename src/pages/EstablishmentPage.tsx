@@ -14,6 +14,7 @@ import {
   createEstablishment,
   updateEstablishment,
   deleteEstablishment,
+  fetchNatureOfBusinessOptions,
 } from "@/lib/establishmentApi";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -28,6 +29,10 @@ export default function EstablishmentPage() {
   const [editingEstablishment, setEditingEstablishment] =
     useState<Establishment | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [businessTypes, setBusinessTypes] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(true);
 
   useEffect(() => {
     // Check if we're on the add route
@@ -40,13 +45,22 @@ export default function EstablishmentPage() {
   }, [location.pathname]);
 
   useEffect(() => {
-    const loadEstablishments = async () => {
+    const loadData = async () => {
       try {
-        const data = await fetchEstablishments();
-        setEstablishments(data);
+        setLoading(true);
+        setLoadingBusinessTypes(true);
 
+        // Load business types
+        const types = await fetchNatureOfBusinessOptions();
+        setBusinessTypes(types);
+
+        // Load establishments
+        const establishmentsData = await fetchEstablishments();
+        setEstablishments(establishmentsData);
+
+        // If editing, find the establishment
         if (id && id !== "add") {
-          const establishmentToEdit = data.find(
+          const establishmentToEdit = establishmentsData.find(
             (est) => est.id === parseInt(id)
           );
           if (establishmentToEdit) {
@@ -57,13 +71,14 @@ export default function EstablishmentPage() {
           }
         }
       } catch (error) {
-        console.error("Failed to load establishments:", error);
-        toast.error("Failed to load establishments");
+        console.error("Failed to load data:", error);
+        toast.error("Failed to load data");
       } finally {
         setLoading(false);
+        setLoadingBusinessTypes(false);
       }
     };
-    loadEstablishments();
+    loadData();
   }, [id, navigate]);
 
   const handleAddEstablishment = async (est: EstablishmentFormData) => {
@@ -75,7 +90,11 @@ export default function EstablishmentPage() {
       navigate("/establishments");
     } catch (error) {
       console.error("Failed to add establishment:", error);
-      toast.error("Failed to create establishment");
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to create establishment");
+      } else {
+        toast.error("Failed to create establishment");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -95,7 +114,11 @@ export default function EstablishmentPage() {
       navigate("/establishments");
     } catch (error) {
       console.error("Failed to update establishment:", error);
-      toast.error("Failed to update establishment");
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to update establishment");
+      } else {
+        toast.error("Failed to update establishment");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -137,7 +160,7 @@ export default function EstablishmentPage() {
     console.log("Map preview:", show, coordinates);
   };
 
-  if (loading) {
+  if (loading || loadingBusinessTypes) {
     return (
       <div className="flex justify-center p-8">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -163,9 +186,10 @@ export default function EstablishmentPage() {
                 latitude: editingEstablishment.latitude || "",
                 longitude: editingEstablishment.longitude || "",
                 year_established: editingEstablishment.year_established || "",
-                nature_of_business:
-                  editingEstablishment.nature_of_business || "",
+                nature_of_business_id:
+                  editingEstablishment.nature_of_business?.id ?? 0,
               }}
+              businessTypes={businessTypes}
               onUpdate={handleUpdateEstablishment}
               onCancel={handleCancelEdit}
               isSubmitting={isSubmitting}
@@ -173,6 +197,7 @@ export default function EstablishmentPage() {
             />
           ) : showAddForm ? (
             <AddEstablishment
+              businessTypes={businessTypes}
               onAdd={handleAddEstablishment}
               isSubmitting={isSubmitting}
               onToggleMapPreview={handleToggleMapPreview}

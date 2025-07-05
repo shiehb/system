@@ -3,8 +3,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   is_authenticated,
-  login,
-  register,
+  login as apiLogin,
+  register as apiRegister,
   logout as apiLogout,
   getMyProfile,
 } from "@/lib/api";
@@ -55,14 +55,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const login_user = async (email: string, password: string) => {
     try {
       setLoading(true);
-      const response = await login(email, password);
+      const response = await apiLogin(email, password);
 
       if (response.success) {
         const userData = await getMyProfile();
         setUser(userData);
         setIsAuthenticated(true);
         setAuthError(null);
-        navigate(location.state?.from?.pathname || "/dashboard");
+
+        if (response.using_default_password) {
+          navigate("/change-password");
+        } else {
+          navigate(location.state?.from?.pathname || "/dashboard");
+        }
       } else {
         throw new Error(response.message || "Invalid credentials");
       }
@@ -86,18 +91,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     last_name: string,
     middle_name: string,
     password: string,
-    user_level: UserLevel,
-    status: "active" | "inactive"
+    user_level: UserLevel
   ) => {
     try {
-      const response = await register({
+      const response = await apiRegister({
         email,
         first_name,
         last_name,
         middle_name,
         password,
         user_level,
-        status,
       });
 
       if (response.success) {

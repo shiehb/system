@@ -188,7 +188,7 @@ const UsersListTable = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-40 bg-white dark:bg-gray-800"
+          className="w-auto bg-white dark:bg-gray-800"
         >
           <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />

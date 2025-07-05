@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/useAuth";
 import { LoadingWave } from "@/components/ui/loading-wave";
 
 export const PrivateRoute = ({ children }: { children: JSX.Element }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -12,9 +12,16 @@ export const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   }
 
   if (!isAuthenticated) {
-    // Redirect to login if not authenticated
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return children; // Allow access if authenticated
+  // If user is using default password and not already on the change password page
+  if (
+    user?.using_default_password &&
+    location.pathname !== "/change-password"
+  ) {
+    return <Navigate to="/change-password" replace />;
+  }
+
+  return children;
 };

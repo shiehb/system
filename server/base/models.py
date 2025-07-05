@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
 
 def default_avatar():
     return 'avatars/default.jpg'
@@ -99,6 +100,10 @@ class User(AbstractUser):
         related_name="custom_user_set",
         related_query_name="user",
     )
+
+    @property
+    def using_default_password(self):
+        return self.check_password(settings.DEFAULT_USER_PASSWORD)
 
     def save(self, *args, **kwargs):
         if not self.username:

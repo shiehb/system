@@ -1,8 +1,18 @@
 import axios from "axios";
-import type { AxiosResponse } from "axios";
+import type { AxiosResponse, AxiosError } from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const ESTABLISHMENTS_URL = `${BASE_URL}establishment/establishments/`;
+const NATURE_OF_BUSINESS_URL = `${BASE_URL}establishment/nature-of-business/`;
+
+// Interface Definitions
+export interface NatureOfBusiness {
+  id: number;
+  name: string;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Establishment {
   id: number;
@@ -20,7 +30,11 @@ export interface Establishment {
   latitude?: string;
   longitude?: string;
   year_established?: string | null;
-  nature_of_business?: string;
+  nature_of_business?: NatureOfBusiness | null;
+  polygon?: {
+    coordinates: any;
+    created_at: string;
+  } | null;
 }
 
 export interface EstablishmentFormData {
@@ -34,9 +48,39 @@ export interface EstablishmentFormData {
   latitude?: string;
   longitude?: string;
   year_established: string | null;
-  nature_of_business?: string;
+  nature_of_business_id?: number | null;
 }
 
+export interface ApiError {
+  message: string;
+  errors?: Record<string, string[]>;
+  status?: number;
+}
+
+// Error Handling Utility
+const handleApiError = (error: unknown): never => {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError<{
+      message?: string;
+      errors?: Record<string, string[]>;
+    }>;
+    const message =
+      axiosError.response?.data?.message || "An unexpected error occurred";
+    const errors = axiosError.response?.data?.errors;
+    const status = axiosError.response?.status;
+
+    throw {
+      message,
+      errors,
+      status,
+    } as ApiError;
+  }
+  throw {
+    message: "An unexpected error occurred",
+  } as ApiError;
+};
+
+// Establishment CRUD Operations
 export const fetchEstablishments = async (): Promise<Establishment[]> => {
   try {
     const response: AxiosResponse<{ data: Establishment[] }> = await axios.get(
@@ -49,39 +93,43 @@ export const fetchEstablishments = async (): Promise<Establishment[]> => {
   }
 };
 
+export const fetchEstablishmentById = async (
+  id: number
+): Promise<Establishment> => {
+  try {
+    const response: AxiosResponse<{ data: Establishment }> = await axios.get(
+      `${ESTABLISHMENTS_URL}${id}/`,
+      { withCredentials: true }
+    );
+    return response.data.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
 export const createEstablishment = async (
   data: EstablishmentFormData
 ): Promise<Establishment> => {
   try {
-    const response = await axios.post(ESTABLISHMENTS_URL, data, {
-      withCredentials: true,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response: AxiosResponse<{ data: Establishment }> = await axios.post(
+      ESTABLISHMENTS_URL,
+      data,
+      {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
     return response.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.response?.data?.errors) {
-        const errorMessages = Object.entries(error.response.data.errors)
-          .map(
-            ([field, messages]) =>
-              `${field}: ${(messages as string[]).join(", ")}`
-          )
-          .join("\n");
-        throw new Error(errorMessages);
-      }
-      throw new Error(
-        error.response?.data?.message || "Failed to create establishment"
-      );
-    }
-    throw error;
+    return handleApiError(error);
   }
 };
 
 export const updateEstablishment = async (
   id: number,
-  data: EstablishmentFormData
+  data: Partial<EstablishmentFormData>
 ): Promise<Establishment> => {
   try {
     const response: AxiosResponse<{ data: Establishment }> = await axios.patch(
@@ -91,21 +139,7 @@ export const updateEstablishment = async (
     );
     return response.data.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.response?.data?.errors) {
-        const errorMessages = Object.entries(error.response.data.errors)
-          .map(
-            ([field, messages]) =>
-              `${field}: ${(messages as string[]).join(", ")}`
-          )
-          .join("\n");
-        throw new Error(errorMessages);
-      }
-      throw new Error(
-        error.response?.data?.message || "Failed to update establishment"
-      );
-    }
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -116,12 +150,7 @@ export const deleteEstablishment = async (id: number): Promise<void> => {
       validateStatus: (status) => status === 204 || status === 404,
     });
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      throw new Error(
-        error.response?.data?.message || "Failed to delete establishment"
-      );
-    }
-    throw error;
+    return handleApiError(error);
   }
 };
 
@@ -142,11 +171,87 @@ export const searchEstablishments = async (
   }
 };
 
-function handleApiError(error: unknown): never {
-  if (axios.isAxiosError(error)) {
-    throw new Error(
-      error.response?.data?.message || "An unexpected error occurred"
+// Nature of Business CRUD Operations
+export const fetchNatureOfBusinessOptions = async (): Promise<
+  NatureOfBusiness[]
+> => {
+  try {
+    const response: AxiosResponse<NatureOfBusiness[]> = await axios.get(
+      NATURE_OF_BUSINESS_URL,
+      { withCredentials: true }
     );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
   }
-  throw new Error("An unexpected error occurred");
-}
+};
+
+export const fetchNatureOfBusinessById = async (
+  id: number
+): Promise<NatureOfBusiness> => {
+  try {
+    const response: AxiosResponse<NatureOfBusiness> = await axios.get(
+      `${NATURE_OF_BUSINESS_URL}${id}/`,
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const createNatureOfBusiness = async (
+  data: Omit<NatureOfBusiness, "id" | "created_at" | "updated_at">
+): Promise<NatureOfBusiness> => {
+  try {
+    const response: AxiosResponse<NatureOfBusiness> = await axios.post(
+      NATURE_OF_BUSINESS_URL,
+      data,
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const updateNatureOfBusiness = async (
+  id: number,
+  data: Partial<NatureOfBusiness>
+): Promise<NatureOfBusiness> => {
+  try {
+    const response: AxiosResponse<NatureOfBusiness> = await axios.put(
+      `${NATURE_OF_BUSINESS_URL}${id}/`,
+      data,
+      { withCredentials: true }
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const deleteNatureOfBusiness = async (id: number): Promise<void> => {
+  try {
+    await axios.delete(`${NATURE_OF_BUSINESS_URL}${id}/`, {
+      withCredentials: true,
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+// Utility function for select options
+export const getNatureOfBusinessOptions = async (): Promise<
+  { value: number; label: string }[]
+> => {
+  try {
+    const data = await fetchNatureOfBusinessOptions();
+    return data.map((item) => ({
+      value: item.id,
+      label: item.name,
+    }));
+  } catch (error) {
+    return handleApiError(error);
+  }
+};

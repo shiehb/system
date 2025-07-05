@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -31,11 +32,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { adminResetPassword } from "@/lib/api";
-import { ShieldCheck, Info } from "lucide-react";
+import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
-  adminPassword: z.string().min(1, "Your admin password is required"),
+  adminPassword: z
+    .string()
+    .min(8, "Admin password must be at least 8 characters"),
+  // .regex(/[a-z]/, "Must contain at least one lowercase letter")
+  // .regex(/[0-9]/, "Must contain at least one number"),
 });
 
 type ResetPasswordFormValues = z.infer<typeof formSchema>;
@@ -44,12 +50,28 @@ interface ResetPasswordProps {
   email: string;
   userName?: string;
   children?: React.ReactNode;
+  onSuccess?: () => void;
+  className?: string;
+  variant?:
+    | "link"
+    | "default"
+    | "destructive"
+    | "outline"
+    | "ghost"
+    | "secondary";
 }
 
-export function ResetPassword({ email, userName }: ResetPasswordProps) {
+export function ResetPassword({
+  email,
+  userName,
+  onSuccess,
+  className,
+  variant = "ghost",
+}: ResetPasswordProps) {
   const [open, setOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(formSchema),
@@ -57,9 +79,11 @@ export function ResetPassword({ email, userName }: ResetPasswordProps) {
       email,
       adminPassword: "",
     },
+    mode: "onChange",
   });
 
   const onSubmit = async (data: ResetPasswordFormValues) => {
+    setError(null);
     setConfirmOpen(true);
   };
 
@@ -76,20 +100,34 @@ export function ResetPassword({ email, userName }: ResetPasswordProps) {
       if (response.success) {
         toast.success("Password reset successfully", {
           description: response.message || "Password has been reset to default",
+          action: {
+            label: "Dismiss",
+            onClick: () => {},
+          },
         });
         form.reset();
         setOpen(false);
+        onSuccess?.();
       } else {
         throw new Error(response.message || "Failed to reset password");
       }
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
+      setError(errorMessage);
       toast.error("Failed to reset password", {
-        description:
-          error instanceof Error ? error.message : "An unknown error occurred",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
-      setConfirmOpen(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      setOpen(false);
+      setError(null);
+      form.reset();
     }
   };
 
@@ -97,42 +135,49 @@ export function ResetPassword({ email, userName }: ResetPasswordProps) {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="ghost" className="text-blue-500 hover:text-blue-600">
+          <Button
+            variant={variant}
+            className={cn("text-blue-500 hover:text-blue-600", className)}
+            aria-label="Reset password"
+          >
             <ShieldCheck className="mr-2 h-4 w-4" />
             Reset Password
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <Alert className="text-center">
-              <Info className="h-4 w-4 mb-2" />
-              <AlertTitle>Reset Password</AlertTitle>
+            <DialogTitle className="text-center">Reset Password</DialogTitle>
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Warning</AlertTitle>
               <AlertDescription>
-                Password will be reset to system default
+                This will reset the password to system default. Proceed with
+                caution.
               </AlertDescription>
             </Alert>
           </DialogHeader>
 
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder="user@example.com"
-                        disabled={!!email}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <div className="bg-muted/50 p-4 rounded-lg">
+                <h3 className="font-medium leading-none break-words">
+                  {email}
+                </h3>
+                {userName && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {userName}
+                  </p>
                 )}
-              />
+              </div>
+
               <FormField
                 control={form.control}
                 name="adminPassword"
@@ -145,8 +190,16 @@ export function ResetPassword({ email, userName }: ResetPasswordProps) {
                         type="password"
                         placeholder="Enter your admin password"
                         autoComplete="current-password"
+                        disabled={loading}
+                        aria-describedby="adminPasswordHelp"
                       />
                     </FormControl>
+                    <p
+                      id="adminPasswordHelp"
+                      className="text-sm text-muted-foreground mt-1"
+                    >
+                      For security verification
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -156,13 +209,23 @@ export function ResetPassword({ email, userName }: ResetPasswordProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setOpen(false)}
+                  onClick={handleClose}
                   disabled={loading}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Processing..." : "Continue"}
+                <Button
+                  type="submit"
+                  disabled={loading || !form.formState.isValid}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Continue"
+                  )}
                 </Button>
               </div>
             </form>
@@ -170,13 +233,27 @@ export function ResetPassword({ email, userName }: ResetPasswordProps) {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          if (!loading) setConfirmOpen(open);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Password Reset</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will reset {userName ? `${userName}'s` : "the user's"}{" "}
-              password to the system default. Are you sure you want to continue?
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Confirm Password Reset
+            </AlertDialogTitle>
+            <AlertDialogDescription className="pt-2">
+              You are about to reset the password for{" "}
+              <span className="font-semibold">{userName || email}</span>. This
+              will:
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Set the password to the system default</li>
+                <li>Require the user to change it on next login</li>
+                <li>Cannot be undone</li>
+              </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -184,9 +261,16 @@ export function ResetPassword({ email, userName }: ResetPasswordProps) {
             <AlertDialogAction
               onClick={handleConfirm}
               disabled={loading}
-              className="bg-destructive hover:bg-destructive/90"
+              className="bg-destructive hover:bg-destructive/90 focus:ring-destructive"
             >
-              {loading ? "Processing..." : "Confirm Reset"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Confirm Reset"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

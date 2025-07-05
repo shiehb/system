@@ -14,11 +14,13 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 // Pages
 import LoginPage from "@/pages/LoginPage";
+import { ChangePasswordPage } from "@/pages/ChangePassword";
 import DashboardPage from "@/pages/DashboardPage";
 import UserManagementPage from "@/pages/UserManagementPage";
 import ProfilePage from "@/pages/ProfilePage";
 import MapPage from "@/pages/MapPage";
 import EstablishmentPage from "@/pages/EstablishmentPage";
+import NatureOfBusinessPage from "@/pages/NatureOfBusinessPage";
 import InspectionPage from "@/pages/InspectionPage";
 import InspectionDivisionHeadPage from "@/pages/InspectionDivisionHeadPage";
 import AssignInspectionPage from "@/pages/AssignInspectionPage";
@@ -44,7 +46,16 @@ function AppRoutes() {
                 </PublicRoute>
               }
             />
+
             {/* All protected routes */}
+            <Route
+              path="/change-password"
+              element={
+                <PrivateRoute>
+                  <ChangePasswordPage />
+                </PrivateRoute>
+              }
+            />
             <Route
               path="/dashboard"
               element={
@@ -142,6 +153,23 @@ function AppRoutes() {
                       </header>
                       <Separator />
                       <EstablishmentPage />
+                    </SidebarInset>
+                  </SidebarProvider>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/nature-of-business"
+              element={
+                <PrivateRoute>
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <NatureOfBusinessPage />
                     </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>

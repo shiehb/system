@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -30,17 +30,7 @@ import {
 import { toast } from "sonner";
 import { deleteEstablishment } from "@/lib/establishmentApi";
 import type { Establishment } from "@/lib/establishmentApi";
-
-const businessTypes = [
-  { value: "retail", label: "Retail" },
-  { value: "food", label: "Food & Beverage" },
-  { value: "service", label: "Service" },
-  { value: "manufacturing", label: "Manufacturing" },
-  { value: "hospitality", label: "Hospitality" },
-  { value: "healthcare", label: "Healthcare" },
-  { value: "education", label: "Education" },
-  { value: "other", label: "Other" },
-];
+import { fetchNatureOfBusinessOptions } from "@/lib/establishmentApi";
 
 interface EstablishmentsListProps {
   establishments: Establishment[];
@@ -66,6 +56,21 @@ export default function EstablishmentsList({
     direction: "ascending" | "descending";
   }>({ key: "createdAt", direction: "descending" });
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [businessTypes, setBusinessTypes] = useState<
+    { id: number; name: string }[]
+  >([]);
+
+  useEffect(() => {
+    const fetchBusinessTypes = async () => {
+      try {
+        const types = await fetchNatureOfBusinessOptions();
+        setBusinessTypes(types);
+      } catch (error) {
+        console.error("Failed to load business types:", error);
+      }
+    };
+    fetchBusinessTypes();
+  }, []);
 
   const requestSort = (key: SortableKey) => {
     let direction: "ascending" | "descending" = "ascending";
@@ -212,10 +217,16 @@ export default function EstablishmentsList({
                         <div className="flex items-center gap-1.5">
                           <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
                             {est.nature_of_business
-                              ? businessTypes.find(
-                                  (type) =>
-                                    type.value === est.nature_of_business
-                                )?.label || est.nature_of_business
+                              ? (() => {
+                                  const foundType = businessTypes.find(
+                                    (type) =>
+                                      type.id.toString() ===
+                                      est.nature_of_business?.toString()
+                                  );
+                                  return foundType
+                                    ? foundType.name
+                                    : est.nature_of_business?.toString();
+                                })()
                               : "Not specified"}
                           </span>
                         </div>
