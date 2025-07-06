@@ -13,7 +13,9 @@ import {
   fetchEstablishments,
   createEstablishment,
   updateEstablishment,
-  deleteEstablishment,
+  archiveEstablishment,
+  unarchiveEstablishment,
+  fetchArchivedEstablishments,
   fetchNatureOfBusinessOptions,
 } from "@/lib/establishmentApi";
 import { toast } from "sonner";
@@ -29,16 +31,16 @@ export default function EstablishmentPage() {
   const [editingEstablishment, setEditingEstablishment] =
     useState<Establishment | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [businessTypes, setBusinessTypes] = useState<
     { id: number; name: string }[]
   >([]);
   const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(true);
 
   useEffect(() => {
-    // Check if we're on the add route
     setShowAddForm(location.pathname === "/establishments/add");
+    setShowArchived(location.pathname === "/establishments/archived");
 
-    // Clear editing state if not on edit route
     if (!location.pathname.startsWith("/establishments/edit")) {
       setEditingEstablishment(null);
     }
@@ -54,8 +56,10 @@ export default function EstablishmentPage() {
         const types = await fetchNatureOfBusinessOptions();
         setBusinessTypes(types);
 
-        // Load establishments
-        const establishmentsData = await fetchEstablishments();
+        // Load establishments based on current view
+        const establishmentsData = showArchived
+          ? await fetchArchivedEstablishments()
+          : await fetchEstablishments();
         setEstablishments(establishmentsData);
 
         // If editing, find the establishment
@@ -79,7 +83,7 @@ export default function EstablishmentPage() {
       }
     };
     loadData();
-  }, [id, navigate]);
+  }, [id, navigate, showArchived]);
 
   const handleAddEstablishment = async (est: EstablishmentFormData) => {
     setIsSubmitting(true);
@@ -124,14 +128,28 @@ export default function EstablishmentPage() {
     }
   };
 
-  const handleDeleteEstablishment = async (id: number) => {
+  const handleArchiveEstablishment = async (id: number) => {
     try {
-      await deleteEstablishment(id);
-      setEstablishments((prev) => prev.filter((est) => est.id !== id));
-      toast.success("Establishment deleted successfully");
+      if (showArchived) {
+        await unarchiveEstablishment(id);
+        toast.success("Establishment restored successfully");
+        // Refresh the list after unarchiving
+        const updatedList = await fetchArchivedEstablishments();
+        setEstablishments(updatedList);
+      } else {
+        await archiveEstablishment(id);
+        toast.success("Establishment archived successfully");
+        // Refresh the list after archiving
+        const updatedList = await fetchEstablishments();
+        setEstablishments(updatedList);
+      }
     } catch (error) {
-      console.error("Failed to delete establishment:", error);
-      toast.error("Failed to delete establishment");
+      console.error("Failed to archive establishment:", error);
+      toast.error(
+        showArchived
+          ? "Failed to restore establishment"
+          : "Failed to archive establishment"
+      );
     }
   };
 
@@ -150,6 +168,14 @@ export default function EstablishmentPage() {
 
   const handleCancelEdit = () => {
     setEditingEstablishment(null);
+    navigate("/establishments");
+  };
+
+  const handleShowArchived = () => {
+    navigate("/establishments/archived");
+  };
+
+  const handleShowActive = () => {
     navigate("/establishments");
   };
 
@@ -206,9 +232,12 @@ export default function EstablishmentPage() {
           ) : (
             <EstablishmentsList
               establishments={establishments}
-              onDelete={handleDeleteEstablishment}
+              onArchive={handleArchiveEstablishment}
               onEdit={handleEdit}
               onShowAddForm={handleShowAddForm}
+              showArchived={showArchived}
+              onShowArchived={handleShowArchived}
+              onShowActive={handleShowActive}
             />
           )}
         </div>

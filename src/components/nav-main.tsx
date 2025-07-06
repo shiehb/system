@@ -31,43 +31,44 @@ const NavItemComponent = memo(
     <SidebarMenuItem key={item.title} className="cursor-pointer">
       {item.items ? (
         <Collapsible
-          asChild
           defaultOpen={item.isActive}
-          className="group/collapsible"
+          className="group/collapsible w-full"
         >
-          <>
+          <div className="w-full">
             <CollapsibleTrigger asChild>
               <SidebarMenuButton
                 tooltip={item.title}
-                className="cursor-pointer"
+                className="cursor-pointer w-full"
               >
                 {item.icon && <item.icon className="w-4 h-4" />}
-                <span>{item.title}</span>
-                <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 cursor-pointer" />
+                <span className="flex-1 text-left">{item.title}</span>
+                <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
               </SidebarMenuButton>
             </CollapsibleTrigger>
-            <CollapsibleContent>
-              <SidebarMenuSub>
-                {item.items.map((subItem) => (
-                  <SidebarMenuSubItem
-                    key={subItem.title}
-                    className="cursor-pointer"
-                  >
-                    <SidebarMenuSubButton
-                      asChild
-                      onClick={() => navigate(subItem.url)}
+            <CollapsibleContent asChild>
+              <div>
+                <SidebarMenuSub>
+                  {item.items.map((subItem) => (
+                    <SidebarMenuSubItem
+                      key={subItem.title}
                       className="cursor-pointer"
                     >
-                      <div className="flex items-center gap-2 cursor-pointer">
-                        {subItem.icon && <subItem.icon className="w-4 h-4" />}
-                        <span>{subItem.title}</span>
-                      </div>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                ))}
-              </SidebarMenuSub>
+                      <SidebarMenuSubButton
+                        asChild
+                        onClick={() => navigate(subItem.url)}
+                        className="cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          {subItem.icon && <subItem.icon className="w-4 h-4" />}
+                          <span>{subItem.title}</span>
+                        </div>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
+              </div>
             </CollapsibleContent>
-          </>
+          </div>
         </Collapsible>
       ) : (
         <SidebarMenuButton
@@ -82,6 +83,8 @@ const NavItemComponent = memo(
     </SidebarMenuItem>
   )
 );
+
+NavItemComponent.displayName = "NavItemComponent";
 
 export function NavMain({ items, managementItems }: NavMainProps) {
   const navigate = useNavigate();

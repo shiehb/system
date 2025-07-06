@@ -15,7 +15,16 @@ class EstablishmentPolygonAdmin(admin.ModelAdmin):
 
 @admin.register(Establishment)
 class EstablishmentAdmin(admin.ModelAdmin):
-    list_display = ('name', 'owner', 'city', 'province', 'created_at')
-    list_filter = ('region', 'province', 'city', 'nature_of_business')
+    list_display = ('name', 'owner', 'city', 'province', 'is_archived', 'created_at')
+    list_filter = ('region', 'province', 'city', 'nature_of_business', 'is_archived')
     search_fields = ('name', 'address_line', 'barangay')
     readonly_fields = ('created_at', 'updated_at')
+    actions = ['archive_establishments', 'unarchive_establishments']
+
+    def archive_establishments(self, request, queryset):
+        queryset.update(is_archived=True)
+    archive_establishments.short_description = "Archive selected establishments"
+
+    def unarchive_establishments(self, request, queryset):
+        queryset.update(is_archived=False)
+    unarchive_establishments.short_description = "Unarchive selected establishments"

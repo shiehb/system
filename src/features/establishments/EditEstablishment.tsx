@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import addressData from "@/data/region-ph.json";
 import { geocodeAddress } from "@/utils/geocoding";
-import { useNavigate, useLocation } from "react-router-dom";
 import { CoordinatesMapPreview } from "@/components/map/CoordinatesMapPreview";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,12 +14,19 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
+  CommandSeparator,
 } from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   AlertDialog,
@@ -33,7 +39,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { YearPicker } from "@/components/YearPicker";
-import { fetchNatureOfBusinessOptions } from "@/lib/establishmentApi";
+import {
+  fetchNatureOfBusinessOptions,
+  createNatureOfBusiness,
+} from "@/lib/establishmentApi";
 
 interface EditEstablishmentProps {
   id: number;
@@ -62,8 +71,6 @@ export default function EditEstablishment({
     { id: number; name: string }[]
   >([]);
   const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(true);
-  const navigate = useNavigate();
-  const location = useLocation();
   const [errors, setErrors] = useState({
     name: "",
     region: "",
@@ -332,6 +339,34 @@ export default function EditEstablishment({
       <span className="text-sm text-destructive ml-auto">({message})</span>
     ) : null;
   };
+  const [isBusinessTypeDialogOpen, setIsBusinessTypeDialogOpen] =
+    useState(false);
+  const [newBusinessType, setNewBusinessType] = useState({
+    name: "",
+    description: "",
+  });
+  const [isCreatingBusinessType, setIsCreatingBusinessType] = useState(false);
+
+  // Add this function to handle business type creation
+  const handleCreateBusinessType = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsCreatingBusinessType(true);
+      const createdType = await createNatureOfBusiness(newBusinessType);
+      setBusinessTypes([...businessTypes, createdType]);
+      handleChange("nature_of_business_id", createdType.id.toString());
+      toast.success("Business type created successfully");
+      setNewBusinessType({ name: "", description: "" });
+      setIsBusinessTypeDialogOpen(false);
+    } catch (error) {
+      toast.error(
+        (error as { message: string }).message ||
+          "Failed to create business type"
+      );
+    } finally {
+      setIsCreatingBusinessType(false);
+    }
+  };
 
   return (
     <Card className="md:min-h-[calc(100vh-60px)] rounded-none flex flex-col">
@@ -416,7 +451,7 @@ export default function EditEstablishment({
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
+                    <PopoverContent className="w-[435px] p-0">
                       <Command>
                         <CommandInput placeholder="Search business type..." />
                         <CommandEmpty>
@@ -425,11 +460,7 @@ export default function EditEstablishment({
                             <Button
                               variant="link"
                               className="text-primary"
-                              onClick={() =>
-                                navigate("/nature-of-business", {
-                                  state: { from: location.pathname },
-                                })
-                              }
+                              onClick={() => setIsBusinessTypeDialogOpen(true)}
                             >
                               + Add New Business Type
                             </Button>
@@ -465,12 +496,13 @@ export default function EditEstablishment({
                                   {type.name}
                                 </CommandItem>
                               ))}
+                              <CommandSeparator className="mb-1" />
                               <CommandItem
                                 value="add-new"
-                                onSelect={() => {
-                                  window.location.href = "/nature-of-business";
-                                }}
-                                className="text-primary font-medium"
+                                onSelect={() =>
+                                  setIsBusinessTypeDialogOpen(true)
+                                }
+                                className="text-blue-600 font-medium"
                               >
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add New Business Type
@@ -860,6 +892,73 @@ export default function EditEstablishment({
           </div>
         </div>
       </CardContent>
+      <Dialog
+        open={isBusinessTypeDialogOpen}
+        onOpenChange={setIsBusinessTypeDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add New Business Type</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateBusinessType} className="space-y-4">
+            <div className="space-y-2">
+              <label
+                htmlFor="business-type-name"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Name <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="business-type-name"
+                value={newBusinessType.name}
+                onChange={(e) =>
+                  setNewBusinessType({
+                    ...newBusinessType,
+                    name: e.target.value,
+                  })
+                }
+                required
+                disabled={isCreatingBusinessType}
+                placeholder="Enter business type name"
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="business-type-description"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Description
+              </label>
+              <Input
+                id="business-type-description"
+                value={newBusinessType.description}
+                onChange={(e) =>
+                  setNewBusinessType({
+                    ...newBusinessType,
+                    description: e.target.value,
+                  })
+                }
+                disabled={isCreatingBusinessType}
+                placeholder="Enter description (optional)"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsBusinessTypeDialogOpen(false)}
+                type="button"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isCreatingBusinessType}>
+                {isCreatingBusinessType
+                  ? "Creating..."
+                  : "Create Business Type"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Save Confirmation Dialog */}
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>

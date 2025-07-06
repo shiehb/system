@@ -35,6 +35,7 @@ export interface Establishment {
     coordinates: any;
     created_at: string;
   } | null;
+  is_archived?: boolean;
 }
 
 export interface EstablishmentFormData {
@@ -85,7 +86,27 @@ export const fetchEstablishments = async (): Promise<Establishment[]> => {
   try {
     const response: AxiosResponse<{ data: Establishment[] }> = await axios.get(
       ESTABLISHMENTS_URL,
-      { withCredentials: true }
+      {
+        withCredentials: true,
+        params: { show_archived: false },
+      }
+    );
+    return response.data.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+export const fetchArchivedEstablishments = async (): Promise<
+  Establishment[]
+> => {
+  try {
+    const response: AxiosResponse<{ data: Establishment[] }> = await axios.get(
+      ESTABLISHMENTS_URL,
+      {
+        withCredentials: true,
+        params: { show_archived: true },
+      }
     );
     return response.data.data;
   } catch (error) {
@@ -143,14 +164,34 @@ export const updateEstablishment = async (
   }
 };
 
-export const deleteEstablishment = async (id: number): Promise<void> => {
+// establishmentApi.ts
+export const archiveEstablishment = async (
+  id: number
+): Promise<Establishment> => {
   try {
-    await axios.delete(`${ESTABLISHMENTS_URL}${id}/`, {
-      withCredentials: true,
-      validateStatus: (status) => status === 204 || status === 404,
-    });
+    const response = await axios.post(
+      `${ESTABLISHMENTS_URL}${id}/archive/`,
+      {},
+      { withCredentials: true }
+    );
+    return response.data.data;
   } catch (error) {
-    return handleApiError(error);
+    throw new Error("Failed to archive establishment");
+  }
+};
+
+export const unarchiveEstablishment = async (
+  id: number
+): Promise<Establishment> => {
+  try {
+    const response = await axios.post(
+      `${ESTABLISHMENTS_URL}${id}/unarchive/`,
+      {},
+      { withCredentials: true }
+    );
+    return response.data.data;
+  } catch (error) {
+    throw new Error("Failed to unarchive establishment");
   }
 };
 

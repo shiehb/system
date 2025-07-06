@@ -1,10 +1,9 @@
 import banner1 from "@/assets/banner1.png";
 import { LoadingWave } from "@/components/ui/loading-wave";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { getMyProfile, updateAvatar } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -30,10 +29,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import type { Crop, PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
+
+interface ProfileInfoProps {
+  profileData: any;
+  isLoading: boolean;
+  isUpdating: boolean;
+  onUpdate: (values: {
+    current_password?: string;
+    new_password?: string;
+    avatar?: File;
+  }) => Promise<void>;
+  onLogout: () => Promise<void>;
+}
 
 // Utility function for canvas preview
 async function canvasPreview(
@@ -98,9 +108,13 @@ const avatarFormSchema = z.object({
 
 type AvatarFormValues = z.infer<typeof avatarFormSchema>;
 
-export function ProfileInfo() {
-  const [profile, setProfile] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function ProfileInfo({
+  profileData: profile,
+  isLoading,
+  isUpdating,
+  onUpdate,
+  onLogout,
+}: ProfileInfoProps) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);
   const [isAvatarDialogOpen, setIsAvatarDialogOpen] = useState(false);
@@ -113,33 +127,10 @@ export function ProfileInfo() {
     resolver: zodResolver(avatarFormSchema),
   });
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        setIsLoading(true);
-        const data = await getMyProfile();
-        setProfile(data);
-      } catch (error) {
-        toast.error("Failed to load profile data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProfile();
-  }, []);
-
-  useEffect(() => {
-    if (completedCrop && imgRef.current && previewCanvasRef.current) {
-      canvasPreview(imgRef.current, previewCanvasRef.current, completedCrop);
-    }
-  }, [completedCrop]);
-
   const handleAvatarSubmit = async (data: AvatarFormValues) => {
     if (!data.avatar || !completedCrop) return;
 
     try {
-      setIsLoading(true);
-
       // Get the cropped image from canvas
       const canvas = previewCanvasRef.current;
       if (!canvas) return;
@@ -152,12 +143,7 @@ export function ProfileInfo() {
             type: "image/jpeg",
           });
 
-          const avatarResponse = await updateAvatar(croppedFile);
-          setProfile((prev) => ({
-            ...prev,
-            avatar_url: avatarResponse.avatar_url,
-          }));
-          toast.success("Avatar updated successfully");
+          await onUpdate({ avatar: croppedFile });
           setIsAvatarDialogOpen(false);
           setAvatarPreview(null);
           setCrop(undefined);
@@ -167,10 +153,16 @@ export function ProfileInfo() {
       );
     } catch (error: any) {
       toast.error(error.message || "Failed to update avatar");
-    } finally {
-      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <LoadingWave message="Loading profile..." />
+      </div>
+    );
+  }
 
   if (!profile) {
     return (
@@ -330,9 +322,11 @@ export function ProfileInfo() {
                       </Button>
                       <Button
                         type="submit"
-                        disabled={isLoading || !avatarPreview || !completedCrop}
+                        disabled={
+                          isUpdating || !avatarPreview || !completedCrop
+                        }
                       >
-                        {isLoading && <LoadingWave message="Uploading..." />}
+                        {isUpdating && <LoadingWave message="Uploading..." />}
                         Save Changes
                       </Button>
                     </div>
@@ -346,11 +340,6 @@ export function ProfileInfo() {
         <Card className="mt-6 rounded-lg shadow-sm">
           <CardHeader>
             <CardDescription className="text-lg font-bold text-foreground">
-              <div>
-                <span className="text-muted-foreground">ID Number: </span>
-                {profile.id_number}
-              </div>
-
               <div>
                 <span className="text-muted-foreground">Name: </span>
                 {profile.last_name}, {profile.first_name} {profile.middle_name}

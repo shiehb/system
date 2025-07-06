@@ -36,13 +36,13 @@ export function EstablishmentDetails({
           </div>
         </div>
 
-        {establishment.nature_of_business && (
+        {establishment.nature_of_business?.id && (
           <div className="flex items-start gap-3">
             <Briefcase className="h-5 w-5 text-gray-600 mt-0.5 flex-shrink-0" />
             <div>
               <h3 className="font-medium text-gray-900">Nature of Business</h3>
               <p className="text-gray-600">
-                {establishment.nature_of_business}
+                {establishment.nature_of_business.name}
               </p>
             </div>
           </div>

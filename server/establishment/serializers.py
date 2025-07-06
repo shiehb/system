@@ -35,6 +35,7 @@ class EstablishmentSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     polygon = EstablishmentPolygonSerializer(read_only=True)
+    is_archived = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = Establishment
@@ -42,7 +43,8 @@ class EstablishmentSerializer(serializers.ModelSerializer):
             'id', 'name', 'address', 'coordinates', 'year', 'createdAt',
             'address_line', 'barangay', 'city', 'province', 'region', 
             'postal_code', 'latitude', 'longitude', 'year_established',
-            'nature_of_business', 'nature_of_business_id', 'polygon'
+            'nature_of_business', 'nature_of_business_id', 'polygon',
+            'is_archived'
         ]
     
     def get_address(self, obj):

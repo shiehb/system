@@ -1,8 +1,9 @@
 import * as React from "react";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { logout, getMyProfile } from "@/lib/api";
+import { getMyProfile } from "@/lib/api";
 import { useNavigate, useLocation } from "react-router-dom";
+
 import { useAuth } from "@/contexts/useAuth";
 import { type User, type UserLevel } from "@/types";
 import { type NavItem } from "@/types/sidebar-types";
@@ -29,9 +30,10 @@ import {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [profile, setProfile] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const managementLevels: UserLevel[] = [
     "administrator",
@@ -54,14 +56,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     (level: UserLevel | undefined): boolean => {
       return level ? managementLevels.includes(level) : false;
     },
-    []
+    [managementLevels]
   );
 
   const isInspectionLevel = useCallback(
     (level: UserLevel | undefined): boolean => {
       return level ? inspectionLevels.includes(level) : false;
     },
-    []
+    [inspectionLevels]
   );
 
   const getNavItems = useCallback((): NavItem[] => {
@@ -177,25 +179,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     };
   }, []);
 
-  const handleLogout = useCallback(async () => {
-    try {
-      await logout();
-      setProfile(null);
-
-      toast.success("You have been logged out.", {
-        description: "Hope to see you again soon!",
-        duration: 3000,
-      });
-
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      toast.error("Logout failed.", {
-        description: "Please try again.",
-      });
-    }
-  }, [navigate]);
-
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader className="h-14 grid grid-cols-[100%]">
@@ -219,7 +202,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={getNavItems()} managementItems={getManagementItems()} />
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="md:hidden">
         <NavUser
           user={{
             name: profile
@@ -229,7 +212,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             avatar: profile?.avatar_url || "",
           }}
           onProfileClick={() => navigate("/profile")}
-          onLogoutClick={handleLogout}
+          onLogoutClick={logout}
           loading={loading}
         />
       </SidebarFooter>

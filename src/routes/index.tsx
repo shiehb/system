@@ -159,6 +159,23 @@ function AppRoutes() {
               }
             />
             <Route
+              path="/establishments/archived"
+              element={
+                <PrivateRoute>
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <EstablishmentPage />
+                    </SidebarInset>
+                  </SidebarProvider>
+                </PrivateRoute>
+              }
+            />
+            <Route
               path="/nature-of-business"
               element={
                 <PrivateRoute>

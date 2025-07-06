@@ -64,6 +64,7 @@ class Establishment(models.Model):
         blank=True,
         verbose_name="Longitude"
     )
+    is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
 

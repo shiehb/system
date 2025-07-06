@@ -17,26 +17,38 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Archive,
   ArrowUpDown,
   Search,
   Loader2,
   Pencil,
-  Trash2,
   CalendarDays,
   MapPin,
   Calendar,
   Plus,
 } from "lucide-react";
 import { toast } from "sonner";
-import { deleteEstablishment } from "@/lib/establishmentApi";
 import type { Establishment } from "@/lib/establishmentApi";
-import { fetchNatureOfBusinessOptions } from "@/lib/establishmentApi";
+import {
+  archiveEstablishment,
+  unarchiveEstablishment,
+  fetchNatureOfBusinessOptions,
+} from "@/lib/establishmentApi";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface EstablishmentsListProps {
   establishments: Establishment[];
-  onDelete?: (id: number) => void;
+  onArchive?: (id: number) => void;
   onEdit?: (establishment: Establishment) => void;
   onShowAddForm?: () => void;
+  showArchived?: boolean;
+  onShowArchived?: () => void;
+  onShowActive?: () => void;
 }
 
 type SortableKey = keyof Pick<
@@ -46,27 +58,35 @@ type SortableKey = keyof Pick<
 
 export default function EstablishmentsList({
   establishments,
-  onDelete,
+  onArchive,
   onEdit,
   onShowAddForm,
+  showArchived = false,
+  onShowArchived,
+  onShowActive,
 }: EstablishmentsListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
     key: SortableKey;
     direction: "ascending" | "descending";
   }>({ key: "createdAt", direction: "descending" });
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [archivingId, setArchivingId] = useState<number | null>(null);
   const [businessTypes, setBusinessTypes] = useState<
     { id: number; name: string }[]
   >([]);
+  const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(true);
 
   useEffect(() => {
     const fetchBusinessTypes = async () => {
       try {
+        setLoadingBusinessTypes(true);
         const types = await fetchNatureOfBusinessOptions();
         setBusinessTypes(types);
       } catch (error) {
         console.error("Failed to load business types:", error);
+        toast.error("Failed to load business types");
+      } finally {
+        setLoadingBusinessTypes(false);
       }
     };
     fetchBusinessTypes();
@@ -117,23 +137,43 @@ export default function EstablishmentsList({
     return filtered;
   }, [establishments, searchTerm, sortConfig]);
 
-  const handleDelete = async (id: number) => {
-    setDeletingId(id);
+  const handleArchive = async (id: number) => {
+    setArchivingId(id);
     try {
-      await deleteEstablishment(id);
-      onDelete?.(id);
-      toast.success("Establishment deleted successfully");
-    } catch (error) {
-      console.error("Delete error:", error);
-      toast.error(
-        "Failed to delete establishment. It may have already been removed."
-      );
-      if (onDelete) {
-        onDelete(id);
+      if (showArchived) {
+        await unarchiveEstablishment(id);
+        toast.success("Establishment restored successfully");
+      } else {
+        await archiveEstablishment(id);
+        toast.success("Establishment archived successfully");
       }
+      onArchive?.(id);
+    } catch (error) {
+      console.error("Archive error:", error);
+      toast.error(
+        showArchived
+          ? "Failed to restore establishment"
+          : "Failed to archive establishment"
+      );
     } finally {
-      setDeletingId(null);
+      setArchivingId(null);
     }
+  };
+
+  const getBusinessTypeName = (id?: number | null) => {
+    if (!id) return "Not specified";
+    const foundType = businessTypes.find((type) => type.id === id);
+    return foundType ? foundType.name : "Unknown type";
+  };
+
+  const formatAddress = (est: Establishment) => {
+    const parts = [
+      est.address_line,
+      est.barangay,
+      est.city,
+      est.province,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "No address provided";
   };
 
   return (
@@ -142,7 +182,7 @@ export default function EstablishmentsList({
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <CardTitle className="font-medium text-xl">
-              Establishment List
+              {showArchived ? "Archived Establishments" : "Establishment List"}
             </CardTitle>
             <CardDescription>
               {sortedAndFilteredEstablishments.length} of{" "}
@@ -159,10 +199,19 @@ export default function EstablishmentsList({
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            {onShowAddForm && (
+            {onShowAddForm && !showArchived && (
               <Button onClick={onShowAddForm} className="whitespace-nowrap">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Establishment
+              </Button>
+            )}
+            {showArchived ? (
+              <Button variant="outline" onClick={onShowActive}>
+                Show Active
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={onShowArchived}>
+                Show Archived
               </Button>
             )}
           </div>
@@ -177,14 +226,13 @@ export default function EstablishmentsList({
                   <Button
                     variant="ghost"
                     onClick={() => requestSort("name")}
-                    className="p-0 hover:bg-transparent"
+                    className="p-0 hover:bg-transparent flex items-center"
                   >
                     Name
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                    {sortConfig.key === "name" && (
-                      <span className="ml-1">
-                        {sortConfig.direction === "ascending" ? "↑" : "↓"}
-                      </span>
+                    {sortConfig.key === "name" ? (
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    ) : (
+                      <span className="ml-2 h-4 w-4" />
                     )}
                   </Button>
                 </TableHead>
@@ -193,14 +241,13 @@ export default function EstablishmentsList({
                   <Button
                     variant="ghost"
                     onClick={() => requestSort("createdAt")}
-                    className="p-0 hover:bg-transparent"
+                    className="p-0 hover:bg-transparent flex items-center"
                   >
                     Date Created
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                    {sortConfig.key === "createdAt" && (
-                      <span className="ml-1">
-                        {sortConfig.direction === "ascending" ? "↑" : "↓"}
-                      </span>
+                    {sortConfig.key === "createdAt" ? (
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    ) : (
+                      <span className="ml-2 h-4 w-4" />
                     )}
                   </Button>
                 </TableHead>
@@ -215,20 +262,13 @@ export default function EstablishmentsList({
                       <div className="font-medium">{est.name}</div>
                       <div className="text-sm text-muted-foreground space-y-1 mt-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="inline-flex items-center rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                            {est.nature_of_business
-                              ? (() => {
-                                  const foundType = businessTypes.find(
-                                    (type) =>
-                                      type.id.toString() ===
-                                      est.nature_of_business?.toString()
-                                  );
-                                  return foundType
-                                    ? foundType.name
-                                    : est.nature_of_business?.toString();
-                                })()
-                              : "Not specified"}
-                          </span>
+                          <Badge variant="outline">
+                            {loadingBusinessTypes ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              getBusinessTypeName(est.nature_of_business?.id)
+                            )}
+                          </Badge>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
@@ -238,27 +278,16 @@ export default function EstablishmentsList({
                     </TableCell>
 
                     <TableCell className="py-3">
-                      <div className="font-medium">
-                        {[
-                          est.address_line,
-                          est.barangay,
-                          est.city,
-                          est.province,
-                          est.region,
-                          est.postal_code,
-                        ]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </div>
+                      <div className="font-medium">{formatAddress(est)}</div>
                       {est.latitude && est.longitude && (
                         <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
                           <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
                           <span className="font-mono">
                             {!isNaN(Number(est.latitude)) &&
                             !isNaN(Number(est.longitude))
-                              ? `${Number(est.latitude).toFixed(6)}, ${Number(
+                              ? `${Number(est.latitude).toFixed(4)}, ${Number(
                                   est.longitude
-                                ).toFixed(6)}`
+                                ).toFixed(4)}`
                               : "Invalid coordinates"}
                           </span>
                         </div>
@@ -269,34 +298,53 @@ export default function EstablishmentsList({
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <span>
                           {est.createdAt
-                            ? new Date(est.createdAt).toLocaleDateString()
-                            : "Not available"}
+                            ? new Date(est.createdAt).toLocaleDateString(
+                                "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )
+                            : "N/A"}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="py-3">
                       <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onEdit?.(est)}
-                          className="h-8 w-8"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(est.id)}
-                          disabled={deletingId === est.id}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                        >
-                          {deletingId === est.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEdit?.(est)}
+                              className="h-8 w-8"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleArchive(est.id)}
+                              disabled={archivingId === est.id}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              {archivingId === est.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Archive className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {showArchived ? "Restore" : "Archive"}
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -304,7 +352,20 @@ export default function EstablishmentsList({
               ) : (
                 <TableRow>
                   <TableCell colSpan={4} className="h-24 text-center">
-                    No establishments found
+                    {searchTerm ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <span>No establishments match your search</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSearchTerm("")}
+                        >
+                          Clear search
+                        </Button>
+                      </div>
+                    ) : (
+                      "No establishments found"
+                    )}
                   </TableCell>
                 </TableRow>
               )}

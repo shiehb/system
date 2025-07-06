@@ -13,6 +13,15 @@ from .serializers import (EstablishmentSerializer,
 class NatureOfBusinessViewSet(viewsets.ModelViewSet):
     queryset = NatureOfBusiness.objects.all()
     serializer_class = NatureOfBusinessSerializer
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def options(self, request):
+        business_types = NatureOfBusiness.objects.all().order_by('name')
+        serializer = self.get_serializer(business_types, many=True)
+        return Response({
+            'status': 'success',
+            'data': [{'value': item['id'], 'label': item['name']} for item in serializer.data]
+        })
 
 class EstablishmentPolygonViewSet(viewsets.ModelViewSet):
     queryset = EstablishmentPolygon.objects.all()
@@ -42,8 +51,14 @@ class EstablishmentPolygonViewSet(viewsets.ModelViewSet):
             )
 
 class EstablishmentViewSet(viewsets.ModelViewSet):
-    queryset = Establishment.objects.all()
+    queryset = Establishment.objects.filter(is_archived=False)
     serializer_class = EstablishmentSerializer
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.request.query_params.get('show_archived') == 'true':
+            queryset = Establishment.objects.filter(is_archived=True)
+        return queryset
     
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -107,27 +122,26 @@ class EstablishmentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
-    def destroy(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            self.perform_destroy(instance)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Http404:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-        
-
-# In views.py
-
-
-class NatureOfBusinessViewSet(viewsets.ModelViewSet):
-    queryset = NatureOfBusiness.objects.all()
-    serializer_class = NatureOfBusinessSerializer
-    
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
-    def options(self, request):
-        business_types = NatureOfBusiness.objects.all().order_by('name')
-        serializer = self.get_serializer(business_types, many=True)
+    @action(detail=True, methods=['post'])
+    def archive(self, request, pk=None):
+        establishment = self.get_object()
+        establishment.is_archived = True
+        establishment.save()
+        serializer = self.get_serializer(establishment)
         return Response({
             'status': 'success',
-            'data': [{'value': item['id'], 'label': item['name']} for item in serializer.data]
-        })
+            'data': serializer.data,
+            'message': 'Establishment archived successfully'
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def unarchive(self, request, pk=None):
+        establishment = self.get_object()
+        establishment.is_archived = False
+        establishment.save()
+        serializer = self.get_serializer(establishment)
+        return Response({
+            'status': 'success',
+            'data': serializer.data,
+            'message': 'Establishment unarchived successfully'
+        }, status=status.HTTP_200_OK)
