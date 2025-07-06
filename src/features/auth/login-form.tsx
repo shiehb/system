@@ -137,7 +137,7 @@ export function LoginForm({
                     className="ml-auto text-sm underline-offset-4 hover:underline"
                     onClick={(e) => {
                       e.preventDefault();
-                      authService.handleForgotPassword();
+                      navigate("/forgot-password");
                     }}
                   >
                     Forgot your password?

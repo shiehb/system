@@ -10,6 +10,9 @@ const REFRESH_URL = `${BASE_URL}token/refresh/`;
 const LOGOUT_URL = `${BASE_URL}logout/`;
 const AUTH_URL = `${BASE_URL}authenticated/`;
 
+const REQUEST_PASSWORD_RESET_URL = `${BASE_URL}request-password-reset/`;
+const VERIFY_PASSWORD_RESET_URL = `${BASE_URL}verify-password-reset/`;
+
 // User management endpoints
 const REGISTER_URL = `${BASE_URL}register/`;
 const RESET_PASSWORD_URL = `${BASE_URL}admin-reset-password/`;
@@ -143,6 +146,51 @@ export const logout = async (): Promise<boolean> => {
   } catch (error) {
     console.error("Logout failed:", error);
     return false;
+  }
+};
+
+export const requestPasswordReset = async (email: string) => {
+  try {
+    const response = await axios.post(
+      REQUEST_PASSWORD_RESET_URL,
+      { email },
+      {
+        withCredentials: true,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    return handleApiError(error);
+  }
+};
+
+// In api.ts or authService.ts
+export const verifyPasswordReset = async (
+  email: string,
+  otp: string,
+  newPassword: string
+) => {
+  try {
+    const response = await axios.post(
+      `${BASE_URL}verify-password-reset/`,
+      {
+        email: email.toLowerCase(),
+        otp,
+        new_password: newPassword,
+      },
+      {
+        withCredentials: true,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(error.response?.data?.message || "Password reset failed");
+    }
+    throw error;
   }
 };
 

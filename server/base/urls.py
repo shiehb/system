@@ -13,7 +13,10 @@ from .views import (
     update_avatar,
     get_my_profile,
     update_profile,
-    admin_reset_password
+    admin_reset_password,
+    # Add these new views
+    request_password_reset,
+    verify_password_reset,
 )
 
 urlpatterns = [
@@ -22,6 +25,11 @@ urlpatterns = [
     path('token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('authenticated/', is_logged_in, name='check_auth'),
     path('logout/', logout, name='logout'),
+    
+    # Password reset endpoints (new)
+    path('request-password-reset/', request_password_reset, name='request_password_reset'),
+    path('verify-password-reset/', verify_password_reset, name='verify_password_reset'),
+    
 
     # User management endpoints
     path('register/', register, name='register'),

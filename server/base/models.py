@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from datetime import timedelta
+from django.utils import timezone
 
 def default_avatar():
     return 'avatars/default.jpg'
@@ -124,6 +126,8 @@ class ActivityLog(models.Model):
         ('avatar_updated', 'Avatar Updated'),
         ('login', 'User Login'),
         ('logout', 'User Logout'),
+        ('otp_sent', 'OTP Sent'),
+        ('password_reset_success', 'Password Reset Successful'),
     ]
 
     admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='admin_actions')
@@ -145,7 +149,33 @@ class ActivityLog(models.Model):
         else:
             return f"System: {self.get_action_display()} at {self.created_at}"
 
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_otps')
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Password Reset OTP'
+        verbose_name_plural = 'Password Reset OTPs'
+
+    def __str__(self):
+        return f"OTP for {self.user.email} (expires: {self.expires_at})"
+
+    def is_valid(self):
+        return not self.is_used and timezone.now() < self.expires_at
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=15)
+        super().save(*args, **kwargs)
+
 class Todo(models.Model):
     name = models.CharField(max_length=200)
     completed = models.BooleanField(default=False)
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todo')
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='todos')
+
+    def __str__(self):
+        return f"{self.name} - {'Completed' if self.completed else 'Pending'}"

@@ -15,6 +15,8 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 // Pages
 import LoginPage from "@/pages/LoginPage";
 import { ChangePasswordPage } from "@/pages/ChangePassword";
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import DashboardPage from "@/pages/DashboardPage";
 import UserManagementPage from "@/pages/UserManagementPage";
 import ProfilePage from "@/pages/ProfilePage";
@@ -37,12 +39,31 @@ function AppRoutes() {
 
           <Routes>
             <Route path="*" element={<NotFound />} />
+
             {/* Public routes */}
             <Route
               path="/login"
               element={
                 <PublicRoute>
                   <LoginPage />
+                </PublicRoute>
+              }
+            />
+
+            {/* Forgot password flow */}
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicRoute>
+                  <ForgotPasswordPage />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <PublicRoute>
+                  <ResetPasswordPage />
                 </PublicRoute>
               }
             />

@@ -1,7 +1,11 @@
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.utils import timezone
 from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, AuthenticationFailed
@@ -9,10 +13,18 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .models import Todo, User, ActivityLog
-from .serializers import TodoSerializer, UserRegisterSerializer, UserSerializer, ActivityLogSerializer
+from .models import Todo, User, ActivityLog, PasswordResetOTP
+from .serializers import (
+    TodoSerializer, 
+    UserRegisterSerializer, 
+    UserSerializer, 
+    ActivityLogSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetVerifySerializer
+)
 from django.core.paginator import Paginator, EmptyPage
 from django.db.models import Q
+import random
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
@@ -86,6 +98,138 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def request_password_reset(request):
+    serializer = PasswordResetRequestSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response({
+            'success': False,
+            'message': 'Invalid email address',
+            'errors': serializer.errors
+        }, status=400)
+
+    email = serializer.validated_data['email'].lower()  # Normalize email to lowercase
+    try:
+        user = User.objects.get(email__iexact=email)  # Case-insensitive lookup
+    except User.DoesNotExist:
+        # Don't reveal if user exists or not for security
+        return Response({
+            'success': True,
+            'message': 'If this email exists in our system, you will receive a password reset OTP'
+        })
+
+    # Invalidate any existing OTPs for this user
+    PasswordResetOTP.objects.filter(user=user).update(is_used=True)
+
+    # Generate 6-digit OTP
+    otp = str(random.randint(100000, 999999))
+    expires_at = timezone.now() + timedelta(minutes=15)
+
+    # Create new OTP record
+    PasswordResetOTP.objects.create(
+        user=user,
+        otp=otp,
+        expires_at=expires_at
+    )
+
+    # Send email with OTP
+    subject = 'Password Reset OTP'
+    html_message = render_to_string('email/password_reset_otp.html', {
+        'user': user,
+        'otp': otp,
+        'expires_in': 15
+    })
+    plain_message = strip_tags(html_message)
+    
+    try:
+        send_mail(
+            subject,
+            plain_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            html_message=html_message,
+            fail_silently=False
+        )
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return Response({
+            'success': False,
+            'message': 'Failed to send OTP. Please try again later.'
+        }, status=500)
+
+    # Log OTP sent
+    ActivityLog.objects.create(
+        user=user,
+        action='otp_sent',
+        details={
+            'email': user.email,
+            'ip_address': request.META.get('REMOTE_ADDR')
+        }
+    )
+
+    return Response({
+        'success': True,
+        'message': 'If this email exists in our system, you will receive a password reset OTP'
+    })
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_password_reset(request):
+    serializer = PasswordResetVerifySerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response({
+            'success': False,
+            'message': 'Validation failed',
+            'errors': serializer.errors
+        }, status=400)
+
+    try:
+        user = serializer.validated_data['email']
+        otp = serializer.validated_data['otp']
+        new_password = serializer.validated_data['new_password']
+        
+        # Password validation
+        if len(new_password) < 8:
+            return Response({
+                'success': False,
+                'message': 'Password must be at least 8 characters'
+            }, status=400)
+
+        # OTP validation
+        otp_record = PasswordResetOTP.objects.filter(
+            user=user,
+            otp=otp,
+            is_used=False,
+            expires_at__gt=timezone.now()
+        ).first()
+
+        if not otp_record:
+            return Response({
+                'success': False,
+                'message': 'Invalid or expired OTP'
+            }, status=400)
+
+        # Update password
+        user.set_password(new_password)
+        user.save()
+
+        # Invalidate OTP
+        otp_record.is_used = True
+        otp_record.save()
+
+        return Response({
+            'success': True,
+            'message': 'Password reset successfully'
+        })
+
+    except Exception as e:
+        return Response({
+            'success': False,
+            'message': 'An error occurred',
+            'error': str(e)
+        }, status=500)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -457,12 +601,30 @@ def update_profile(request):
         user.set_password(data['new_password'])
         user.save()
     
-    # ... (other profile updates)
+    # Handle other profile updates
+    serializer = UserSerializer(user, data=data, partial=True, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        
+        ActivityLog.objects.create(
+            user=user,
+            action='profile_updated',
+            details={
+                'changes': data
+            }
+        )
+        
+        return Response({
+            'success': True,
+            'message': 'Profile updated successfully',
+            'user': serializer.data
+        })
     
     return Response({
-        'success': True,
-        'message': 'Profile updated successfully'
-    })
+        'success': False,
+        'message': 'Validation failed',
+        'errors': serializer.errors
+    }, status=400)
 
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
