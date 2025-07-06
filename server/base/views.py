@@ -319,6 +319,29 @@ def register(request):
                     'last_name': user.last_name
                 }
             )
+
+            # Send account creation email
+            subject = 'Your IERMS Account Has Been Created'
+            html_message = render_to_string('email/account_created.html', {
+                'user': user,
+                'admin': request.user,
+                'default_password': settings.DEFAULT_USER_PASSWORD,
+                'login_url': settings.FRONTEND_LOGIN_URL
+            })
+            plain_message = strip_tags(html_message)
+            
+            try:
+                send_mail(
+                    subject,
+                    plain_message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                    html_message=html_message,
+                    fail_silently=False
+                )
+            except Exception as e:
+                print(f"Error sending account creation email: {e}")
+                # Don't fail the request if email fails
             
             return Response({
                 'success': True,
@@ -560,6 +583,29 @@ def admin_reset_password(request):
             'reset_to_default': True
         }
     )
+
+    # Send password reset email
+    subject = 'Your IERMS Password Has Been Reset'
+    html_message = render_to_string('email/password_reset_by_admin.html', {
+        'user': user,
+        'admin': request.user,
+        'default_password': settings.DEFAULT_USER_PASSWORD,
+        'login_url': settings.FRONTEND_LOGIN_URL
+    })
+    plain_message = strip_tags(html_message)
+    
+    try:
+        send_mail(
+            subject,
+            plain_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            html_message=html_message,
+            fail_silently=False
+        )
+    except Exception as e:
+        print(f"Error sending password reset email: {e}")
+        # Don't fail the request if email fails
 
     return Response({
         'success': True,
