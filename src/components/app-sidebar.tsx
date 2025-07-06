@@ -15,6 +15,8 @@ import {
   BarChart,
   Users,
   Plus,
+  List,
+  CheckLine,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -90,6 +92,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         icon: ClipboardList,
         isActive: currentPath.startsWith("/inspection"),
         items: [
+          {
+            title: "Inspection List",
+            url: "/a/inspection",
+            icon: List,
+          },
+          {
+            title: "Assign Inspection",
+            url: "/a/inspection/assign",
+            icon: CheckLine,
+          },
           {
             title: "Overview",
             url: "/inspection",

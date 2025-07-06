@@ -20,14 +20,10 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center">
-      <Button
-        variant="ghost"
-        className="absolute left-4 top-4 md:left-8 md:top-8"
-        asChild
-      >
+      <Button className="absolute left-4 top-4 md:left-8 md:top-8" asChild>
         <Link to="/login">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to login
+          BACK TO LOGIN
         </Link>
       </Button>
 

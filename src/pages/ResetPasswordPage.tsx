@@ -103,7 +103,7 @@ export function ResetPasswordPage() {
   async function handleResendOTP() {
     try {
       setIsResendDisabled(true);
-      setCountdown(120); // Reset to 2 minutes
+      setCountdown(900);
       await authService.requestPasswordReset(email.toLowerCase());
       toast.success("OTP has been resent to your email");
     } catch (error) {
@@ -121,14 +121,10 @@ export function ResetPasswordPage() {
 
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center">
-      <Button
-        variant="ghost"
-        className="absolute left-4 top-4 md:left-8 md:top-8"
-        asChild
-      >
+      <Button className="absolute left-4 top-4 md:left-8 md:top-8" asChild>
         <Link to="/forgot-password">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
+          BACK
         </Link>
       </Button>
 
@@ -248,7 +244,7 @@ export function ResetPasswordPage() {
             />
 
             <Button type="submit" className="w-full">
-              Reset Password
+              RESET PASSWORD
             </Button>
           </form>
         </Form>

@@ -51,7 +51,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Sending..." : "Send OTP"}
+          {isLoading ? "Sending..." : "SEND OTP"}
         </Button>
       </div>
     </form>

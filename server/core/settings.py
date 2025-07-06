@@ -179,8 +179,8 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 # Password Reset Settings
-PASSWORD_RESET_OTP_EXPIRE_MINUTES = 2 # OTP expiration time
-PASSWORD_RESET_TIMEOUT = 120  # 2 minutes in seconds
+PASSWORD_RESET_OTP_EXPIRE_MINUTES = 15 # OTP expiration time
+PASSWORD_RESET_TIMEOUT = 900  # 15 minutes in seconds
 
 # Logging Configuration
 LOGGING = {
