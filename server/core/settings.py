@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key-for-dev')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,k-to-drinks.onrender.com').split(',')
 
 # Application definition
 INSTALLED_APPS = [
@@ -165,7 +165,7 @@ CORS_ALLOWED_ORIGINS = [
     
 ]
 
-FRONTEND_LOGIN_URL = os.getenv('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
+FRONTEND_LOGIN_URL = os.getenv('FRONTEND_LOGIN_URL', 'https://k-to-drinks.onrender.com/api/login')
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
