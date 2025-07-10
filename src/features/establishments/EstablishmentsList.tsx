@@ -212,7 +212,7 @@ export default function EstablishmentsList({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -406,7 +406,7 @@ function EstablishmentTable({
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Address</TableHead>
-            <TableHead>Business Type</TableHead>
+            <TableHead>Nature of Business</TableHead>
             <TableHead>Year Est.</TableHead>
             <TableHead>Location</TableHead>
             <TableHead>Boundaries</TableHead>

@@ -49,7 +49,6 @@ import { EditUserForm } from "@/features/users/form/edit-user-form";
 import { ChangeStatus } from "@/features/users/form/change-status-form";
 
 const USER_LEVELS: UserLevel[] = [
-  "administrator",
   "division_chief",
   "eia_air_water_section_chief",
   "toxic_hazardous_section_chief",

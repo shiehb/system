@@ -5,7 +5,9 @@ import DivisionChiefInterface from "./DivisionChiefInterface";
 import SectionChiefInterface from "./SectionChiefInterface";
 import UnitHeadInterface from "./UnitHeadInterface";
 import MonitoringPersonnelInterface from "./MonitoringPersonnelInterface";
+import AdminEstablishmentManagement from "./AdminEstablishmentManagement";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function InspectionManagement() {
   const { user, loading } = useAuth();
@@ -32,21 +34,27 @@ export default function InspectionManagement() {
     );
   }
 
-  // Route based on user level
   const renderInterface = () => {
     switch (user.user_level) {
+      case "administrator":
+        return <AdminEstablishmentManagement />;
+
       case "division_chief":
         return <DivisionChiefInterface />;
 
       case "eia_air_water_section_chief":
+        return <SectionChiefInterface sectionType="eia_air_water" />;
       case "toxic_hazardous_section_chief":
+        return <SectionChiefInterface sectionType="toxic" />;
       case "solid_waste_section_chief":
-        return <SectionChiefInterface />;
+        return <SectionChiefInterface sectionType="solidwaste" />;
 
       case "eia_monitoring_unit_head":
+        return <UnitHeadInterface unitType="eia" />;
       case "air_quality_unit_head":
+        return <UnitHeadInterface unitType="air" />;
       case "water_quality_unit_head":
-        return <UnitHeadInterface />;
+        return <UnitHeadInterface unitType="water" />;
 
       case "eia_monitoring_personnel":
       case "air_quality_monitoring_personnel":

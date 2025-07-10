@@ -33,7 +33,6 @@ import { updateUser } from "@/lib/api";
 import { toast } from "sonner";
 
 const USER_LEVELS = [
-  "administrator",
   "division_chief",
   "eia_air_water_section_chief",
   "toxic_hazardous_section_chief",

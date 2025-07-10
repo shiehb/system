@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAuth } from "@/contexts/useAuth";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,10 @@ interface Assignment {
   receivedDate: string;
   dueDate: string;
   assignedPersonnel?: Personnel;
+}
+
+interface UnitHeadInterfaceProps {
+  unitType?: "eia" | "air" | "water";
 }
 
 const mockPersonnel: Personnel[] = [
@@ -137,18 +142,38 @@ const mockAssignments: Assignment[] = [
   },
 ];
 
-const inspectionSections = [
-  "General Information",
-  "Purpose of Inspection",
-  "Compliance Status",
-  "Summary of Compliance",
-  "Findings & Observations",
-  "Recommendations",
-];
-
-export default function UnitHeadInterface() {
-  const [assignments, setAssignments] = useState(mockAssignments);
-  const [personnel] = useState(mockPersonnel);
+export default function UnitHeadInterface({
+  unitType,
+}: UnitHeadInterfaceProps) {
+  const { user } = useAuth();
+  const [assignments, setAssignments] = useState(
+    mockAssignments.filter((assignment) => {
+      if (unitType === "eia") {
+        return assignment.assignedLaw.includes(
+          "Environmental Impact Assessment"
+        );
+      } else if (unitType === "air") {
+        return assignment.assignedLaw.includes("Clean Air Act");
+      } else if (unitType === "water") {
+        return assignment.assignedLaw.includes("Clean Water Act");
+      }
+      return true;
+    })
+  );
+  const [personnel] = useState(
+    mockPersonnel.filter((person) => {
+      if (unitType === "eia") {
+        return person.specialization.includes(
+          "Environmental Impact Assessment"
+        );
+      } else if (unitType === "air") {
+        return person.specialization.includes("Air Quality");
+      } else if (unitType === "water") {
+        return person.specialization.includes("Water Quality");
+      }
+      return true;
+    })
+  );
   const [selectedAssignment, setSelectedAssignment] =
     useState<Assignment | null>(null);
   const [showAssignmentForm, setShowAssignmentForm] =
@@ -194,17 +219,6 @@ export default function UnitHeadInterface() {
     );
   };
 
-  const getPersonnelByLaw = (law: string) => {
-    const lawMapping: { [key: string]: string } = {
-      "Clean Air Act": "Air Quality",
-      "Clean Water Act": "Water Quality",
-      "Environmental Impact Assessment": "Environmental Impact Assessment",
-    };
-
-    const specialization = lawMapping[law];
-    return personnel.filter((p) => p.specialization === specialization);
-  };
-
   const handleAssignPersonnel = () => {
     if (!showAssignmentForm || !selectedPersonnel) {
       toast.error("Please select personnel");
@@ -229,7 +243,18 @@ export default function UnitHeadInterface() {
     setAssignments(updatedAssignments);
     setShowAssignmentForm(null);
     setSelectedPersonnel("");
-    toast.success(`Assignment forwarded to ${selectedPerson.name}`);
+
+    let forwardMessage = `Assignment forwarded to ${selectedPerson.name}`;
+
+    if (user?.user_level === "eia_monitoring_unit_head") {
+      forwardMessage = `Assignment forwarded to EIA Monitoring Personnel (${selectedPerson.name})`;
+    } else if (user?.user_level === "air_quality_unit_head") {
+      forwardMessage = `Assignment forwarded to Air Quality Monitoring Personnel (${selectedPerson.name})`;
+    } else if (user?.user_level === "water_quality_unit_head") {
+      forwardMessage = `Assignment forwarded to Water Quality Monitoring Personnel (${selectedPerson.name})`;
+    }
+
+    toast.success(forwardMessage);
   };
 
   const handleForwardCompleted = (assignmentId: number) => {
@@ -241,6 +266,13 @@ export default function UnitHeadInterface() {
 
     setAssignments(updatedAssignments);
     toast.success("Completed inspection forwarded to Section Chief");
+  };
+
+  const getUnitTitle = () => {
+    if (unitType === "eia") return "EIA Monitoring Unit";
+    if (unitType === "air") return "Air Quality Monitoring Unit";
+    if (unitType === "water") return "Water Quality Monitoring Unit";
+    return "Monitoring Unit";
   };
 
   if (selectedAssignment) {
@@ -398,20 +430,6 @@ export default function UnitHeadInterface() {
               </div>
             </div>
 
-            <div>
-              <h3 className="font-semibold mb-3">Form Sections</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {inspectionSections.map((section) => (
-                  <div key={section} className="p-3 border rounded">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{section}</span>
-                      <Badge variant="outline">Completed</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="flex justify-end space-x-3">
               <Button variant="outline" onClick={() => setShowReviewForm(null)}>
                 Close Review
@@ -424,10 +442,6 @@ export default function UnitHeadInterface() {
   }
 
   if (showAssignmentForm) {
-    const availablePersonnel = getPersonnelByLaw(
-      showAssignmentForm.assignedLaw
-    );
-
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -456,7 +470,7 @@ export default function UnitHeadInterface() {
                   <SelectValue placeholder="Select personnel to assign" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availablePersonnel.map((person) => (
+                  {personnel.map((person) => (
                     <SelectItem key={person.id} value={person.id.toString()}>
                       <div className="flex items-center justify-between w-full">
                         <span>
@@ -477,7 +491,7 @@ export default function UnitHeadInterface() {
                 Personnel Workload Overview
               </Label>
               <div className="mt-2 space-y-2">
-                {availablePersonnel.map((person) => (
+                {personnel.map((person) => (
                   <div
                     key={person.id}
                     className="flex items-center justify-between p-3 border rounded"
@@ -516,10 +530,9 @@ export default function UnitHeadInterface() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Unit Head - Assignment Management</CardTitle>
+          <CardTitle>Unit Head - {getUnitTitle()}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Managing specialized personnel for Air Quality, Water Quality, and
-            EIA monitoring
+            Managing specialized personnel for {getUnitTitle()}
           </p>
         </CardHeader>
         <CardContent>

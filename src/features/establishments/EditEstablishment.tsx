@@ -9,17 +9,28 @@ import { PolygonDrawingMap } from "@/components/map/PolygonDrawingMap";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check, ChevronsUpDown, Plus, Map } from "lucide-react";
+import {
+  Loader2,
+  Check,
+  ChevronsUpDown,
+  Plus,
+  MapPin,
+  OctagonIcon as Polygon,
+  Info,
+  Trash2,
+  Lock,
+  Unlock,
+} from "lucide-react";
 import type { EstablishmentFormData } from "@/lib/establishmentApi";
 import { toast } from "sonner";
 import {
   Command,
-  CommandList,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandSeparator,
+  CommandList,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -31,6 +42,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
@@ -49,6 +61,9 @@ import {
   createNatureOfBusiness,
 } from "@/lib/establishmentApi";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 
 interface PolygonData {
   coordinates: number[][][];
@@ -58,11 +73,8 @@ interface PolygonData {
 interface EditEstablishmentProps {
   id: number;
   businessTypes: { id: number; name: string }[];
-  establishment: EstablishmentFormData & { polygon?: PolygonData | null };
-  onUpdate: (
-    id: number,
-    data: EstablishmentFormData & { polygon?: PolygonData | null }
-  ) => Promise<void>;
+  establishment: EstablishmentFormData;
+  onUpdate: (id: number, data: EstablishmentFormData) => Promise<void>;
   isSubmitting?: boolean;
   onCancel?: () => void;
   onToggleMapPreview: (
@@ -78,15 +90,15 @@ export default function EditEstablishment({
   isSubmitting,
   onCancel,
 }: EditEstablishmentProps) {
-  const [formData, setFormData] = useState<
-    EstablishmentFormData & { polygon?: PolygonData | null }
-  >(establishment);
+  const [formData, setFormData] =
+    useState<EstablishmentFormData>(establishment);
+  const [restrictPinToPolygon, setRestrictPinToPolygon] = useState(false);
+  const [activeMapTab, setActiveMapTab] = useState("location");
   const [isFetchingCoords, setIsFetchingCoords] = useState(false);
   const [businessTypes, setBusinessTypes] = useState<
     { id: number; name: string }[]
   >([]);
   const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(true);
-  const [activeTab, setActiveTab] = useState("form");
   const [errors, setErrors] = useState({
     name: "",
     region: "",
@@ -103,6 +115,7 @@ export default function EditEstablishment({
   const [apiErrors, setApiErrors] = useState<Record<string, string>>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showPolygonClearDialog, setShowPolygonClearDialog] = useState(false);
 
   const provinceRef = useRef<HTMLButtonElement>(null);
   const cityRef = useRef<HTMLButtonElement>(null);
@@ -117,6 +130,40 @@ export default function EditEstablishment({
     [];
   const barangays =
     cities.find((c: any) => c.name === formData.city)?.barangays || [];
+
+  // Calculate polygon area in square meters (approximate)
+  const calculatePolygonArea = (coords: number[][]): number => {
+    if (coords.length < 3) return 0;
+
+    let area = 0;
+    const earthRadius = 6371000; // Earth's radius in meters
+
+    for (let i = 0; i < coords.length; i++) {
+      const j = (i + 1) % coords.length;
+      const lat1 = (coords[i][1] * Math.PI) / 180;
+      const lat2 = (coords[j][1] * Math.PI) / 180;
+      const deltaLng = ((coords[j][0] - coords[i][0]) * Math.PI) / 180;
+
+      area += deltaLng * (2 + Math.sin(lat1) + Math.sin(lat2));
+    }
+
+    area = Math.abs((area * earthRadius * earthRadius) / 2);
+    return area;
+  };
+
+  const formatArea = (area: number): string => {
+    if (area < 10000) {
+      return `${area.toFixed(0)} m²`;
+    } else if (area < 1000000) {
+      return `${(area / 10000).toFixed(2)} hectares`;
+    } else {
+      return `${(area / 1000000).toFixed(2)} km²`;
+    }
+  };
+
+  const polygonArea = formData.polygon
+    ? calculatePolygonArea(formData.polygon.coordinates[0])
+    : 0;
 
   useEffect(() => {
     const fetchBusinessTypes = async () => {
@@ -245,8 +292,18 @@ export default function EditEstablishment({
   const handlePolygonChange = (newPolygon: PolygonData | null) => {
     setFormData((prev) => ({
       ...prev,
-      polygon: newPolygon,
+      polygon: newPolygon || undefined,
     }));
+    if (newPolygon) {
+      const area = calculatePolygonArea(newPolygon.coordinates[0]);
+      toast.success(`Polygon boundary updated (${formatArea(area)})`);
+      // Switch to boundary tab to show the polygon
+      setActiveMapTab("boundary");
+    } else {
+      toast.info("Polygon boundary removed");
+      // Disable pin restriction if polygon is removed
+      setRestrictPinToPolygon(false);
+    }
   };
 
   const handleCoordinatesChange = (lat: number, lng: number) => {
@@ -255,6 +312,28 @@ export default function EditEstablishment({
       latitude: lat.toString(),
       longitude: lng.toString(),
     }));
+    if (errors.latitude) {
+      setErrors((prev) => ({ ...prev, latitude: "" }));
+    }
+    if (errors.longitude) {
+      setErrors((prev) => ({ ...prev, longitude: "" }));
+    }
+    // Show toast notification when coordinates are updated via dragging
+    toast.success(`Coordinates updated: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+  };
+
+  const handleClearPolygon = () => {
+    setShowPolygonClearDialog(true);
+  };
+
+  const confirmClearPolygon = () => {
+    setFormData((prev) => ({
+      ...prev,
+      polygon: undefined,
+    }));
+    setRestrictPinToPolygon(false);
+    setShowPolygonClearDialog(false);
+    toast.info("Polygon boundary cleared");
   };
 
   const validateForm = (): boolean => {
@@ -353,6 +432,7 @@ export default function EditEstablishment({
       "est_year",
       "est_natureOfBusiness",
       "est_polygon",
+      "est_restrictPin",
     ].forEach((key) => localStorage.removeItem(key));
 
     onCancel?.();
@@ -403,91 +483,186 @@ export default function EditEstablishment({
   return (
     <Card className="md:min-h-[calc(100vh-60px)] rounded-none flex flex-col">
       <CardContent className="space-y-6 flex-1">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex items-center justify-between mb-4">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-bold tracking-tight">
-                Edit Establishment
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Update the establishment details and boundaries
-              </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Form Fields */}
+          <div className="space-y-4">
+            {/* Basic Information Section */}
+            <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-start justify-between mb-4">
+                <div className="space-y-1">
+                  <h1 className="text-2xl font-bold tracking-tight">
+                    Edit Establishment
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    Update the establishment details below
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setFormData({
+                      name: establishment.name,
+                      address_line: establishment.address_line,
+                      barangay: establishment.barangay,
+                      city: establishment.city,
+                      province: establishment.province,
+                      region: establishment.region,
+                      postal_code: establishment.postal_code,
+                      latitude: establishment.latitude,
+                      longitude: establishment.longitude,
+                      year_established: establishment.year_established,
+                      nature_of_business_id:
+                        establishment.nature_of_business_id ?? null,
+                      polygon: establishment.polygon,
+                    });
+                    setRestrictPinToPolygon(false);
+                    toast.success("Changes reset to original values");
+                  }}
+                  className="mt-1"
+                  disabled={isSubmitting}
+                >
+                  Reset Changes
+                </Button>
+              </div>
+
+              {/* Name Field */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <label className="font-medium">Name *</label>
+                  <ErrorLabel field="name" />
+                </div>
+                <Input
+                  value={formData.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  className={getErrorClass("name")}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {/* Nature of Business Field */}
+                <div className="col-span-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <label className="font-medium">Nature of Business *</label>
+                    <ErrorLabel field="nature_of_business_id" />
+                  </div>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={`justify-between w-full ${getErrorClass(
+                          "nature_of_business_id"
+                        )}`}
+                      >
+                        {businessTypes.find(
+                          (type) =>
+                            type.id.toString() ===
+                            String(formData.nature_of_business_id)
+                        )?.name || "Select business type"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[435px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search business type..." />
+                        <CommandList>
+                          <CommandEmpty>
+                            <div className="flex flex-col items-center gap-2 p-4">
+                              <span>No business type found.</span>
+                              <Button
+                                variant="link"
+                                className="text-primary"
+                                onClick={() =>
+                                  setIsBusinessTypeDialogOpen(true)
+                                }
+                              >
+                                + Add New Business Type
+                              </Button>
+                            </div>
+                          </CommandEmpty>
+                          <CommandGroup className="max-h-[300px] overflow-y-auto">
+                            {loadingBusinessTypes ? (
+                              <div className="flex justify-center p-4">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              </div>
+                            ) : (
+                              <>
+                                {businessTypes.map((type) => (
+                                  <CommandItem
+                                    key={type.id}
+                                    value={type.name}
+                                    onSelect={() =>
+                                      handleChange(
+                                        "nature_of_business_id" as keyof EstablishmentFormData,
+                                        type.id.toString()
+                                      )
+                                    }
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        String(
+                                          formData.nature_of_business_id
+                                        ) === type.id.toString()
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {type.name}
+                                  </CommandItem>
+                                ))}
+                                <CommandSeparator className="mb-1" />
+                                <CommandItem
+                                  value="add-new"
+                                  onSelect={() =>
+                                    setIsBusinessTypeDialogOpen(true)
+                                  }
+                                  className="text-blue-600 font-medium"
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Add New Business Type
+                                </CommandItem>
+                              </>
+                            )}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Year Established Field */}
+                <div className="space-y-2 w-full">
+                  <div className="flex items-center gap-2">
+                    <label className="font-medium">Year Established *</label>
+                    <ErrorLabel field="year_established" />
+                  </div>
+                  <YearPicker
+                    value={formData.year_established || ""}
+                    onChange={(newYear) => {
+                      handleChange("year_established", newYear);
+                    }}
+                    error={!!errors.year_established}
+                  />
+                </div>
+              </div>
             </div>
-            <TabsList className="grid w-auto grid-cols-2">
-              <TabsTrigger value="form">Form Details</TabsTrigger>
-              <TabsTrigger value="map" className="flex items-center gap-2">
-                <Map className="h-4 w-4" />
-                Map & Boundaries
-              </TabsTrigger>
-            </TabsList>
-          </div>
 
-          <TabsContent value="form" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column - Form Fields */}
-              <div className="space-y-4">
-                {/* Basic Information Section */}
-                <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-semibold">
-                        Basic Information
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Update the establishment's basic details
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setFormData({
-                          name: establishment.name,
-                          address_line: establishment.address_line,
-                          barangay: establishment.barangay,
-                          city: establishment.city,
-                          province: establishment.province,
-                          region: establishment.region,
-                          postal_code: establishment.postal_code,
-                          latitude: establishment.latitude,
-                          longitude: establishment.longitude,
-                          year_established: establishment.year_established,
-                          nature_of_business_id:
-                            establishment.nature_of_business_id ?? null,
-                          polygon: establishment.polygon || null,
-                        });
-                        toast.success("Changes reset to original values");
-                      }}
-                      className="mt-1"
-                      disabled={isSubmitting}
-                    >
-                      Reset Changes
-                    </Button>
-                  </div>
+            {/* Address Section */}
+            <div className="md:min-h-[calc(100vh-440px)]">
+              <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                <h3 className="font-semibold text-lg">Address</h3>
 
-                  {/* Name Field */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <label className="font-medium">Name *</label>
-                      <ErrorLabel field="name" />
-                    </div>
-                    <Input
-                      value={formData.name}
-                      onChange={(e) => handleChange("name", e.target.value)}
-                      className={getErrorClass("name")}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* Nature of Business Field */}
-                    <div className="col-span-2 space-y-2">
+                <div className="grid grid-cols-3 gap-2">
+                  {/* REGION */}
+                  {!hasSingleRegion && (
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <label className="font-medium">
-                          Nature of Business *
-                        </label>
-                        <ErrorLabel field="nature_of_business_id" />
+                        <label className="font-medium">Region *</label>
+                        <ErrorLabel field="region" />
                       </div>
                       <Popover>
                         <PopoverTrigger asChild>
@@ -495,374 +670,315 @@ export default function EditEstablishment({
                             variant="outline"
                             role="combobox"
                             className={`justify-between w-full ${getErrorClass(
-                              "nature_of_business_id"
+                              "region"
                             )}`}
                           >
-                            {businessTypes.find(
-                              (type) =>
-                                type.id.toString() ===
-                                String(formData.nature_of_business_id)
-                            )?.name || "Select business type"}
+                            {formData.region || "Select Region"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[435px] p-0">
+                        <PopoverContent className="w-full p-0">
                           <Command>
-                            <CommandInput placeholder="Search business type..." />
+                            <CommandInput placeholder="Search region..." />
                             <CommandList>
-                              <CommandEmpty>
-                                <div className="flex flex-col items-center gap-2 p-4">
-                                  <span>No business type found.</span>
-                                  <Button
-                                    variant="link"
-                                    className="text-primary"
-                                    onClick={() =>
-                                      setIsBusinessTypeDialogOpen(true)
+                              <CommandEmpty>No region found.</CommandEmpty>
+                              <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                {regions.map((r: any) => (
+                                  <CommandItem
+                                    key={r.name}
+                                    value={r.name}
+                                    onSelect={() =>
+                                      handleLocationChange("region", r.name)
                                     }
                                   >
-                                    + Add New Business Type
-                                  </Button>
-                                </div>
-                              </CommandEmpty>
-                              <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                {loadingBusinessTypes ? (
-                                  <div className="flex justify-center p-4">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  </div>
-                                ) : (
-                                  <>
-                                    {businessTypes.map((type) => (
-                                      <CommandItem
-                                        key={type.id}
-                                        value={type.name}
-                                        onSelect={() =>
-                                          handleChange(
-                                            "nature_of_business_id" as keyof EstablishmentFormData,
-                                            type.id.toString()
-                                          )
-                                        }
-                                      >
-                                        <Check
-                                          className={cn(
-                                            "mr-2 h-4 w-4",
-                                            String(
-                                              formData.nature_of_business_id
-                                            ) === type.id.toString()
-                                              ? "opacity-100"
-                                              : "opacity-0"
-                                          )}
-                                        />
-                                        {type.name}
-                                      </CommandItem>
-                                    ))}
-                                    <CommandSeparator className="mb-1" />
-                                    <CommandItem
-                                      value="add-new"
-                                      onSelect={() =>
-                                        setIsBusinessTypeDialogOpen(true)
-                                      }
-                                      className="text-blue-600 font-medium"
-                                    >
-                                      <Plus className="mr-2 h-4 w-4" />
-                                      Add New Business Type
-                                    </CommandItem>
-                                  </>
-                                )}
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.region === r.name
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {r.name}
+                                  </CommandItem>
+                                ))}
                               </CommandGroup>
                             </CommandList>
                           </Command>
                         </PopoverContent>
                       </Popover>
                     </div>
+                  )}
 
-                    {/* Year Established Field */}
-                    <div className="space-y-2 w-full">
-                      <div className="flex items-center gap-2">
-                        <label className="font-medium">
-                          Year Established *
-                        </label>
-                        <ErrorLabel field="year_established" />
-                      </div>
-                      <YearPicker
-                        value={formData.year_established || ""}
-                        onChange={(newYear) => {
-                          handleChange("year_established", newYear);
-                        }}
-                        error={!!errors.year_established}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Address Section */}
-                <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                  <h3 className="font-semibold text-lg">Address</h3>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* REGION */}
-                    {!hasSingleRegion && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <label className="font-medium">Region *</label>
-                          <ErrorLabel field="region" />
-                        </div>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className={`justify-between w-full ${getErrorClass(
-                                "region"
-                              )}`}
-                            >
-                              {formData.region || "Select Region"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-full p-0">
-                            <Command>
-                              <CommandInput placeholder="Search region..." />
-                              <CommandList>
-                                <CommandEmpty>No region found.</CommandEmpty>
-                                <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                  {regions.map((r: any) => (
-                                    <CommandItem
-                                      key={r.name}
-                                      value={r.name}
-                                      onSelect={() =>
-                                        handleLocationChange("region", r.name)
-                                      }
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          formData.region === r.name
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        )}
-                                      />
-                                      {r.name}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    )}
-
-                    {/* PROVINCE */}
-                    {formData.region && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <label className="font-medium">Province *</label>
-                          <ErrorLabel field="province" />
-                        </div>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              ref={provinceRef}
-                              variant="outline"
-                              role="combobox"
-                              className={`justify-between w-full ${getErrorClass(
-                                "province"
-                              )}`}
-                            >
-                              {formData.province || "Select Province"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-full p-0">
-                            <Command>
-                              <CommandInput placeholder="Search province..." />
-                              <CommandList>
-                                <CommandEmpty>No province found.</CommandEmpty>
-                                <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                  {provinces.map((p: any) => (
-                                    <CommandItem
-                                      key={p.name}
-                                      value={p.name}
-                                      onSelect={() =>
-                                        handleLocationChange("province", p.name)
-                                      }
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          formData.province === p.name
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        )}
-                                      />
-                                      {p.name}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    )}
-
-                    {/* CITY */}
-                    {formData.province && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <label className="font-medium">City *</label>
-                          <ErrorLabel field="city" />
-                        </div>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              ref={cityRef}
-                              variant="outline"
-                              role="combobox"
-                              className={`justify-between w-full ${getErrorClass(
-                                "city"
-                              )}`}
-                            >
-                              {formData.city || "Select City"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-full p-0">
-                            <Command>
-                              <CommandInput placeholder="Search city..." />
-                              <CommandList>
-                                <CommandEmpty>No city found.</CommandEmpty>
-                                <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                  {cities.map((c: any) => (
-                                    <CommandItem
-                                      key={c.name}
-                                      value={c.name}
-                                      onSelect={() =>
-                                        handleLocationChange("city", c.name)
-                                      }
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          formData.city === c.name
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        )}
-                                      />
-                                      {c.name}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    )}
-
-                    {/* BARANGAY */}
-                    {formData.city && barangays.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <label className="font-medium">Barangay *</label>
-                          <ErrorLabel field="barangay" />
-                        </div>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              ref={barangayRef}
-                              variant="outline"
-                              role="combobox"
-                              className={`justify-between w-full ${getErrorClass(
-                                "barangay"
-                              )}`}
-                            >
-                              {formData.barangay || "Select Barangay"}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-full p-0">
-                            <Command>
-                              <CommandInput placeholder="Search barangay..." />
-                              <CommandList>
-                                <CommandEmpty>No barangay found.</CommandEmpty>
-                                <CommandGroup className="max-h-[300px] overflow-y-auto">
-                                  {barangays.map((b: any) => (
-                                    <CommandItem
-                                      key={b}
-                                      value={b}
-                                      onSelect={() =>
-                                        handleLocationChange("barangay", b)
-                                      }
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          formData.barangay === b
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        )}
-                                      />
-                                      {b}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    {/* Address Line */}
-                    <div className="space-y-2 col-span-2">
-                      <div className="flex items-center gap-2">
-                        <label className="font-medium">
-                          Street / Building *
-                        </label>
-                        <ErrorLabel field="address_line" />
-                      </div>
-                      <Input
-                        value={formData.address_line}
-                        onChange={(e) =>
-                          handleChange("address_line", e.target.value)
-                        }
-                        className={getErrorClass("address_line")}
-                        required
-                      />
-                    </div>
-
-                    {/* Postal Code */}
+                  {/* PROVINCE */}
+                  {formData.region && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <label className="font-medium">Postal Code *</label>
-                        <ErrorLabel field="postal_code" />
+                        <label className="font-medium">Province *</label>
+                        <ErrorLabel field="province" />
                       </div>
-                      <Input
-                        value={formData.postal_code}
-                        onChange={(e) => {
-                          const value = e.target.value
-                            .replace(/\D/g, "")
-                            .slice(0, 4);
-                          handleChange("postal_code", value);
-                        }}
-                        className={getErrorClass("postal_code")}
-                        placeholder="4-digit postal code"
-                        maxLength={4}
-                        inputMode="numeric"
-                        pattern="\d{4}"
-                        required
-                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={provinceRef}
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "province"
+                            )}`}
+                          >
+                            {formData.province || "Select Province"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search province..." />
+                            <CommandList>
+                              <CommandEmpty>No province found.</CommandEmpty>
+                              <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                {provinces.map((p: any) => (
+                                  <CommandItem
+                                    key={p.name}
+                                    value={p.name}
+                                    onSelect={() =>
+                                      handleLocationChange("province", p.name)
+                                    }
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.province === p.name
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {p.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
+                  )}
+
+                  {/* CITY */}
+                  {formData.province && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">City *</label>
+                        <ErrorLabel field="city" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={cityRef}
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "city"
+                            )}`}
+                          >
+                            {formData.city || "Select City"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search city..." />
+                            <CommandList>
+                              <CommandEmpty>No city found.</CommandEmpty>
+                              <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                {cities.map((c: any) => (
+                                  <CommandItem
+                                    key={c.name}
+                                    value={c.name}
+                                    onSelect={() =>
+                                      handleLocationChange("city", c.name)
+                                    }
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.city === c.name
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {c.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+
+                  {/* BARANGAY */}
+                  {formData.city && barangays.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">Barangay *</label>
+                        <ErrorLabel field="barangay" />
+                      </div>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={barangayRef}
+                            variant="outline"
+                            role="combobox"
+                            className={`justify-between w-full ${getErrorClass(
+                              "barangay"
+                            )}`}
+                          >
+                            {formData.barangay || "Select Barangay"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search barangay..." />
+                            <CommandList>
+                              <CommandEmpty>No barangay found.</CommandEmpty>
+                              <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                {barangays.map((b: any) => (
+                                  <CommandItem
+                                    key={b}
+                                    value={b}
+                                    onSelect={() =>
+                                      handleLocationChange("barangay", b)
+                                    }
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.barangay === b
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {b}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {/* Address Line */}
+                  <div className="space-y-2 col-span-2">
+                    <div className="flex items-center gap-2">
+                      <label className="font-medium">Street / Building *</label>
+                      <ErrorLabel field="address_line" />
+                    </div>
+                    <Input
+                      value={formData.address_line}
+                      onChange={(e) =>
+                        handleChange("address_line", e.target.value)
+                      }
+                      className={getErrorClass("address_line")}
+                      required
+                    />
+                  </div>
+
+                  {/* Postal Code */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <label className="font-medium">Postal Code *</label>
+                      <ErrorLabel field="postal_code" />
+                    </div>
+                    <Input
+                      value={formData.postal_code}
+                      onChange={(e) => {
+                        const value = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 4);
+                        handleChange("postal_code", value);
+                      }}
+                      className={getErrorClass("postal_code")}
+                      placeholder="4-digit postal code"
+                      maxLength={4}
+                      inputMode="numeric"
+                      pattern="\d{4}"
+                      required
+                    />
                   </div>
                 </div>
               </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  className="capitalize min-w-[120px] bg-transparent"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSubmitting}
+                  className="capitalize min-w-[180px]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Update Establishment"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
 
-              {/* Right Column - Coordinates */}
-              <div className="space-y-4">
-                <div className="p-4 bg-muted/50 rounded-lg">
+          {/* Right Column - Map and Coordinates */}
+          <div className="space-y-4">
+            <div className="p-4 bg-muted/50 rounded-lg md:min-h-[calc(100vh-250px)]">
+              {/* Map Tabs */}
+              <Tabs
+                value={activeMapTab}
+                onValueChange={setActiveMapTab}
+                className="w-full"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger
+                      value="location"
+                      className="flex items-center gap-2"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      Location & Coordinates
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="boundary"
+                      className="flex items-center gap-2"
+                    >
+                      <Polygon className="h-4 w-4" />
+                      Boundary Polygon
+                      {formData.polygon && (
+                        <Badge variant="secondary" className="ml-1 text-xs">
+                          {formData.polygon.coordinates[0].length} pts
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <TabsContent value="location" className="space-y-4">
+                  {/* Coordinates Section */}
                   <div className="space-y-4 mb-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -921,106 +1037,124 @@ export default function EditEstablishment({
                     </p>
                   </div>
 
-                  {/* Polygon Status */}
-                  <div className="p-3 bg-background rounded border">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-sm">
-                          Boundary Polygon
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          {formData.polygon
-                            ? `Polygon defined with ${
-                                formData.polygon.coordinates[0]?.length || 0
-                              } points`
-                            : "No boundary polygon defined"}
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setActiveTab("map")}
-                      >
-                        <Map className="h-4 w-4 mr-2" />
-                        {formData.polygon ? "Edit Boundary" : "Draw Boundary"}
-                      </Button>
-                    </div>
+                  {/* Location Map */}
+                  <div className="h-[calc(100vh-400px)] rounded-md overflow-hidden border">
+                    <PolygonDrawingMap
+                      latitude={formData.latitude || ""}
+                      longitude={formData.longitude || ""}
+                      onCoordinatesChange={handleCoordinatesChange}
+                      readOnly={true}
+                      height="100%"
+                      restrictPinToPolygon={restrictPinToPolygon}
+                      existingPolygon={formData.polygon || null}
+                    />
                   </div>
-                </div>
-              </div>
-            </div>
+                </TabsContent>
 
-            <div className="flex justify-end mt-6">
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCancel}
-                  disabled={isSubmitting}
-                  className="capitalize min-w-[120px] bg-transparent"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={isSubmitting}
-                  className="capitalize min-w-[180px]"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Update Establishment"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
+                <TabsContent value="boundary" className="space-y-4">
+                  {/* Polygon Status and Controls */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <label className="font-medium">Boundary Polygon</label>
+                        {formData.polygon && (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {formData.polygon.coordinates[0].length} vertices
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {formatArea(polygonArea)}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {formData.polygon && (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-sm">
+                              {restrictPinToPolygon ? (
+                                <Lock className="h-4 w-4" />
+                              ) : (
+                                <Unlock className="h-4 w-4" />
+                              )}
+                              <span className="text-xs">Restrict Pin</span>
+                              <Switch
+                                checked={restrictPinToPolygon}
+                                onCheckedChange={setRestrictPinToPolygon}
+                                disabled={!formData.polygon}
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleClearPolygon}
+                              className="text-destructive hover:text-destructive bg-transparent"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Clear
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-          <TabsContent value="map" className="space-y-4">
-            <div className="h-[calc(100vh-200px)] rounded-md overflow-hidden border">
-              <PolygonDrawingMap
-                latitude={formData.latitude || ""}
-                longitude={formData.longitude || ""}
-                existingPolygon={formData.polygon}
-                onPolygonChange={handlePolygonChange}
-                onCoordinatesChange={handleCoordinatesChange}
-                height="100%"
-              />
-            </div>
+                    {/* Polygon Info Alert */}
+                    {!formData.polygon && (
+                      <Alert>
+                        <Info className="h-4 w-4" />
+                        <AlertDescription>
+                          Use the polygon drawing tool to define the
+                          establishment's boundary area. This is optional but
+                          helps visualize the property limits and can restrict
+                          pin placement.
+                        </AlertDescription>
+                      </Alert>
+                    )}
 
-            <div className="flex justify-between items-center">
-              <div className="text-sm text-muted-foreground">
-                {formData.polygon
-                  ? `Boundary polygon defined with ${
-                      formData.polygon.coordinates[0]?.length || 0
-                    } points`
-                  : "Click the polygon tool to start drawing the establishment boundary"}
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setActiveTab("form")}
-                >
-                  Back to Form
-                </Button>
-                {formData.polygon && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handlePolygonChange(null)}
-                  >
-                    Clear Polygon
-                  </Button>
-                )}
-              </div>
+                    {formData.polygon && (
+                      <Alert>
+                        <Polygon className="h-4 w-4" />
+                        <AlertDescription>
+                          Polygon boundary defined with{" "}
+                          {formData.polygon.coordinates[0].length} vertices
+                          covering approximately {formatArea(polygonArea)}.{" "}
+                          {restrictPinToPolygon &&
+                            "Pin movement is restricted to this area."}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+
+                  {/* Polygon Drawing Map */}
+                  <div className="h-[calc(100vh-420px)] rounded-md overflow-hidden border">
+                    <PolygonDrawingMap
+                      latitude={formData.latitude || ""}
+                      longitude={formData.longitude || ""}
+                      existingPolygon={formData.polygon || null}
+                      onPolygonChange={handlePolygonChange}
+                      onCoordinatesChange={handleCoordinatesChange}
+                      readOnly={false}
+                      height="100%"
+                      restrictPinToPolygon={restrictPinToPolygon}
+                    />
+                  </div>
+
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>• Click the polygon tool in the map to start drawing</p>
+                    <p>• Click points to create the boundary shape</p>
+                    <p>• Double-click to finish the polygon</p>
+                    <p>• Use edit tools to modify existing polygons</p>
+                    <p>
+                      • Toggle "Restrict Pin" to limit marker movement to
+                      polygon area
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </CardContent>
 
       <Dialog
@@ -1030,6 +1164,9 @@ export default function EditEstablishment({
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add New Business Type</DialogTitle>
+            <DialogDescription>
+              Create a new business type that can be assigned to establishments.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreateBusinessType} className="space-y-4">
             <div className="space-y-2">
@@ -1099,9 +1236,13 @@ export default function EditEstablishment({
             <AlertDialogDescription>
               Are you sure you want to update this establishment?
               {formData.polygon && (
-                <div className="mt-2 text-sm">
-                  <strong>Note:</strong> The boundary polygon will also be
-                  updated.
+                <div className="mt-2 p-2 bg-muted rounded text-sm">
+                  <div className="flex items-center gap-2">
+                    <Polygon className="h-4 w-4" />
+                    <span>
+                      Includes boundary polygon ({formatArea(polygonArea)})
+                    </span>
+                  </div>
                 </div>
               )}
             </AlertDialogDescription>
@@ -1118,14 +1259,39 @@ export default function EditEstablishment({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Clear Polygon Confirmation Dialog */}
+      <AlertDialog
+        open={showPolygonClearDialog}
+        onOpenChange={setShowPolygonClearDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Polygon Boundary</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove the polygon boundary? This action
+              cannot be undone and will disable pin restriction.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmClearPolygon}
+              className="text-destructive"
+            >
+              Clear Polygon
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Cancel Confirmation Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Cancel</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel editing? All changes including
-              polygon modifications will be lost.
+              Are you sure you want to cancel editing? All changes will be lost,
+              including any polygon boundary modifications.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

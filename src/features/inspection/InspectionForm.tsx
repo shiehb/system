@@ -42,6 +42,9 @@ interface InspectionFormProps {
   };
   sectionsToEdit?: string[];
   onComplete?: () => void;
+  onSaveDraft?: (formData: Record<string, any>) => void;
+  onCancel?: () => void;
+  initialData?: Record<string, any>;
 }
 
 // Define the sections of the inspection report
@@ -82,9 +85,12 @@ export default function InspectionForm({
   establishmentData,
   sectionsToEdit = [],
   onComplete,
+  onSaveDraft,
+  onCancel,
+  initialData = {},
 }: InspectionFormProps) {
   const [currentSection, setCurrentSection] = useState(0);
-  const [formData, setFormData] = useState<{ [key: string]: any }>({});
+  const [formData, setFormData] = useState<{ [key: string]: any }>(initialData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showClearDialog, setShowClearDialog] = useState(false);
@@ -279,10 +285,22 @@ export default function InspectionForm({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowClearDialog(true)}
+                onClick={() => {
+                  if (onCancel) onCancel();
+                }}
                 className="w-full sm:flex-1 capitalize"
               >
-                CLEAR FORM
+                CANCEL
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  if (onSaveDraft) onSaveDraft(formData);
+                }}
+                className="w-full sm:flex-1 capitalize"
+              >
+                SAVE DRAFT
               </Button>
               <Button
                 onClick={() => setShowSaveDialog(true)}
@@ -291,7 +309,7 @@ export default function InspectionForm({
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                 ) : null}
-                {isSubmitting ? "Saving..." : "SAVE REPORT"}
+                {isSubmitting ? "Saving..." : "SUBMIT REPORT"}
               </Button>
             </CardFooter>
           </Card>

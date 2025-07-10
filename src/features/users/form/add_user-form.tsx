@@ -37,7 +37,6 @@ import { toast } from "sonner";
 import type { UserLevel } from "@/types";
 
 const USER_LEVELS: UserLevel[] = [
-  "administrator",
   "division_chief",
   "eia_air_water_section_chief",
   "toxic_hazardous_section_chief",
@@ -61,7 +60,6 @@ const userSchema = z
     password: z.string().optional(),
     cPassword: z.string().optional(),
     user_level: z.enum([
-      "administrator",
       "division_chief",
       "eia_air_water_section_chief",
       "toxic_hazardous_section_chief",
