@@ -36,8 +36,16 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    
+    # Add your custom middleware here (choose one based on where you placed the file)
+    # Option 1: If placed in core/ directory
+    'core.middleware.ConditionalHTTPSMiddleware',
+    
+    # Option 2: If placed in base/ app (comment out Option 1 if using this)
+    # 'base.middleware.ConditionalHTTPSMiddleware',
+    
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -120,16 +128,16 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'base.authentication.CookiesJWTAuthentication',  # Custom cookie-based auth
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Standard JWT
+        'base.authentication.CookiesJWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',  # Default to authenticated
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
         'user': '1000/hour',
-        'password_reset': '3/hour',  # Prevent brute force attacks
+        'password_reset': '3/hour',
     },
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
@@ -142,19 +150,39 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
     
-    # Cookie settings
+    # Algorithm settings
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY,
+    "VERIFYING_KEY": None,
+    "AUDIENCE": None,
+    "ISSUER": None,
+    "JWK_URL": None,
+    "LEEWAY": 0,
+    
+    # Token settings
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type",
+    "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
+    
+    # Cookie settings - Modified for HTTP support
     "AUTH_COOKIE": "access_token",
     "AUTH_COOKIE_REFRESH": "refresh_token", 
-    "AUTH_COOKIE_SECURE": not DEBUG,
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_PATH": "/",
-    "AUTH_COOKIE_SAMESITE": "None" if not DEBUG else "Lax",
+    "AUTH_COOKIE_SAMESITE": "Lax",
     
     # Header settings
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
+    "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
+    
+    # Token claims
+    "JTI_CLAIM": "jti",
+    "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
+    "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 
 # CORS Settings
@@ -162,29 +190,73 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     # Add production frontend URLs here
-    
 ]
 
-FRONTEND_LOGIN_URL = os.getenv('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
+FRONTEND_LOGIN_URL = os.getenv('FRONTEND_LOGIN_URL', 'http://localhost:5173/api/login')
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 
-# Security Headers
+# Security Headers - Modified for development
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_REFERRER_POLICY = 'same-origin'
-if not DEBUG:
+
+# CRITICAL FIX: Only enforce HTTPS in production
+# Add environment variable to control HTTPS enforcement
+FORCE_HTTPS = os.getenv('FORCE_HTTPS', 'False') == 'True'
+
+# Development vs Production Security Settings
+if DEBUG:
+    # Development settings - explicitly allow HTTP
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_PROXY_SSL_HEADER = None
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+    
+    # JWT Cookie settings for development
+    SIMPLE_JWT.update({
+        "AUTH_COOKIE_SECURE": False,  # Allow HTTP cookies in development
+        "AUTH_COOKIE_SAMESITE": "Lax",
+    })
+    
+elif not DEBUG and FORCE_HTTPS:
+    # Production settings with HTTPS enforcement
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    
+    # JWT Cookie settings for production
+    SIMPLE_JWT.update({
+        "AUTH_COOKIE_SECURE": True,
+        "AUTH_COOKIE_SAMESITE": "None",  # Required for cross-origin in production
+    })
+    
+else:
+    # Production without HTTPS enforcement (staging/testing)
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_PROXY_SSL_HEADER = None
+    
+    # JWT Cookie settings for staging
+    SIMPLE_JWT.update({
+        "AUTH_COOKIE_SECURE": False,
+        "AUTH_COOKIE_SAMESITE": "Lax",
+    })
 
 # Password Reset Settings
-PASSWORD_RESET_OTP_EXPIRE_MINUTES = 15 # OTP expiration time
-PASSWORD_RESET_TIMEOUT = 900  # 15 minutes in seconds
+PASSWORD_RESET_OTP_EXPIRE_MINUTES = 15
+PASSWORD_RESET_TIMEOUT = 900
 
 # Logging Configuration
 LOGGING = {

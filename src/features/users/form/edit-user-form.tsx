@@ -304,7 +304,8 @@ export function EditUserForm({
               <Button
                 type="submit"
                 disabled={loading}
-                className="bg-primary text-foreground hover:bg-primary/80"
+                className="bg-muted"
+                variant="outline"
               >
                 {loading ? "Saving..." : "Save Changes"}
               </Button>

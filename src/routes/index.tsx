@@ -26,7 +26,7 @@ import NatureOfBusinessPage from "@/pages/NatureOfBusinessPage";
 import InspectionPage from "@/pages/InspectionPage";
 import InspectionDivisionHeadPage from "@/pages/InspectionDivisionHeadPage";
 import AssignInspectionPage from "@/pages/AssignInspectionPage";
-import ReportPage from "@/pages/ReportPage";
+import ReportsPage from "@/pages/ReportsPage";
 
 import NotFound from "@/components/NotFound";
 
@@ -275,7 +275,7 @@ function AppRoutes() {
                         <SiteHeader />
                       </header>
                       <Separator />
-                      <ReportPage />
+                      <ReportsPage />
                     </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>

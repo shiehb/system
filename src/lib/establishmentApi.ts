@@ -14,6 +14,12 @@ export interface NatureOfBusiness {
   updated_at: string;
 }
 
+export interface PolygonData {
+  coordinates: number[][][];
+  type: "Polygon";
+  created_at?: string;
+}
+
 export interface Establishment {
   id: number;
   name: string;
@@ -31,10 +37,7 @@ export interface Establishment {
   longitude?: string;
   year_established?: string | null;
   nature_of_business?: NatureOfBusiness | null;
-  polygon?: {
-    coordinates: any;
-    created_at: string;
-  } | null;
+  polygon?: PolygonData | null;
   is_archived?: boolean;
 }
 
@@ -50,6 +53,7 @@ export interface EstablishmentFormData {
   longitude?: string;
   year_established: string | null;
   nature_of_business_id?: number | null;
+  polygon?: PolygonData | null;
 }
 
 export interface ApiError {
@@ -120,7 +124,9 @@ export const fetchEstablishmentById = async (
   try {
     const response: AxiosResponse<{ data: Establishment }> = await axios.get(
       `${ESTABLISHMENTS_URL}${id}/`,
-      { withCredentials: true }
+      {
+        withCredentials: true,
+      }
     );
     return response.data.data;
   } catch (error) {
@@ -156,7 +162,9 @@ export const updateEstablishment = async (
     const response: AxiosResponse<{ data: Establishment }> = await axios.patch(
       `${ESTABLISHMENTS_URL}${id}/`,
       data,
-      { withCredentials: true }
+      {
+        withCredentials: true,
+      }
     );
     return response.data.data;
   } catch (error) {
@@ -164,7 +172,6 @@ export const updateEstablishment = async (
   }
 };
 
-// establishmentApi.ts
 export const archiveEstablishment = async (
   id: number
 ): Promise<Establishment> => {
@@ -219,7 +226,9 @@ export const fetchNatureOfBusinessOptions = async (): Promise<
   try {
     const response: AxiosResponse<NatureOfBusiness[]> = await axios.get(
       NATURE_OF_BUSINESS_URL,
-      { withCredentials: true }
+      {
+        withCredentials: true,
+      }
     );
     return response.data;
   } catch (error) {
@@ -233,7 +242,9 @@ export const fetchNatureOfBusinessById = async (
   try {
     const response: AxiosResponse<NatureOfBusiness> = await axios.get(
       `${NATURE_OF_BUSINESS_URL}${id}/`,
-      { withCredentials: true }
+      {
+        withCredentials: true,
+      }
     );
     return response.data;
   } catch (error) {
@@ -248,7 +259,9 @@ export const createNatureOfBusiness = async (
     const response: AxiosResponse<NatureOfBusiness> = await axios.post(
       NATURE_OF_BUSINESS_URL,
       data,
-      { withCredentials: true }
+      {
+        withCredentials: true,
+      }
     );
     return response.data;
   } catch (error) {
@@ -264,7 +277,9 @@ export const updateNatureOfBusiness = async (
     const response: AxiosResponse<NatureOfBusiness> = await axios.put(
       `${NATURE_OF_BUSINESS_URL}${id}/`,
       data,
-      { withCredentials: true }
+      {
+        withCredentials: true,
+      }
     );
     return response.data;
   } catch (error) {

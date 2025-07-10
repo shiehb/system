@@ -1,9 +1,5 @@
-import { InspectionTasking, InspectionForm } from "@/features/inspection";
+import { InspectionManagement } from "@/features/inspection";
+
 export default function InspectionPage() {
-  return (
-    <div>
-      <InspectionTasking />
-      <InspectionForm />
-    </div>
-  );
+  return <InspectionManagement />;
 }
