@@ -108,6 +108,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 AUTH_USER_MODEL = 'base.User'
 DEFAULT_USER_PASSWORD = os.getenv('DEFAULT_USER_PASSWORD', 'password123')
 
+EMAIL_TIMEOUT = 30  # seconds
+EMAIL_USE_SSL = False  # Must be False when using TLS
+
 # Email Configuration
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
@@ -164,6 +167,7 @@ CORS_ALLOWED_ORIGINS = [
     # Add production frontend URLs here
     
 ]
+
 
 FRONTEND_LOGIN_URL = os.getenv('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
 

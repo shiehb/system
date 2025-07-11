@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 interface NavigationButtonsProps {
-  onPrevious?: () => void
-  onNext?: () => void
-  nextDisabled?: boolean
-  nextLabel?: string
-  showPrevious?: boolean
-  children?: React.ReactNode
+  onPrevious?: () => void;
+  onNext?: () => void;
+  nextDisabled?: boolean;
+  nextLabel?: string;
+  showPrevious?: boolean;
+  children?: React.ReactNode;
 }
 
 export function NavigationButtons({
@@ -26,7 +26,11 @@ export function NavigationButtons({
     <div className="flex justify-between items-center pt-8">
       <div>
         {showPrevious && onPrevious && (
-          <Button variant="outline" onClick={onPrevious} className="hover:bg-gray-50 bg-transparent">
+          <Button
+            variant="outline"
+            onClick={onPrevious}
+            className="hover:bg-gray-50 bg-transparent"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Previous
           </Button>
@@ -39,7 +43,7 @@ export function NavigationButtons({
           <Button
             onClick={onNext}
             disabled={nextDisabled}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            className=" disabled:opacity-50"
           >
             {nextLabel}
             <ArrowRight className="w-4 h-4 ml-2" />
@@ -47,5 +51,5 @@ export function NavigationButtons({
         )}
       </div>
     </div>
-  )
+  );
 }

@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.utils import timezone
@@ -144,19 +144,21 @@ def request_password_reset(request):
     plain_message = strip_tags(html_message)
     
     try:
-        send_mail(
+        # Use EmailMessage with explicit SMTP connection
+        email = EmailMessage(
             subject,
             plain_message,
-            settings.DEFAULT_FROM_EMAIL,
+            settings.EMAIL_HOST_USER,  # Use authenticated email
             [user.email],
-            html_message=html_message,
-            fail_silently=False
         )
+        email.content_subtype = "html"  # Set content type to HTML
+        email.body = html_message  # Set HTML content
+        email.send(fail_silently=False)
     except Exception as e:
         print(f"Error sending email: {e}")
         return Response({
             'success': False,
-            'message': 'Failed to send OTP. Please try again later.'
+            'message': f'Failed to send OTP: {str(e)}'
         }, status=500)
 
     # Log OTP sent
@@ -331,14 +333,16 @@ def register(request):
             plain_message = strip_tags(html_message)
             
             try:
-                send_mail(
+                # Use EmailMessage for better control
+                email = EmailMessage(
                     subject,
                     plain_message,
-                    settings.DEFAULT_FROM_EMAIL,
+                    settings.EMAIL_HOST_USER,
                     [user.email],
-                    html_message=html_message,
-                    fail_silently=False
                 )
+                email.content_subtype = "html"
+                email.body = html_message
+                email.send(fail_silently=False)
             except Exception as e:
                 print(f"Error sending account creation email: {e}")
                 # Don't fail the request if email fails
@@ -595,14 +599,16 @@ def admin_reset_password(request):
     plain_message = strip_tags(html_message)
     
     try:
-        send_mail(
+        # Use EmailMessage for better control
+        email = EmailMessage(
             subject,
             plain_message,
-            settings.DEFAULT_FROM_EMAIL,
+            settings.EMAIL_HOST_USER,
             [user.email],
-            html_message=html_message,
-            fail_silently=False
         )
+        email.content_subtype = "html"
+        email.body = html_message
+        email.send(fail_silently=False)
     except Exception as e:
         print(f"Error sending password reset email: {e}")
         # Don't fail the request if email fails
