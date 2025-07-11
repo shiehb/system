@@ -232,12 +232,8 @@ export default function EstablishmentPage() {
           ) : (
             <EstablishmentsList
               establishments={establishments}
-              onArchive={handleArchiveEstablishment}
               onEdit={handleEdit}
               onShowAddForm={handleShowAddForm}
-              showArchived={showArchived}
-              onShowArchived={handleShowArchived}
-              onShowActive={handleShowActive}
             />
           )}
         </div>

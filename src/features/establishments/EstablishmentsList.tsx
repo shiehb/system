@@ -1,541 +1,312 @@
-"use client";
-
-import { useState, useEffect, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState, useMemo, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
   TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
+  ArrowUpDown,
   Search,
-  Plus,
-  MoreHorizontal,
-  Edit,
-  Archive,
-  ArchiveRestore,
+  Loader2,
+  Pencil,
+  CalendarDays,
   MapPin,
-  Map,
-  Building2,
   Calendar,
-  MapIcon,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Establishment } from "@/lib/establishmentApi";
+import { fetchNatureOfBusinessOptions } from "@/lib/establishmentApi";
 import {
-  fetchEstablishments,
-  fetchArchivedEstablishments,
-  archiveEstablishment,
-  unarchiveEstablishment,
-  searchEstablishments,
-} from "@/lib/establishmentApi";
-import { EstablishmentPolygonViewer } from "@/components/map/EstablishmentPolygonViewer";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface EstablishmentsListProps {
-  onAdd: () => void;
-  onEdit: (establishment: Establishment) => void;
+  establishments: Establishment[];
+  onEdit?: (establishment: Establishment) => void;
+  onShowAddForm?: () => void;
 }
+
+type SortableKey = keyof Pick<
+  Establishment,
+  "name" | "year_established" | "createdAt"
+>;
 
 export default function EstablishmentsList({
-  onAdd,
-  onEdit,
-}: EstablishmentsListProps) {
-  const [establishments, setEstablishments] = useState<Establishment[]>([]);
-  const [archivedEstablishments, setArchivedEstablishments] = useState<
-    Establishment[]
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("active");
-  const [selectedEstablishment, setSelectedEstablishment] =
-    useState<Establishment | null>(null);
-  const [showArchiveDialog, setShowArchiveDialog] = useState(false);
-  const [showUnarchiveDialog, setShowUnarchiveDialog] = useState(false);
-  const [showMapDialog, setShowMapDialog] = useState(false);
-  const [mapEstablishment, setMapEstablishment] =
-    useState<Establishment | null>(null);
-
-  // Load establishments
-  const loadEstablishments = async () => {
-    try {
-      setLoading(true);
-      const [activeData, archivedData] = await Promise.all([
-        fetchEstablishments(),
-        fetchArchivedEstablishments(),
-      ]);
-      setEstablishments(activeData);
-      setArchivedEstablishments(archivedData);
-    } catch (error) {
-      toast.error("Failed to load establishments");
-      console.error("Error loading establishments:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadEstablishments();
-  }, []);
-
-  // Search functionality
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    if (query.trim()) {
-      try {
-        const results = await searchEstablishments(query);
-        setEstablishments(results);
-      } catch (error) {
-        toast.error("Search failed");
-        console.error("Search error:", error);
-      }
-    } else {
-      loadEstablishments();
-    }
-  };
-
-  // Filter establishments based on search
-  const filteredEstablishments = useMemo(() => {
-    const currentList =
-      activeTab === "active" ? establishments : archivedEstablishments;
-    if (!searchQuery.trim()) return currentList;
-
-    return currentList.filter(
-      (est) =>
-        est.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        est.address_line.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        est.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        est.province.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        est.nature_of_business?.name
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase())
-    );
-  }, [establishments, archivedEstablishments, searchQuery, activeTab]);
-
-  // Archive establishment
-  const handleArchive = async () => {
-    if (!selectedEstablishment) return;
-
-    try {
-      await archiveEstablishment(selectedEstablishment.id);
-      toast.success("Establishment archived successfully");
-      loadEstablishments();
-    } catch (error) {
-      toast.error("Failed to archive establishment");
-      console.error("Archive error:", error);
-    } finally {
-      setShowArchiveDialog(false);
-      setSelectedEstablishment(null);
-    }
-  };
-
-  // Unarchive establishment
-  const handleUnarchive = async () => {
-    if (!selectedEstablishment) return;
-
-    try {
-      await unarchiveEstablishment(selectedEstablishment.id);
-      toast.success("Establishment restored successfully");
-      loadEstablishments();
-    } catch (error) {
-      toast.error("Failed to restore establishment");
-      console.error("Unarchive error:", error);
-    } finally {
-      setShowUnarchiveDialog(false);
-      setSelectedEstablishment(null);
-    }
-  };
-
-  // Show map dialog
-  const handleShowMap = (establishment: Establishment) => {
-    setMapEstablishment(establishment);
-    setShowMapDialog(true);
-  };
-
-  // Format address
-  const formatAddress = (establishment: Establishment) => {
-    return `${establishment.address_line}, ${establishment.barangay}, ${establishment.city}, ${establishment.province}`;
-  };
-
-  // Check if establishment has map data
-  const hasMapData = (establishment: Establishment) => {
-    return establishment.latitude && establishment.longitude;
-  };
-
-  // Check if establishment has polygon
-  const hasPolygon = (establishment: Establishment) => {
-    return (
-      establishment.polygon && establishment.polygon.coordinates.length > 0
-    );
-  };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading establishments...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Establishments</h1>
-          <p className="text-muted-foreground">
-            Manage establishment records and locations
-          </p>
-        </div>
-        <Button onClick={onAdd} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Establishment
-        </Button>
-      </div>
-
-      {/* Search and Tabs */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Establishment Records</CardTitle>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  placeholder="Search establishments..."
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10 w-64"
-                />
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="active" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Active ({establishments.length})
-              </TabsTrigger>
-              <TabsTrigger value="archived" className="flex items-center gap-2">
-                <Archive className="h-4 w-4" />
-                Archived ({archivedEstablishments.length})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="active" className="mt-6">
-              <EstablishmentTable
-                establishments={filteredEstablishments}
-                onEdit={onEdit}
-                onArchive={(est) => {
-                  setSelectedEstablishment(est);
-                  setShowArchiveDialog(true);
-                }}
-                onShowMap={handleShowMap}
-                isArchived={false}
-              />
-            </TabsContent>
-
-            <TabsContent value="archived" className="mt-6">
-              <EstablishmentTable
-                establishments={filteredEstablishments}
-                onEdit={onEdit}
-                onUnarchive={(est) => {
-                  setSelectedEstablishment(est);
-                  setShowUnarchiveDialog(true);
-                }}
-                onShowMap={handleShowMap}
-                isArchived={true}
-              />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Archive Confirmation Dialog */}
-      <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Archive Establishment</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to archive "{selectedEstablishment?.name}"?
-              This will move it to the archived section but won't delete the
-              data.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleArchive}>
-              Archive
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Unarchive Confirmation Dialog */}
-      <AlertDialog
-        open={showUnarchiveDialog}
-        onOpenChange={setShowUnarchiveDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restore Establishment</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to restore "{selectedEstablishment?.name}"?
-              This will move it back to the active establishments list.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUnarchive}>
-              Restore
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Map Dialog */}
-      <Dialog open={showMapDialog} onOpenChange={setShowMapDialog}>
-        <DialogContent className="max-w-4xl h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MapIcon className="h-5 w-5" />
-              {mapEstablishment?.name} - Location & Boundaries
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 h-full">
-            {mapEstablishment && (
-              <EstablishmentPolygonViewer
-                establishment={mapEstablishment}
-                height="calc(80vh - 120px)"
-                showControls={true}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-// Establishment Table Component
-interface EstablishmentTableProps {
-  establishments: Establishment[];
-  onEdit: (establishment: Establishment) => void;
-  onArchive?: (establishment: Establishment) => void;
-  onUnarchive?: (establishment: Establishment) => void;
-  onShowMap: (establishment: Establishment) => void;
-  isArchived: boolean;
-}
-
-function EstablishmentTable({
   establishments,
   onEdit,
-  onArchive,
-  onUnarchive,
-  onShowMap,
-  isArchived,
-}: EstablishmentTableProps) {
-  const formatAddress = (establishment: Establishment) => {
-    return `${establishment.address_line}, ${establishment.barangay}, ${establishment.city}, ${establishment.province}`;
+  onShowAddForm,
+}: EstablishmentsListProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortConfig, setSortConfig] = useState<{
+    key: SortableKey;
+    direction: "ascending" | "descending";
+  }>({ key: "createdAt", direction: "descending" });
+  const [businessTypes, setBusinessTypes] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(true);
+
+  useEffect(() => {
+    const fetchBusinessTypes = async () => {
+      try {
+        setLoadingBusinessTypes(true);
+        const types = await fetchNatureOfBusinessOptions();
+        setBusinessTypes(types);
+      } catch (error) {
+        console.error("Failed to load business types:", error);
+        toast.error("Failed to load business types");
+      } finally {
+        setLoadingBusinessTypes(false);
+      }
+    };
+    fetchBusinessTypes();
+  }, []);
+
+  const requestSort = (key: SortableKey) => {
+    let direction: "ascending" | "descending" = "ascending";
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
   };
 
-  const hasMapData = (establishment: Establishment) => {
-    return establishment.latitude && establishment.longitude;
+  const sortedAndFilteredEstablishments = useMemo(() => {
+    let filtered = [...establishments];
+
+    if (searchTerm) {
+      filtered = filtered.filter((est) =>
+        Object.values(est).some(
+          (value) =>
+            value &&
+            value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+
+    filtered.sort((a, b) => {
+      const aValue = a[sortConfig.key]?.toString() || "";
+      const bValue = b[sortConfig.key]?.toString() || "";
+
+      if (sortConfig.key === "createdAt") {
+        const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return sortConfig.direction === "ascending"
+          ? aDate - bDate
+          : bDate - aDate;
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === "ascending" ? 1 : -1;
+      }
+      return 0;
+    });
+
+    return filtered;
+  }, [establishments, searchTerm, sortConfig]);
+
+  const getBusinessTypeName = (id?: number | null) => {
+    if (!id) return "Not specified";
+    const foundType = businessTypes.find((type) => type.id === id);
+    return foundType ? foundType.name : "Unknown type";
   };
 
-  const hasPolygon = (establishment: Establishment) => {
-    return (
-      establishment.polygon && establishment.polygon.coordinates.length > 0
-    );
+  const formatAddress = (est: Establishment) => {
+    const parts = [
+      est.address_line,
+      est.barangay,
+      est.city,
+      est.province,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : "No address provided";
   };
-
-  if (establishments.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">No establishments found</h3>
-        <p className="text-muted-foreground">
-          {isArchived
-            ? "No archived establishments to display."
-            : "Get started by adding your first establishment."}
-        </p>
-      </div>
-    );
-  }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Address</TableHead>
-            <TableHead>Nature of Business</TableHead>
-            <TableHead>Year Est.</TableHead>
-            <TableHead>Location</TableHead>
-            <TableHead>Boundaries</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {establishments.map((establishment) => (
-            <TableRow key={establishment.id}>
-              <TableCell className="font-medium">
-                {establishment.name}
-              </TableCell>
-              <TableCell className="max-w-[200px]">
-                <div className="truncate" title={formatAddress(establishment)}>
-                  {formatAddress(establishment)}
-                </div>
-              </TableCell>
-              <TableCell>
-                {establishment.nature_of_business ? (
-                  <Badge variant="secondary">
-                    {establishment.nature_of_business.name}
-                  </Badge>
-                ) : (
-                  <span className="text-muted-foreground">Not specified</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {establishment.year_established ? (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                    {establishment.year_established}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {hasMapData(establishment) ? (
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className="text-green-600 border-green-600"
-                    >
-                      <MapPin className="h-3 w-3 mr-1" />
-                      Located
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onShowMap(establishment)}
-                      className="h-6 px-2"
-                    >
-                      <Map className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="text-amber-600 border-amber-600"
+    <Card className="rounded-none">
+      <CardHeader>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <CardTitle className="font-medium text-xl">
+              Establishment List
+            </CardTitle>
+            <CardDescription>
+              {sortedAndFilteredEstablishments.length} of{" "}
+              {establishments.length} establishments shown
+            </CardDescription>
+          </div>
+          <div className="flex gap-2">
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search establishments..."
+                className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {onShowAddForm && (
+              <Button onClick={onShowAddForm} className="whitespace-nowrap">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Establishment
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => requestSort("name")}
+                    className="p-0 hover:bg-transparent flex items-center"
                   >
-                    <MapPin className="h-3 w-3 mr-1" />
-                    No Location
-                  </Badge>
-                )}
-              </TableCell>
-              <TableCell>
-                {hasPolygon(establishment) ? (
-                  <Badge
-                    variant="outline"
-                    className="text-blue-600 border-blue-600"
-                  >
-                    <Map className="h-3 w-3 mr-1" />
-                    Defined (
-                    {establishment.polygon?.coordinates[0]?.length || 0} pts)
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-muted-foreground">
-                    <Map className="h-3 w-3 mr-1" />
-                    No Boundary
-                  </Badge>
-                )}
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {hasMapData(establishment) && (
-                      <>
-                        <DropdownMenuItem
-                          onClick={() => onShowMap(establishment)}
-                        >
-                          <Map className="mr-2 h-4 w-4" />
-                          View Map
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
-                    <DropdownMenuItem onClick={() => onEdit(establishment)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {isArchived ? (
-                      <DropdownMenuItem
-                        onClick={() => onUnarchive?.(establishment)}
-                      >
-                        <ArchiveRestore className="mr-2 h-4 w-4" />
-                        Restore
-                      </DropdownMenuItem>
+                    Name
+                    {sortConfig.key === "name" ? (
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
                     ) : (
-                      <DropdownMenuItem
-                        onClick={() => onArchive?.(establishment)}
-                        className="text-destructive"
-                      >
-                        <Archive className="mr-2 h-4 w-4" />
-                        Archive
-                      </DropdownMenuItem>
+                      <span className="ml-2 h-4 w-4" />
                     )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+                  </Button>
+                </TableHead>
+                <TableHead>Address</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => requestSort("createdAt")}
+                    className="p-0 hover:bg-transparent flex items-center"
+                  >
+                    Date Created
+                    {sortConfig.key === "createdAt" ? (
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    ) : (
+                      <span className="ml-2 h-4 w-4" />
+                    )}
+                  </Button>
+                </TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sortedAndFilteredEstablishments.length > 0 ? (
+                sortedAndFilteredEstablishments.map((est) => (
+                  <TableRow key={est.id}>
+                    <TableCell className="py-3">
+                      <div className="font-medium">{est.name}</div>
+                      <div className="text-sm text-muted-foreground space-y-1 mt-1">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline">
+                            {loadingBusinessTypes ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              getBusinessTypeName(est.nature_of_business?.id)
+                            )}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span>Est. {est.year_established || "N/A"}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="py-3">
+                      <div className="font-medium">{formatAddress(est)}</div>
+                      {est.latitude && est.longitude && (
+                        <div className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-mono">
+                            {!isNaN(Number(est.latitude)) &&
+                            !isNaN(Number(est.longitude))
+                              ? `${Number(est.latitude).toFixed(4)}, ${Number(
+                                  est.longitude
+                                ).toFixed(4)}`
+                              : "Invalid coordinates"}
+                          </span>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          {est.createdAt
+                            ? new Date(est.createdAt).toLocaleDateString(
+                                "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                }
+                              )
+                            : "N/A"}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-3">
+                      <div className="flex gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEdit?.(est)}
+                              className="h-8 w-8"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center">
+                    {searchTerm ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <span>No establishments match your search</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSearchTerm("")}
+                        >
+                          Clear search
+                        </Button>
+                      </div>
+                    ) : (
+                      "No establishments found"
+                    )}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

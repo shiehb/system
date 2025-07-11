@@ -262,7 +262,7 @@ export default function MonitoringPersonnelInterface() {
     setShowInspectionForm(true);
   };
 
-  const handleSubmitInspection = () => {
+  const handleSubmitInspection = (formData: Record<string, any>) => {
     if (!selectedTask) return;
 
     setTasks(
@@ -280,6 +280,7 @@ export default function MonitoringPersonnelInterface() {
     toast.success("Inspection submitted successfully");
     setShowInspectionForm(false);
     setSelectedTask(null);
+    setFormData({});
   };
 
   const handleSaveDraft = (formData: Record<string, any>) => {
@@ -333,7 +334,7 @@ export default function MonitoringPersonnelInterface() {
           assignedCategory: selectedTask.category,
         }}
         sectionsToEdit={
-          selectedTask.status === "returned"
+          selectedTask.status === "returned" && selectedTask.editComments
             ? ["Compliance Status", "Findings & Observations"]
             : []
         }

@@ -5,9 +5,7 @@ import DivisionChiefInterface from "./DivisionChiefInterface";
 import SectionChiefInterface from "./SectionChiefInterface";
 import UnitHeadInterface from "./UnitHeadInterface";
 import MonitoringPersonnelInterface from "./MonitoringPersonnelInterface";
-import AdminEstablishmentManagement from "./AdminEstablishmentManagement";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function InspectionManagement() {
   const { user, loading } = useAuth();
@@ -36,9 +34,6 @@ export default function InspectionManagement() {
 
   const renderInterface = () => {
     switch (user.user_level) {
-      case "administrator":
-        return <AdminEstablishmentManagement />;
-
       case "division_chief":
         return <DivisionChiefInterface />;
 

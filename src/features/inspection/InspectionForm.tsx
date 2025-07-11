@@ -34,14 +34,14 @@ import { Progress } from "@/components/ui/progress";
 
 interface InspectionFormProps {
   establishmentData?: {
-    id: number;
+    id: string;
     name: string;
     address: string;
     assignedLaw: string;
     assignedCategory: string;
   };
   sectionsToEdit?: string[];
-  onComplete?: () => void;
+  onComplete?: (formData: Record<string, any>) => void;
   onSaveDraft?: (formData: Record<string, any>) => void;
   onCancel?: () => void;
   initialData?: Record<string, any>;
@@ -136,9 +136,8 @@ export default function InspectionForm({
     setTimeout(() => {
       setIsSubmitting(false);
       if (onComplete) {
-        onComplete();
+        onComplete(formData);
       }
-      // Handle actual form submission here
     }, 1000);
   };
 
@@ -193,6 +192,28 @@ export default function InspectionForm({
   };
 
   const filteredSections = getFilteredSections();
+
+  const updateFormData = (sectionId: string, data: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [sectionId]: {
+        ...prev[sectionId],
+        ...data,
+      },
+    }));
+  };
+
+  const renderSectionComponent = () => {
+    const section = filteredSections[currentSection];
+    if (!section) return null;
+
+    // Clone the component and pass the necessary props
+    return React.cloneElement(section.component, {
+      key: section.id,
+      onDataChange: (data: any) => updateFormData(section.id, data),
+      initialData: formData[section.id] || {},
+    });
+  };
 
   return (
     <div className="flex flex-col min-h-screen w-full">
@@ -368,7 +389,7 @@ export default function InspectionForm({
                   </p>
                 </div>
               )}
-              {filteredSections[currentSection].component}
+              {renderSectionComponent()}
             </CardContent>
           </Card>
         </div>

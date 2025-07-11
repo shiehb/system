@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/useAuth";
 import { AdminDashboard } from "./admin-dashboard";
 import { InspectorDashboard } from "./inspector-dashboard";
-import { ChiefDashboard } from "./chief-dashboard";
+import ChiefDashboard from "./page";
 import { SectionChiefDashboard } from "./sectionchief-dashboard";
 import { UnitHeadDashboard } from "./unithead-dashboard";
 import { Skeleton } from "@/components/ui/skeleton";

@@ -24,6 +24,7 @@ import MapPage from "@/pages/MapPage";
 import EstablishmentPage from "@/pages/EstablishmentPage";
 import NatureOfBusinessPage from "@/pages/NatureOfBusinessPage";
 import InspectionPage from "@/pages/InspectionPage";
+import CreateInspectionPage from "@/pages/CreateInspection";
 import ReportPage from "@/pages/ReportPage";
 // import ReportsPage from "@/pages/ReportsPage";
 
@@ -83,7 +84,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -100,7 +101,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -117,7 +118,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -134,7 +135,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -151,7 +152,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -168,7 +169,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -185,7 +186,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -202,7 +203,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -219,11 +220,28 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
                       <InspectionPage />
+                    </SidebarInset>
+                  </SidebarProvider>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/d/inspection/add"
+              element={
+                <PrivateRoute>
+                  <SidebarProvider>
+                    <AppSidebar />
+                    <SidebarInset>
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                        <SiteHeader />
+                      </header>
+                      <Separator />
+                      <CreateInspectionPage />
                     </SidebarInset>
                   </SidebarProvider>
                 </PrivateRoute>
@@ -236,7 +254,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -270,7 +288,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />
@@ -287,7 +305,7 @@ function AppRoutes() {
                   <SidebarProvider>
                     <AppSidebar />
                     <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
                         <SiteHeader />
                       </header>
                       <Separator />

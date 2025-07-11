@@ -18,10 +18,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Eye,
-  Send,
   ArrowRight,
   AlertTriangle,
   Filter,
@@ -32,7 +30,6 @@ import {
   CheckCircle,
   AlertCircle,
   FileText,
-  User,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -486,16 +483,6 @@ export default function SectionChiefInterface({
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline">
-            <FileText className="w-4 h-4 mr-2" />
-            Generate Report
-          </Button>
-          <Button>
-            <User className="w-4 h-4 mr-2" />
-            Manage Personnel
-          </Button>
-        </CardFooter>
       </Card>
 
       {/* Data Table */}
