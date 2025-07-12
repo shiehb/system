@@ -76,7 +76,7 @@ const routes: RouteItem[] = [
   {
     id: "map",
     title: "Map View",
-    path: "/map",
+    path: "/maps",
     description: "Geographic view of establishments",
     icon: <MapPin className="h-4 w-4" />,
     category: "Navigation",
@@ -85,7 +85,7 @@ const routes: RouteItem[] = [
   {
     id: "users",
     title: "User Management",
-    path: "/users",
+    path: "/users-management",
     description: "Manage system users and permissions",
     icon: <Users className="h-4 w-4" />,
     category: "Administration",

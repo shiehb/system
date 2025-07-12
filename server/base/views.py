@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-from django.core.mail import EmailMessage
+from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.utils import timezone
@@ -110,17 +110,17 @@ def request_password_reset(request):
             'errors': serializer.errors
         }, status=400)
 
-    email = serializer.validated_data['email'].lower()  # Normalize email to lowercase
+    email = serializer.validated_data['email'].lower()
     try:
-        user = User.objects.get(email__iexact=email)  # Case-insensitive lookup
+        user = User.objects.get(email__iexact=email)
     except User.DoesNotExist:
-        # Don't reveal if user exists or not for security
+        # Don't reveal if user exists for security
         return Response({
             'success': True,
             'message': 'If this email exists in our system, you will receive a password reset OTP'
         })
 
-    # Invalidate any existing OTPs for this user
+    # Invalidate any existing OTPs
     PasswordResetOTP.objects.filter(user=user).update(is_used=True)
 
     # Generate 6-digit OTP
@@ -134,47 +134,70 @@ def request_password_reset(request):
         expires_at=expires_at
     )
 
-    # Send email with OTP
-    subject = 'Password Reset OTP'
-    html_message = render_to_string('email/password_reset_otp.html', {
+    # Prepare email context
+    context = {
         'user': user,
-        'otp': otp,
-        'expires_in': 15
-    })
-    plain_message = strip_tags(html_message)
-    
+        'otp_code': otp,
+        'expiry_minutes': 15,
+        'reset_url': settings.FRONTEND_RESET_URL,
+        'support_email': settings.SUPPORT_EMAIL,
+        'system_name': settings.SYSTEM_NAME
+    }
+
+    # Render email templates
+    subject = f"Password Reset OTP for {context['system_name']}"
+    html_message = render_to_string('email/password_reset_otp.html', context)
+    text_message = strip_tags(html_message)
+
+    # Create and send email
     try:
-        # Use EmailMessage with explicit SMTP connection
-        email = EmailMessage(
-            subject,
-            plain_message,
-            settings.EMAIL_HOST_USER,  # Use authenticated email
-            [user.email],
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+            reply_to=[settings.SUPPORT_EMAIL]
         )
-        email.content_subtype = "html"  # Set content type to HTML
-        email.body = html_message  # Set HTML content
+        email.attach_alternative(html_message, "text/html")
         email.send(fail_silently=False)
+
+        # Log OTP sent
+        ActivityLog.objects.create(
+            user=user,
+            action='otp_sent',
+            details={
+                'email': user.email,
+                'ip_address': request.META.get('REMOTE_ADDR'),
+                'otp_masked': f"{otp[:2]}****{otp[-2:]}"  # Log masked OTP for security
+            }
+        )
+
+        return Response({
+            'success': True,
+            'message': 'If this email exists in our system, you will receive a password reset OTP'
+        })
+    
     except Exception as e:
-        print(f"Error sending email: {e}")
+        # Detailed error logging
+        error_msg = f"Failed to send OTP email to {user.email}: {str(e)}"
+        print(error_msg)
+        
+        # Log the email failure
+        ActivityLog.objects.create(
+            user=user,
+            action='otp_send_failed',
+            details={
+                'email': user.email,
+                'error': str(e),
+                'ip_address': request.META.get('REMOTE_ADDR')
+            }
+        )
+
         return Response({
             'success': False,
-            'message': f'Failed to send OTP: {str(e)}'
+            'message': 'Failed to send OTP email. Please try again later.',
+            'error': str(e) if settings.DEBUG else None
         }, status=500)
-
-    # Log OTP sent
-    ActivityLog.objects.create(
-        user=user,
-        action='otp_sent',
-        details={
-            'email': user.email,
-            'ip_address': request.META.get('REMOTE_ADDR')
-        }
-    )
-
-    return Response({
-        'success': True,
-        'message': 'If this email exists in our system, you will receive a password reset OTP'
-    })
 
 @api_view(['POST'])
 @permission_classes([AllowAny])

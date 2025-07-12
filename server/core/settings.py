@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security settings
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-fallback-key-for-dev')
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = False  # Debug mode disabled
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Application definition
@@ -123,21 +123,21 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'base.authentication.CookiesJWTAuthentication',  # Custom cookie-based auth
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Standard JWT
+        'base.authentication.CookiesJWTAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',  # Default to authenticated
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
         'user': '1000/hour',
-        'password_reset': '3/hour',  # Prevent brute force attacks
+        'password_reset': '3/hour',
     },
     'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
 }
 
-# JWT Configuration
+# JWT Configuration (HTTP-compatible)
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -145,13 +145,13 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
     
-    # Cookie settings
+    # Cookie settings for HTTP
     "AUTH_COOKIE": "access_token",
-    "AUTH_COOKIE_REFRESH": "refresh_token", 
-    "AUTH_COOKIE_SECURE": not DEBUG,
+    "AUTH_COOKIE_REFRESH": "refresh_token",
+    "AUTH_COOKIE_SECURE": False,  # Disabled for HTTP
     "AUTH_COOKIE_HTTP_ONLY": True,
     "AUTH_COOKIE_PATH": "/",
-    "AUTH_COOKIE_SAMESITE": "None" if not DEBUG else "Lax",
+    "AUTH_COOKIE_SAMESITE": "Lax",  # Changed from None to Lax for HTTP
     
     # Header settings
     "AUTH_HEADER_TYPES": ("Bearer",),
@@ -164,33 +164,33 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    # Add production frontend URLs here
-    
 ]
 
-
 FRONTEND_LOGIN_URL = os.getenv('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
+FRONTEND_RESET_URL = os.getenv('FRONTEND_RESET_URL', 'http://localhost:5173/reset-password')
+SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@example.com')
+SYSTEM_NAME = "DENR EMB Region 1 System"  # Add this
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS.copy()
 
-# Security Headers
+# Security Headers (HTTP-compatible)
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_REFERRER_POLICY = 'same-origin'
-if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+
+# Disabled HTTPS-only settings
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False
 
 # Password Reset Settings
-PASSWORD_RESET_OTP_EXPIRE_MINUTES = 15 # OTP expiration time
+PASSWORD_RESET_OTP_EXPIRE_MINUTES = 15
 PASSWORD_RESET_TIMEOUT = 900  # 15 minutes in seconds
 
-# Logging Configuration
+# Logging Configuration (Production-appropriate)
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -205,25 +205,20 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'debug.log',
-            'formatter': 'verbose',
-        },
     },
     'root': {
-        'handlers': ['console', 'file'] if DEBUG else ['console'],
-        'level': 'DEBUG' if DEBUG else 'INFO',
+        'handlers': ['console'],
+        'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'] if DEBUG else ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
         'django.request': {
-            'handlers': ['console', 'file'] if DEBUG else ['console'],
-            'level': 'DEBUG' if DEBUG else 'WARNING',
+            'handlers': ['console'],
+            'level': 'WARNING',
             'propagate': False,
         },
     },

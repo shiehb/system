@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useEffect, useState, useCallback } from "react";
-import { toast } from "sonner";
 import { getMyProfile } from "@/lib/api";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -184,7 +183,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         }
       } catch (error) {
         console.error("Failed to load profile:", error);
-        toast.error("Failed to load user profile");
       } finally {
         if (isMounted) {
           setLoading(false);
