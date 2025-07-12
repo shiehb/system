@@ -113,7 +113,6 @@ export function ProfileInfo({
   isLoading,
   isUpdating,
   onUpdate,
-  onLogout,
 }: ProfileInfoProps) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [isAvatarHovered, setIsAvatarHovered] = useState(false);

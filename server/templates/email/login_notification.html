@@ -1,0 +1,47 @@
+{% extends "email/base_email.html" %} {% block title %}Login Notification - {{
+system_name }}{% endblock %} {% block header_title %}New Login Detected{%
+endblock %} {% block content %}
+<div class="greeting">Hello {{ user.first_name }},</div>
+
+<p class="content-text">
+  We detected a new login to your {{ system_name }} account:
+</p>
+
+<div class="info-box">
+  <div class="info-title">Login Details</div>
+  <div class="info-text">
+    <strong>Time:</strong> {{ login_time }}<br />
+    <strong>IP Address:</strong> {{ ip_address }}<br />
+    <strong>Device/Browser:</strong> {{ user_agent }}
+  </div>
+</div>
+
+<p class="content-text">
+  If you recognize this activity, no further action is needed.
+</p>
+
+<div class="info-box warning">
+  <div class="info-title">Security Alert</div>
+  <div class="info-text">
+    If you <strong>did not</strong> initiate this login:
+    <ul style="margin: 10px 0; padding-left: 20px">
+      <li>Change your password immediately</li>
+      <li>Review your account security settings</li>
+      <li>
+        Contact support at
+        <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<p class="content-text">
+  For your security, we recommend enabling two-factor authentication if you
+  haven't already.
+</p>
+
+<p class="content-text" style="margin-top: 30px; font-size: 14px; color: #666">
+  Best regards,<br />
+  <strong>The {{ system_name }} Security Team</strong>
+</p>
+{% endblock %}

@@ -20,7 +20,6 @@ export function ProfileInfo({
   isLoading,
   isUpdating,
   onUpdate,
-  onLogout,
 }: ProfileInfoProps) {
   if (isLoading) {
     return (

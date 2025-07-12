@@ -16,11 +16,8 @@ import {
   Power,
   PowerOff,
   MoreHorizontal,
-  Filter,
-  Search,
   TrendingUp,
   Clock,
-  Eye,
 } from "lucide-react";
 import { AddUserForm } from "@/features/users/form/add_user-form";
 import { ExportUsersButton } from "@/features/users/button/ExportUsersButton";
@@ -46,7 +43,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 
 export default function UserManagementPage() {
   const [activeTab, setActiveTab] = useState("users");
@@ -77,7 +73,7 @@ export default function UserManagementPage() {
   };
 
   const selectedUsers = users.filter((user) =>
-    selectedUserIds.includes(user.id)
+    selectedUserIds.includes(Number(user.id))
   );
 
   const handleBulkDelete = async () => {
@@ -186,6 +182,7 @@ export default function UserManagementPage() {
     inactive: users.filter((u) => u.status === "inactive").length,
     selected: selectedUserIds.length,
     recentlyAdded: users.filter((u) => {
+      if (!u.created_at) return false;
       const createdDate = new Date(u.created_at);
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);

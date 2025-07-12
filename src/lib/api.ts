@@ -1,4 +1,4 @@
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import type { AxiosResponse } from "axios";
 
 // Base configuration
@@ -11,7 +11,7 @@ const LOGOUT_URL = `${BASE_URL}logout/`;
 const AUTH_URL = `${BASE_URL}authenticated/`;
 
 const REQUEST_PASSWORD_RESET_URL = `${BASE_URL}request-password-reset/`;
-const VERIFY_PASSWORD_RESET_URL = `${BASE_URL}verify-password-reset/`;
+// const VERIFY_PASSWORD_RESET_URL = `${BASE_URL}verify-password-reset/`;
 
 // User management endpoints
 const REGISTER_URL = `${BASE_URL}register/`;
@@ -346,17 +346,24 @@ export const updateAvatar = async (avatarFile: File) => {
       },
     });
 
+    // Ensure we have the avatar_url in the response
+    if (!response.data.avatar_url) {
+      throw new Error("Avatar URL not returned from server");
+    }
+
     // Add timestamp to avatar URL to bust cache
     const timestamp = Date.now();
-    if (response.data.avatar_url) {
-      response.data.avatar_url = `${response.data.avatar_url}?t=${timestamp}`;
-    }
-    return response.data;
+    const avatar_url = `${response.data.avatar_url}?t=${timestamp}`;
+
+    return {
+      success: true,
+      avatar_url,
+      ...response.data,
+    };
   } catch (error) {
     return handleApiError(error);
   }
 };
-
 // Todo services
 export const fetchTodos = async () => {
   return callWithRefresh(() => axios.get(TODO_URL, { withCredentials: true }));

@@ -35,12 +35,33 @@ export const AvatarEditor = ({
     centerAspectCrop,
     handleFileChange,
     resetAvatarEditor,
+    drawImageOnCanvas,
   } = useAvatarEditor();
 
   const handleSave = async () => {
-    if (!completedCrop || !imgRef.current || !previewCanvasRef.current) return;
+    if (
+      !completedCrop ||
+      !imgRef.current ||
+      !previewCanvasRef.current ||
+      !avatarPreview
+    ) {
+      return;
+    }
 
+    const image = imgRef.current;
     const canvas = previewCanvasRef.current;
+
+    // Ensure the image is loaded
+    if (!image.complete) {
+      await new Promise((resolve) => {
+        image.onload = resolve;
+      });
+    }
+
+    // Draw the cropped image on canvas
+    drawImageOnCanvas(image, canvas, completedCrop);
+
+    // Create blob from canvas
     canvas.toBlob(
       async (blob) => {
         if (!blob) return;
@@ -51,7 +72,7 @@ export const AvatarEditor = ({
         resetAvatarEditor();
       },
       "image/jpeg",
-      0.2
+      0.9 // Quality (0-1)
     );
   };
 
@@ -110,8 +131,6 @@ export const AvatarEditor = ({
                     style={{
                       display: "none",
                       objectFit: "contain",
-                      width: 150,
-                      height: 150,
                     }}
                   />
                 </div>

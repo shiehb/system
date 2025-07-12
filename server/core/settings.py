@@ -169,7 +169,7 @@ CORS_ALLOWED_ORIGINS = [
 FRONTEND_LOGIN_URL = os.getenv('FRONTEND_LOGIN_URL', 'http://localhost:5173/login')
 FRONTEND_RESET_URL = os.getenv('FRONTEND_RESET_URL', 'http://localhost:5173/reset-password')
 SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'support@example.com')
-SYSTEM_NAME = "DENR EMB Region 1 System"  # Add this
+SYSTEM_NAME = "Integrated Establishment Regulatory Management System"  # Add this
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']

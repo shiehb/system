@@ -1,3 +1,7 @@
+"use client";
+
+import type React from "react";
+
 import { useEffect, useState, useCallback } from "react";
 import { getActivityLogs } from "@/lib/api";
 import {
@@ -37,7 +41,7 @@ import {
   UserPlusIcon,
   CircleCheckIcon,
   CircleXIcon,
-  X, // Added X icon for clear button
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -76,7 +80,7 @@ export default function ActivityLogs() {
   const [filters, setFilters] = useState({
     action: "",
     search: "",
-    page_size: 250,
+    page_size: 20, // Reduced page size for better performance
   });
   // New state for search input value
   const [searchInput, setSearchInput] = useState("");
@@ -175,7 +179,7 @@ export default function ActivityLogs() {
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="w-full md:w-auto border-foreground"
+                className="w-full md:w-auto border-foreground bg-transparent"
               >
                 {filters.action
                   ? actionNames[filters.action as keyof typeof actionNames]
@@ -242,12 +246,12 @@ export default function ActivityLogs() {
                   <TableRow key={log.id} className="hover:bg-muted/50">
                     <TableCell>
                       {log.admin
-                        ? `${log.admin.first_name} ${log.admin.last_name}`
+                        ? `\${log.admin.first_name} \${log.admin.last_name}`
                         : "System"}
                     </TableCell>
                     <TableCell>
                       {log.user
-                        ? `${log.user.first_name} ${log.user.last_name}`
+                        ? `\${log.user.first_name} \${log.user.last_name}`
                         : "N/A"}
                     </TableCell>
                     <TableCell>
@@ -265,8 +269,8 @@ export default function ActivityLogs() {
                       </Badge>
                     </TableCell>
                     {/* <TableCell className="max-w-[300px] truncate">
-                        {formatDetails(log.action, log.details)}
-                      </TableCell> */}
+                      {formatDetails(log.action, log.details)}
+                    </TableCell> */}
                     <TableCell className="text-center">
                       {format(new Date(log.created_at), "MMM dd, yyyy HH:mm")}
                     </TableCell>
@@ -351,13 +355,13 @@ interface ActivityLog {
   id: number;
   admin: {
     id: number;
-    id_number: string;
+    email: string;
     first_name: string;
     last_name: string;
   } | null;
   user: {
     id: number;
-    id_number: string;
+    email: string;
     first_name: string;
     last_name: string;
   } | null;

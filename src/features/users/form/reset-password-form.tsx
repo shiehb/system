@@ -32,7 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { adminResetPassword } from "@/lib/api";
-import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react";
+import { ShieldCheck, Loader2, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
@@ -40,8 +40,6 @@ const formSchema = z.object({
   adminPassword: z
     .string()
     .min(8, "Admin password must be at least 8 characters"),
-  // .regex(/[a-z]/, "Must contain at least one lowercase letter")
-  // .regex(/[0-9]/, "Must contain at least one number"),
 });
 
 type ResetPasswordFormValues = z.infer<typeof formSchema>;
@@ -72,6 +70,7 @@ export function ResetPassword({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(formSchema),
@@ -97,19 +96,16 @@ export function ResetPassword({
         values.adminPassword
       );
 
-      if (response.success) {
+      if (response?.success) {
         toast.success("Password reset successfully", {
           description: response.message || "Password has been reset to default",
-          action: {
-            label: "Dismiss",
-            onClick: () => {},
-          },
         });
         form.reset();
         setOpen(false);
+        setConfirmOpen(false);
         onSuccess?.();
       } else {
-        throw new Error(response.message || "Failed to reset password");
+        throw new Error(response?.message || "Failed to reset password");
       }
     } catch (error) {
       const errorMessage =
@@ -184,16 +180,32 @@ export function ResetPassword({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Your Admin Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="password"
-                        placeholder="Enter your admin password"
-                        autoComplete="current-password"
-                        disabled={loading}
-                        aria-describedby="adminPasswordHelp"
-                      />
-                    </FormControl>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter your admin password"
+                          autoComplete="current-password"
+                          disabled={loading}
+                          aria-describedby="adminPasswordHelp"
+                        />
+                      </FormControl>
+                      <button
+                        type="button"
+                        className="absolute right-2 top-2.5 text-muted-foreground hover:text-primary"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                     <p
                       id="adminPasswordHelp"
                       className="text-sm text-muted-foreground mt-1"

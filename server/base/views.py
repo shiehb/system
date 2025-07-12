@@ -569,81 +569,171 @@ def get_users(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def admin_reset_password(request):
+    """
+    Allows admin users to reset another user's password to system default
+    Requires admin password verification for security
+    """
+    # Validate admin permissions
     if request.user.user_level != 'administrator':
         return Response({
             'success': False,
-            'message': 'Only admin users can reset passwords'
+            'message': 'Only administrator users can reset passwords',
+            'code': 'permission_denied'
         }, status=403)
 
+    # Validate request data
     admin_password = request.data.get('admin_password')
-    if not admin_password or not request.user.check_password(admin_password):
+    email = request.data.get('email')
+
+    if not admin_password:
         return Response({
             'success': False,
-            'message': 'Admin password is incorrect'
+            'message': 'Admin password verification is required',
+            'code': 'admin_password_required'
         }, status=400)
 
-    email = request.data.get('email')
     if not email:
         return Response({
             'success': False,
-            'message': 'Email is required'
+            'message': 'User email is required',
+            'code': 'email_required'
         }, status=400)
 
-    try:
-        user = User.objects.get(email=email)
-    except User.DoesNotExist:
+    # Verify admin password
+    if not request.user.check_password(admin_password):
+        ActivityLog.objects.create(
+            admin=request.user,
+            action='admin_password_verification_failed',
+            details={
+                'attempted_action': 'password_reset',
+                'target_email': email
+            }
+        )
         return Response({
             'success': False,
-            'message': 'User not found with this email'
+            'message': 'Admin password is incorrect',
+            'code': 'invalid_admin_password'
+        }, status=400)
+
+    # Get target user
+    try:
+        user = User.objects.get(email__iexact=email.lower())
+    except User.DoesNotExist:
+        ActivityLog.objects.create(
+            admin=request.user,
+            action='password_reset_attempt_failed',
+            details={
+                'reason': 'user_not_found',
+                'target_email': email
+            }
+        )
+        return Response({
+            'success': False,
+            'message': 'User not found with this email',
+            'code': 'user_not_found'
         }, status=404)
 
-    user.set_password(settings.DEFAULT_USER_PASSWORD)
+    # Check if user is active
+    if user.status != 'active':
+        ActivityLog.objects.create(
+            admin=request.user,
+            action='password_reset_attempt_failed',
+            details={
+                'reason': 'user_inactive',
+                'target_email': email,
+                'user_status': user.status
+            }
+        )
+        return Response({
+            'success': False,
+            'message': 'Cannot reset password for inactive user',
+            'code': 'user_inactive'
+        }, status=400)
+
+    # Reset password to default
+    default_password = settings.DEFAULT_USER_PASSWORD
+    user.set_password(default_password)
     user.save()
 
+    # Log the password reset
     ActivityLog.objects.create(
         admin=request.user,
         user=user,
         action='password_reset',
         details={
-            'email': user.email,
-            'full_name': f"{user.first_name} {user.last_name}",
-            'reset_to_default': True
+            'reset_by_admin': True,
+            'reset_to_default': True,
+            'target_email': user.email,
+            'target_name': f"{user.first_name} {user.last_name}"
         }
     )
 
-    # Send password reset email
-    subject = 'Your IERMS Password Has Been Reset'
-    html_message = render_to_string('email/password_reset_by_admin.html', {
-        'user': user,
-        'admin': request.user,
-        'default_password': settings.DEFAULT_USER_PASSWORD,
-        'login_url': settings.FRONTEND_LOGIN_URL
-    })
-    plain_message = strip_tags(html_message)
+    # Send email notification
+    email_sent = False
+    email_error = None
     
     try:
-        # Use EmailMessage for better control
-        email = EmailMessage(
-            subject,
-            plain_message,
-            settings.EMAIL_HOST_USER,
-            [user.email],
-        )
-        email.content_subtype = "html"
-        email.body = html_message
-        email.send(fail_silently=False)
-    except Exception as e:
-        print(f"Error sending password reset email: {e}")
-        # Don't fail the request if email fails
-
-    return Response({
-        'success': True,
-        'message': 'Password reset successfully to default',
-        'user': {
-            'email': user.email,
-            'full_name': f"{user.first_name} {user.last_name}"
+        context = {
+            'user': user,
+            'admin': request.user,
+            'default_password': default_password,
+            'login_url': settings.FRONTEND_LOGIN_URL,
+            'system_name': settings.SYSTEM_NAME,
+            'support_email': settings.SUPPORT_EMAIL,
+            'reset_time': timezone.now().strftime('%Y-%m-%d %H:%M:%S')
         }
-    })
+
+        subject = f"{settings.SYSTEM_NAME} Password Reset Notification"
+        html_message = render_to_string('email/password_reset_by_admin.html', context)
+        text_message = strip_tags(html_message)
+
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=text_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+            reply_to=[settings.SUPPORT_EMAIL]
+        )
+        email.attach_alternative(html_message, "text/html")
+        email.send(fail_silently=False)
+        
+        email_sent = True
+        ActivityLog.objects.create(
+            user=user,
+            action='password_reset_email_sent',
+            details={'email': user.email}
+        )
+        
+    except Exception as e:
+        email_error = str(e)
+        ActivityLog.objects.create(
+            user=user,
+            action='password_reset_email_failed',
+            details={
+                'email': user.email,
+                'error': email_error
+            }
+        )
+        print(f"Failed to send password reset email: {email_error}")
+
+    # Return success response
+    response_data = {
+        'success': True,
+        'message': 'Password has been reset to system default',
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'full_name': f"{user.first_name} {user.last_name}",
+            'status': user.status,
+            'using_default_password': True
+        },
+        'email_notification': {
+            'sent': email_sent,
+            'error': email_error
+        }
+    }
+
+    return Response(response_data)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -713,6 +803,7 @@ def update_avatar(request):
             'message': 'No avatar file provided'
         }, status=400)
 
+    # Delete old avatar if it exists and isn't the default
     if user.avatar and user.avatar.name != 'avatars/default.jpg':
         try:
             storage = user.avatar.storage
@@ -731,15 +822,15 @@ def update_avatar(request):
         }
     )
 
-    # Get updated timestamp for cache busting
+    # Get updated avatar URL with timestamp for cache busting
+    avatar_url = request.build_absolute_uri(user.avatar.url)
     timestamp = int(datetime.now().timestamp())
-    serializer = UserSerializer(user, context={'request': request})
-    avatar_url = f"{serializer.data['avatar_url'].split('?')[0]}?t={timestamp}"
+    avatar_url = f"{avatar_url.split('?')[0]}?t={timestamp}"
 
     return Response({
         'success': True,
         'message': 'Avatar updated successfully',
-        'avatar_url': avatar_url
+        'avatar_url': avatar_url  # Make sure this is included
     })
 
 @api_view(['GET'])

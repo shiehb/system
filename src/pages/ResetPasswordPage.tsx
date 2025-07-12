@@ -297,7 +297,10 @@ export function ResetPasswordPage() {
                           {getPasswordStrengthText()}
                         </span>
                       </div>
-                      <Progress value={passwordStrength} className="h-2" />
+                      <Progress
+                        value={passwordStrength}
+                        className={`h-2 ${getPasswordStrengthColor()}`}
+                      />
                     </div>
                   )}
                   <FormMessage />
