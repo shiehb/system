@@ -1,55 +1,62 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, KeyRound } from "lucide-react";
 import { ForgotPasswordForm } from "@/features/auth/forgot-password-form";
-import { toast } from "sonner";
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
 
   const handleSuccess = (email: string) => {
-    toast.success(`OTP sent to ${email}`);
     navigate("/reset-password", {
       state: {
         email,
         lastEmailSent: Date.now(),
       },
+      replace: true,
     });
   };
 
   return (
-    <div className="flex h-screen w-full flex-col items-center justify-center">
-      <Button className="absolute left-4 top-4 md:left-8 md:top-8" asChild>
+    <div className="flex min-h-screen w-full flex-col items-center justify-center p-4">
+      <Button
+        variant="outline"
+        className="absolute left-4 top-4 md:left-8 md:top-8 bg-transparent"
+        asChild
+      >
         <Link to="/login">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          BACK TO LOGIN
+          Back to Login
         </Link>
       </Button>
 
-      <Card className="md:w-[400px] lg:w-[400px] md:mx-auto p-8">
-        <div className="flex flex-col space-y-2 text-center">
+      <Card className="w-full max-w-md p-8">
+        <div className="flex flex-col space-y-2 text-center mb-6">
+          <div className="flex justify-center mb-2">
+            <KeyRound className="h-12 w-12 text-primary" />
+          </div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Forgot your password?
+            Forgot Password?
           </h1>
           <p className="text-sm text-muted-foreground">
-            Enter your email below to receive a password reset OTP
+            No worries! Enter your email address and we'll send you an OTP to
+            reset your password.
           </p>
         </div>
 
-        <div className="mt-6">
-          <ForgotPasswordForm onSuccess={handleSuccess} />
-        </div>
+        <ForgotPasswordForm onSuccess={handleSuccess} />
 
-        <p className="mt-4 px-8 text-center text-sm text-muted-foreground">
-          Remember your password?{" "}
-          <Link
-            to="/login"
-            className="underline underline-offset-4 hover:text-primary"
-          >
-            Sign in
-          </Link>
-        </p>
+        <div className="mt-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            Remember your password?{" "}
+            <Link
+              to="/login"
+              className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+            >
+              Sign in here
+            </Link>
+          </p>
+        </div>
       </Card>
     </div>
   );

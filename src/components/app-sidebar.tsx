@@ -66,6 +66,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     [inspectionLevels]
   );
 
+  const isChiefLevel = useCallback((level: UserLevel | undefined): boolean => {
+    const chiefLevels: UserLevel[] = [
+      "division_chief",
+      "eia_air_water_section_chief",
+      "toxic_hazardous_section_chief",
+      "solid_waste_section_chief",
+    ];
+    return level ? chiefLevels.includes(level) : false;
+  }, []);
+
   const getNavItems = useCallback((): NavItem[] => {
     const currentPath = location.pathname;
     const baseItems: NavItem[] = [
@@ -83,7 +93,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       },
     ];
 
-    if (isInspectionLevel(user?.user_level)) {
+    // Show Inspection only for inspection-level users who are NOT admin
+    if (
+      isInspectionLevel(user?.user_level) &&
+      user?.user_level !== "administrator"
+    ) {
       baseItems.push({
         title: "Inspection",
         url: "/inspection",
@@ -92,28 +106,42 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       });
     }
 
-    baseItems.push({
-      title: "Reports",
-      url: "/reports",
-      icon: BarChart,
-      isActive: currentPath.startsWith("/reports"),
-      items: [
-        {
-          title: "Report Overview",
-          url: "/reports",
-          icon: BarChart,
-        },
-      ],
-    });
+    // Show Establishments in main nav for all roles except admin
+    if (user?.user_level !== "administrator") {
+      baseItems.push({
+        title: "Establishments",
+        url: "/establishments",
+        icon: Building,
+        isActive: currentPath.startsWith("/establishments"),
+      });
+    }
+
+    // Only show Reports to chiefs
+    if (isChiefLevel(user?.user_level)) {
+      baseItems.push({
+        title: "Reports",
+        url: "/reports",
+        icon: BarChart,
+        isActive: currentPath.startsWith("/reports"),
+        items: [
+          {
+            title: "Report Overview",
+            url: "/reports",
+            icon: BarChart,
+          },
+        ],
+      });
+    }
 
     return baseItems;
-  }, [location.pathname, user?.user_level, isInspectionLevel]);
+  }, [location.pathname, user?.user_level, isInspectionLevel, isChiefLevel]);
 
   const getManagementItems = useCallback((): NavItem[] => {
     const currentPath = location.pathname;
     const managementItems: NavItem[] = [];
 
-    if (isManagementLevel(user?.user_level)) {
+    // Show Establishments in management section only for admin
+    if (user?.user_level === "administrator") {
       managementItems.push({
         title: "Establishments",
         url: "/establishments",
@@ -133,18 +161,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ],
       });
 
-      if (user?.user_level === "administrator") {
-        managementItems.push({
-          title: "User Management",
-          url: "/user-management",
-          icon: Users,
-          isActive: currentPath.startsWith("/user-management"),
-        });
-      }
+      // User Management remains admin-only
+      managementItems.push({
+        title: "User Management",
+        url: "/user-management",
+        icon: Users,
+        isActive: currentPath.startsWith("/user-management"),
+      });
     }
 
     return managementItems;
-  }, [location.pathname, user?.user_level, isManagementLevel]);
+  }, [location.pathname, user?.user_level]);
 
   useEffect(() => {
     let isMounted = true;

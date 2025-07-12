@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useMemo, useEffect } from "react";
 import {
   Card,
@@ -33,6 +35,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 
@@ -40,6 +43,7 @@ interface EstablishmentsListProps {
   establishments: Establishment[];
   onEdit?: (establishment: Establishment) => void;
   onShowAddForm?: () => void;
+  isReadOnly: boolean; // Add isReadOnly prop
 }
 
 type SortableKey = keyof Pick<
@@ -51,6 +55,7 @@ export default function EstablishmentsList({
   establishments,
   onEdit,
   onShowAddForm,
+  isReadOnly, // Destructure isReadOnly
 }: EstablishmentsListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{
@@ -162,12 +167,13 @@ export default function EstablishmentsList({
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            {onShowAddForm && (
-              <Button onClick={onShowAddForm} className="whitespace-nowrap">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Establishment
-              </Button>
-            )}
+            {onShowAddForm &&
+              !isReadOnly && ( // Conditionally render Add button
+                <Button onClick={onShowAddForm} className="whitespace-nowrap">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Establishment
+                </Button>
+              )}
           </div>
         </div>
       </CardHeader>
@@ -265,21 +271,25 @@ export default function EstablishmentsList({
                       </div>
                     </TableCell>
                     <TableCell className="py-3">
-                      <div className="flex gap-2">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => onEdit?.(est)}
-                              className="h-8 w-8"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Edit</TooltipContent>
-                        </Tooltip>
-                      </div>
+                      <TooltipProvider>
+                        <div className="flex gap-2">
+                          {!isReadOnly && ( // Conditionally render Edit button
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => onEdit?.(est)}
+                                  className="h-8 w-8"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Edit</TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TooltipProvider>
                     </TableCell>
                   </TableRow>
                 ))

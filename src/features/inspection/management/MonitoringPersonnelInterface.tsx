@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/useAuth";
+import { useState } from "react";
 import {
   Card,
   CardHeader,
@@ -43,9 +42,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import { Pagination } from "@/components/ui/pagination";
 import { toast } from "sonner";
-import InspectionForm from "@/features/inspection/InspectionForm";
+import { InspectionForm } from "@/features/inspection/InspectionForm";
 
 interface InspectionTask {
   id: string;
@@ -64,61 +62,60 @@ interface InspectionTask {
 
 const mockTasks: InspectionTask[] = [
   {
-    id: "INSP-2024-001",
+    id: "INSP-2025-001",
     establishment: "ABC Manufacturing Corp",
     address: "123 Industrial Ave, Quezon City",
     assignedLaw: "Clean Air Act",
     category: "Manufacturing",
     priority: "high",
     status: "in_progress",
-    assignedDate: "2024-01-20",
-    dueDate: "2024-02-20",
+    assignedDate: "2025-05-15",
+    dueDate: "2025-07-10", // ~2 months after assignment
     completionPercentage: 65,
-    lastUpdated: "2024-01-28",
+    lastUpdated: "2025-05-28",
   },
   {
-    id: "INSP-2024-002",
+    id: "INSP-2025-002",
     establishment: "XYZ Chemical Plant",
     address: "456 Chemical St, Makati City",
     assignedLaw: "Toxic Substances Act",
     category: "Chemical Processing",
     priority: "high",
     status: "not_started",
-    assignedDate: "2024-01-22",
-    dueDate: "2024-02-10",
+    assignedDate: "2025-06-05",
+    dueDate: "2025-07-30", // ~1.5 months after assignment
   },
   {
-    id: "INSP-2024-003",
+    id: "INSP-2025-003",
     establishment: "DEF Textile Mills",
     address: "789 Textile Rd, Pasig City",
     assignedLaw: "Clean Water Act",
     category: "Textile",
     priority: "medium",
     status: "returned",
-    assignedDate: "2024-01-15",
-    dueDate: "2024-02-05",
+    assignedDate: "2025-05-20",
+    dueDate: "2025-07-15", // ~2 months after assignment (extended for revisions)
     completionPercentage: 40,
-    lastUpdated: "2024-01-25",
+    lastUpdated: "2025-05-30",
     editComments:
       "Please update sections 3.2 and 5.1 with latest compliance data",
   },
   {
-    id: "INSP-2024-004",
+    id: "INSP-2025-004",
     establishment: "GHI Mining Corp",
     address: "321 Mining Ave, Baguio City",
     assignedLaw: "Environmental Impact Assessment",
     category: "Mining",
     priority: "low",
     status: "submitted",
-    assignedDate: "2024-01-10",
-    dueDate: "2024-01-30",
+    assignedDate: "2025-06-01",
+    dueDate: "2025-08-01", // ~2 months after assignment
     completionPercentage: 100,
-    lastUpdated: "2024-01-28",
+    lastUpdated: "2025-06-15",
   },
 ];
 
-export default function MonitoringPersonnelInterface() {
-  const { user } = useAuth();
+export function MonitoringPersonnelInterface() {
   const [tasks, setTasks] = useState<InspectionTask[]>(mockTasks);
   const [selectedTask, setSelectedTask] = useState<InspectionTask | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -197,8 +194,8 @@ export default function MonitoringPersonnelInterface() {
   const getPriorityBadge = (priority: string) => {
     const variants = {
       high: "destructive",
-      medium: "warning",
-      low: "default",
+      medium: "default",
+      low: "secondary",
     } as const;
 
     const icons = {
@@ -262,7 +259,7 @@ export default function MonitoringPersonnelInterface() {
     setShowInspectionForm(true);
   };
 
-  const handleSubmitInspection = (formData: Record<string, any>) => {
+  const handleSubmitInspection = () => {
     if (!selectedTask) return;
 
     setTasks(
@@ -280,7 +277,6 @@ export default function MonitoringPersonnelInterface() {
     toast.success("Inspection submitted successfully");
     setShowInspectionForm(false);
     setSelectedTask(null);
-    setFormData({});
   };
 
   const handleSaveDraft = (formData: Record<string, any>) => {
@@ -312,7 +308,8 @@ export default function MonitoringPersonnelInterface() {
       (val) => val !== "" && val !== null && val !== undefined
     ).length;
     return Math.min(
-      Math.round((completedFields / (totalFields || 1)) * 100, 100)
+      Math.round((completedFields / (totalFields || 1)) * 100),
+      100
     );
   };
 
@@ -334,7 +331,7 @@ export default function MonitoringPersonnelInterface() {
           assignedCategory: selectedTask.category,
         }}
         sectionsToEdit={
-          selectedTask.status === "returned" && selectedTask.editComments
+          selectedTask.status === "returned"
             ? ["Compliance Status", "Findings & Observations"]
             : []
         }
@@ -463,14 +460,12 @@ export default function MonitoringPersonnelInterface() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="">
       <Card>
         <CardHeader>
           <CardTitle>My Inspection Tasks</CardTitle>
           <p className="text-sm text-muted-foreground">
-            {user?.name
-              ? `Welcome back, ${user.name}`
-              : "Manage your assigned inspections"}
+            Manage your assigned inspections
           </p>
         </CardHeader>
         <CardContent>
@@ -650,13 +645,32 @@ export default function MonitoringPersonnelInterface() {
             {Math.min(currentPage * itemsPerPage, filteredTasks.length)} of{" "}
             {filteredTasks.length} entries
           </div>
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span className="text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages, currentPage + 1))
+              }
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </div>
   );
 }
+export default MonitoringPersonnelInterface;

@@ -1,4 +1,5 @@
-// edit-user-form.tsx
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -6,6 +7,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -20,7 +31,14 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ShieldAlert, Info } from "lucide-react";
+import {
+  ShieldAlert,
+  Info,
+  Loader2,
+  CheckCircle2,
+  Edit2,
+  AlertTriangle,
+} from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -31,6 +49,8 @@ import {
 } from "@/components/ui/select";
 import { updateUser } from "@/lib/api";
 import { toast } from "sonner";
+import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 const USER_LEVELS = [
   "division_chief",
@@ -79,6 +99,12 @@ export function EditUserForm({
 }: EditUserFormProps) {
   const [loading, setLoading] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string[]>>({});
+  const [submitProgress, setSubmitProgress] = useState(0);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<UserFormValues | null>(
+    null
+  );
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -101,34 +127,72 @@ export function EditUserForm({
         user_level: user.user_level,
       });
       setFormErrors({});
+      setSubmitSuccess(false);
+      setSubmitProgress(0);
+      setShowConfirmDialog(false);
+      setPendingFormData(null);
     }
   }, [user, open, form]);
 
-  const onSubmit = async (values: UserFormValues) => {
+  const simulateProgress = () => {
+    setSubmitProgress(0);
+    const interval = setInterval(() => {
+      setSubmitProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 100);
+    return interval;
+  };
+
+  const handleFormSubmit = (values: UserFormValues) => {
+    setPendingFormData(values);
+    setShowConfirmDialog(true);
+  };
+
+  const confirmSubmit = async () => {
+    if (!pendingFormData) return;
+
     try {
       setLoading(true);
       setFormErrors({});
+      setShowConfirmDialog(false);
+
+      const progressInterval = simulateProgress();
 
       await updateUser(user.id, {
-        email: values.email,
-        first_name: values.first_name,
-        last_name: values.last_name,
-        middle_name: values.middle_name,
-        user_level: values.user_level,
+        email: pendingFormData.email,
+        first_name: pendingFormData.first_name,
+        last_name: pendingFormData.last_name,
+        middle_name: pendingFormData.middle_name,
+        user_level: pendingFormData.user_level,
       });
 
-      toast.success("User updated successfully");
-      onUserUpdated();
-      onOpenChange(false);
+      clearInterval(progressInterval);
+      setSubmitProgress(100);
+      setSubmitSuccess(true);
+
+      toast.success("User updated successfully", {
+        description: `${pendingFormData.first_name} ${pendingFormData.last_name}'s information has been updated`,
+        duration: 4000,
+      });
+
+      setTimeout(() => {
+        onUserUpdated();
+        onOpenChange(false);
+      }, 1500);
     } catch (error) {
+      setSubmitProgress(0);
+
       if (error instanceof Error) {
         try {
           const errorData = JSON.parse(error.message);
           if (errorData.errors) {
-            // Set form-level errors
             setFormErrors(errorData.errors);
 
-            // Set field-level errors
             Object.keys(errorData.errors).forEach((field) => {
               form.setError(field as any, {
                 type: "manual",
@@ -151,6 +215,7 @@ export function EditUserForm({
       }
     } finally {
       setLoading(false);
+      setPendingFormData(null);
     }
   };
 
@@ -160,158 +225,320 @@ export function EditUserForm({
       .replace(/\b\w/g, (char) => char.toUpperCase());
   };
 
+  const hasChanges = () => {
+    const currentValues = form.getValues();
+    return (
+      currentValues.email !== user.email ||
+      currentValues.first_name !== user.first_name ||
+      currentValues.last_name !== user.last_name ||
+      currentValues.middle_name !== (user.middle_name || "") ||
+      currentValues.user_level !== user.user_level
+    );
+  };
+
+  const getChangedFields = () => {
+    if (!pendingFormData) return [];
+    const changes = [];
+    if (pendingFormData.email !== user.email)
+      changes.push(`Email: ${user.email} → ${pendingFormData.email}`);
+    if (pendingFormData.first_name !== user.first_name)
+      changes.push(
+        `First Name: ${user.first_name} → ${pendingFormData.first_name}`
+      );
+    if (pendingFormData.last_name !== user.last_name)
+      changes.push(
+        `Last Name: ${user.last_name} → ${pendingFormData.last_name}`
+      );
+    if (pendingFormData.middle_name !== (user.middle_name || ""))
+      changes.push(
+        `Middle Name: ${user.middle_name || "None"} → ${
+          pendingFormData.middle_name || "None"
+        }`
+      );
+    if (pendingFormData.user_level !== user.user_level)
+      changes.push(
+        `User Level: ${formatUserLevel(user.user_level)} → ${formatUserLevel(
+          pendingFormData.user_level
+        )}`
+      );
+    return changes;
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Edit User</DialogTitle>
-          <Separator className="my-2" />
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+              <Edit2 className="h-6 w-6 text-primary" />
+              Edit User
+            </DialogTitle>
+            <Separator className="my-2" />
+          </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {Object.keys(formErrors).length > 0 && (
-              <Alert variant="destructive">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Form Errors</AlertTitle>
-                <AlertDescription>
-                  <ul className="list-disc pl-5">
-                    {Object.entries(formErrors).map(([field, errors]) =>
-                      errors.map((error, index) => (
-                        <li key={`${field}-${index}`}>{error}</li>
-                      ))
-                    )}
-                  </ul>
+          {submitSuccess && (
+            <div className="flex justify-center">
+              <Alert className="border-green-200 bg-green-50 max-w-md">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800">Success!</AlertTitle>
+                <AlertDescription className="text-green-700">
+                  User information has been successfully updated.
                 </AlertDescription>
               </Alert>
-            )}
+            </div>
+          )}
 
-            <div className="space-y-4 gap-4">
-              <div className="grid grid-cols-3 gap-2">
-                <FormField
-                  control={form.control}
-                  name="first_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>First Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="John" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleFormSubmit)}
+              className="space-y-6"
+            >
+              {Object.keys(formErrors).length > 0 && (
+                <div className="flex justify-center">
+                  <Alert variant="destructive" className="max-w-md">
+                    <ShieldAlert className="h-4 w-4" />
+                    <AlertTitle>Form Errors</AlertTitle>
+                    <AlertDescription>
+                      <ul className="list-disc pl-5 space-y-1">
+                        {Object.entries(formErrors).map(([field, errors]) =>
+                          errors.map((error, index) => (
+                            <li key={`${field}-${index}`} className="text-sm">
+                              {error}
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
 
-                <FormField
-                  control={form.control}
-                  name="last_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Doe" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {loading && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Updating user...
+                    </span>
+                    <span className="font-medium">{submitProgress}%</span>
+                  </div>
+                  <Progress value={submitProgress} className="h-2" />
+                </div>
+              )}
 
-                <FormField
-                  control={form.control}
-                  name="middle_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Middle Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Michael" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="email"
-                          placeholder="user@example.com"
-                          className={
-                            form.formState.errors.email
-                              ? "border-destructive"
-                              : ""
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="user_level"
-                  render={({ field }) => (
-                    <FormItem className="w-full">
-                      <FormLabel>User Level</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="first_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-medium">
+                          First Name *
+                        </FormLabel>
                         <FormControl>
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select user level" />
-                          </SelectTrigger>
+                          <Input
+                            {...field}
+                            placeholder="John"
+                            className="transition-all focus:ring-2 focus:ring-primary/20"
+                            disabled={loading}
+                          />
                         </FormControl>
-                        <SelectContent className="w-full">
-                          {USER_LEVELS.map((level) => (
-                            <SelectItem key={level} value={level}>
-                              {formatUserLevel(level)}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="last_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-medium">
+                          Last Name *
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Doe"
+                            className="transition-all focus:ring-2 focus:ring-primary/20"
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="middle_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-medium">
+                          Middle Name
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="Michael"
+                            className="transition-all focus:ring-2 focus:ring-primary/20"
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-medium">
+                          Email Address *
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="email"
+                            placeholder="user@example.com"
+                            className={cn(
+                              "transition-all focus:ring-2 focus:ring-primary/20",
+                              form.formState.errors.email &&
+                                "border-destructive focus:ring-destructive/20"
+                            )}
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="user_level"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-medium">
+                          User Level *
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={loading}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="transition-all focus:ring-2 focus:ring-primary/20">
+                              <SelectValue placeholder="Select user level" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-60">
+                            {USER_LEVELS.map((level) => (
+                              <SelectItem key={level} value={level}>
+                                {formatUserLevel(level)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex justify-center">
+                  <Alert className="border-amber-200 bg-amber-50 max-w-md">
+                    <Info className="h-4 w-4 text-amber-600" />
+                    <AlertTitle className="text-amber-800">
+                      User Level Information
+                    </AlertTitle>
+                    <AlertDescription className="text-amber-700">
+                      <strong>
+                        {formatUserLevel(form.watch("user_level"))}
+                      </strong>
+                      <br />
+                      <span className="text-sm">
+                        Role: {form.watch("user_level").replace(/_/g, " ")}
+                      </span>
+                    </AlertDescription>
+                  </Alert>
+                </div>
               </div>
 
-              <Alert className="col-span-2 flex flex-col items-center justify-center text-center">
-                <Info className="h-4 w-4 mb-2" />
-                <AlertTitle>User Level Information</AlertTitle>
-                <AlertDescription>
-                  {formatUserLevel(form.watch("user_level"))}
-                </AlertDescription>
-              </Alert>
-            </div>
+              <div className="flex justify-end gap-3 pt-6 border-t">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => onOpenChange(false)}
+                  disabled={loading}
+                  className="hover:bg-muted/80 transition-colors"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={loading || submitSuccess || !hasChanges()}
+                  className="min-w-[140px] hover:bg-primary/90 transition-all duration-200"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : submitSuccess ? (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Updated!
+                    </>
+                  ) : (
+                    <>
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Save Changes
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
-            <div className="flex justify-end gap-4 pt-4">
-              <Button
-                variant="outline"
-                type="button"
-                onClick={() => onOpenChange(false)}
-                disabled={loading}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-muted"
-                variant="outline"
-              >
-                {loading ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Confirm User Update
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to update this user's information?
+              {pendingFormData && (
+                <div className="mt-3 p-3 bg-muted rounded-md space-y-1 text-sm">
+                  <div className="font-medium mb-2">Changes to be made:</div>
+                  {getChangedFields().map((change, index) => (
+                    <div key={index} className="text-xs">
+                      {change}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSubmit}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Update User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

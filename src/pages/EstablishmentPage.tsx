@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
@@ -20,6 +22,7 @@ import {
 } from "@/lib/establishmentApi";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/useAuth"; // Import useAuth
 
 export default function EstablishmentPage() {
   const { id } = useParams();
@@ -36,6 +39,11 @@ export default function EstablishmentPage() {
     { id: number; name: string }[]
   >([]);
   const [loadingBusinessTypes, setLoadingBusinessTypes] = useState(true);
+
+  const { user } = useAuth(); // Get user from AuthContext
+  // Determine if the current user has read-only access
+  // isReadOnly is true for all roles EXCEPT 'administrator'
+  const isReadOnly = user?.user_level !== "administrator";
 
   useEffect(() => {
     setShowAddForm(location.pathname === "/establishments/add");
@@ -65,7 +73,7 @@ export default function EstablishmentPage() {
         // If editing, find the establishment
         if (id && id !== "add") {
           const establishmentToEdit = establishmentsData.find(
-            (est) => est.id === parseInt(id)
+            (est) => est.id === Number.parseInt(id)
           );
           if (establishmentToEdit) {
             setEditingEstablishment(establishmentToEdit);
@@ -154,7 +162,6 @@ export default function EstablishmentPage() {
   };
 
   const handleEdit = (establishment: Establishment) => {
-    setEditingEstablishment(establishment);
     navigate(`/establishments/edit/${establishment.id}`);
   };
 
@@ -220,6 +227,7 @@ export default function EstablishmentPage() {
               onCancel={handleCancelEdit}
               isSubmitting={isSubmitting}
               onToggleMapPreview={handleToggleMapPreview}
+              isReadOnly={isReadOnly} // Pass isReadOnly prop
             />
           ) : showAddForm ? (
             <AddEstablishment
@@ -228,12 +236,14 @@ export default function EstablishmentPage() {
               isSubmitting={isSubmitting}
               onToggleMapPreview={handleToggleMapPreview}
               onCancel={handleCancelAdd}
+              isReadOnly={isReadOnly} // Pass isReadOnly prop
             />
           ) : (
             <EstablishmentsList
               establishments={establishments}
               onEdit={handleEdit}
               onShowAddForm={handleShowAddForm}
+              isReadOnly={isReadOnly} // Pass isReadOnly prop
             />
           )}
         </div>

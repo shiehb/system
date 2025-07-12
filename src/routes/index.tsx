@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { AuthProvider } from "@/contexts/AuthProvider";
 
-import { PrivateRoute } from "@/routes/PrivateRoute";
+import { PrivateRoute, PasswordResetRoute } from "@/routes/PrivateRoute";
 import { PublicRoute } from "@/routes/PublicRoute";
 
 import { SiteHeader } from "@/components/site-header";
@@ -62,9 +62,9 @@ function AppRoutes() {
             <Route
               path="/reset-password"
               element={
-                <PublicRoute>
+                <PasswordResetRoute>
                   <ResetPasswordPage />
-                </PublicRoute>
+                </PasswordResetRoute>
               }
             />
 

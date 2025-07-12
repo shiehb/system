@@ -1,3 +1,7 @@
+"use client";
+
+import type React from "react";
+
 import { useEffect, useState, useRef } from "react";
 import addressData from "@/data/region-ph.json";
 import { geocodeAddress } from "@/utils/geocoding";
@@ -10,6 +14,7 @@ import type { EstablishmentFormData } from "@/lib/establishmentApi";
 import { toast } from "sonner";
 import {
   Command,
+  CommandList,
   CommandEmpty,
   CommandGroup,
   CommandInput,
@@ -55,6 +60,7 @@ interface EditEstablishmentProps {
     show: boolean,
     coordinates?: { lat: string; lng: string; name?: string }
   ) => void;
+  isReadOnly: boolean; // Add isReadOnly prop
 }
 
 export default function EditEstablishment({
@@ -63,6 +69,7 @@ export default function EditEstablishment({
   onUpdate,
   isSubmitting,
   onCancel,
+  isReadOnly, // Destructure isReadOnly
 }: EditEstablishmentProps) {
   const [formData, setFormData] =
     useState<EstablishmentFormData>(establishment);
@@ -142,6 +149,7 @@ export default function EditEstablishment({
 
   const updateCoordinatesFromAddress = async () => {
     if (!formData.barangay && !formData.city && !formData.province) return;
+    if (isReadOnly) return; // Prevent fetching if read-only
 
     setIsFetchingCoords(true);
     try {
@@ -178,6 +186,8 @@ export default function EditEstablishment({
     field: keyof EstablishmentFormData,
     value: string
   ) => {
+    if (isReadOnly) return; // Prevent changes if read-only
+
     if (field === "region") {
       setFormData((prev) => ({
         ...prev,
@@ -214,6 +224,7 @@ export default function EditEstablishment({
   };
 
   const handleChange = (field: keyof EstablishmentFormData, value: string) => {
+    if (isReadOnly) return; // Prevent changes if read-only
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -266,6 +277,7 @@ export default function EditEstablishment({
   };
 
   const handleSave = () => {
+    if (isReadOnly) return; // Prevent saving if read-only
     if (!validateForm()) {
       toast.error("Please fix all errors before submitting");
       return;
@@ -274,6 +286,7 @@ export default function EditEstablishment({
   };
 
   const confirmSave = async () => {
+    if (isReadOnly) return; // Prevent saving if read-only
     setShowSaveDialog(false);
     try {
       await onUpdate(id, {
@@ -283,7 +296,7 @@ export default function EditEstablishment({
         latitude: formData.latitude || undefined,
         longitude: formData.longitude || undefined,
         nature_of_business_id: formData.nature_of_business_id
-          ? parseInt(String(formData.nature_of_business_id))
+          ? Number.parseInt(String(formData.nature_of_business_id))
           : undefined,
       });
     } catch (error) {
@@ -293,6 +306,10 @@ export default function EditEstablishment({
   };
 
   const handleCancel = () => {
+    if (isReadOnly) {
+      onCancel?.(); // If read-only, just cancel without confirmation
+      return;
+    }
     const isModified = Object.keys(formData).some((key) => {
       const formKey = key as keyof EstablishmentFormData;
       const originalValue = establishment[formKey] || "";
@@ -308,6 +325,7 @@ export default function EditEstablishment({
   };
 
   const confirmCancel = () => {
+    if (isReadOnly) return; // Prevent canceling if read-only
     setShowCancelDialog(false);
     [
       "est_name",
@@ -350,6 +368,7 @@ export default function EditEstablishment({
   // Add this function to handle business type creation
   const handleCreateBusinessType = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) return; // Prevent creation if read-only
     try {
       setIsCreatingBusinessType(true);
       const createdType = await createNatureOfBusiness(newBusinessType);
@@ -402,12 +421,12 @@ export default function EditEstablishment({
                       longitude: establishment.longitude,
                       year_established: establishment.year_established,
                       nature_of_business_id:
-                        establishment.nature_of_business_id ?? null,
+                        establishment.nature_of_business_id,
                     });
                     toast.success("Changes reset to original values");
                   }}
                   className="mt-1"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isReadOnly} // Disable if read-only
                 >
                   Reset Changes
                 </Button>
@@ -424,6 +443,7 @@ export default function EditEstablishment({
                   onChange={(e) => handleChange("name", e.target.value)}
                   className={getErrorClass("name")}
                   required
+                  disabled={isReadOnly} // Disable if read-only
                 />
               </div>
 
@@ -442,6 +462,7 @@ export default function EditEstablishment({
                         className={`justify-between w-full ${getErrorClass(
                           "nature_of_business_id"
                         )}`}
+                        disabled={isReadOnly} // Disable if read-only
                       >
                         {businessTypes.find(
                           (type) =>
@@ -454,62 +475,71 @@ export default function EditEstablishment({
                     <PopoverContent className="w-[435px] p-0">
                       <Command>
                         <CommandInput placeholder="Search business type..." />
-                        <CommandEmpty>
-                          <div className="flex flex-col items-center gap-2 p-4">
-                            <span>No business type found.</span>
-                            <Button
-                              variant="link"
-                              className="text-primary"
-                              onClick={() => setIsBusinessTypeDialogOpen(true)}
-                            >
-                              + Add New Business Type
-                            </Button>
-                          </div>
-                        </CommandEmpty>
-                        <CommandGroup className="max-h-[300px] overflow-y-auto">
-                          {loadingBusinessTypes ? (
-                            <div className="flex justify-center p-4">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            </div>
-                          ) : (
-                            <>
-                              {businessTypes.map((type) => (
-                                <CommandItem
-                                  key={type.id}
-                                  value={type.name}
-                                  onSelect={() =>
-                                    handleChange(
-                                      "nature_of_business_id" as keyof EstablishmentFormData,
-                                      type.id.toString()
-                                    )
-                                  }
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      String(formData.nature_of_business_id) ===
-                                        type.id.toString()
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {type.name}
-                                </CommandItem>
-                              ))}
-                              <CommandSeparator className="mb-1" />
-                              <CommandItem
-                                value="add-new"
-                                onSelect={() =>
+                        <CommandList>
+                          <CommandEmpty>
+                            <div className="flex flex-col items-center gap-2 p-4">
+                              <span>No business type found.</span>
+                              <Button
+                                variant="link"
+                                className="text-primary"
+                                onClick={() =>
                                   setIsBusinessTypeDialogOpen(true)
                                 }
-                                className="text-blue-600 font-medium"
+                                disabled={isReadOnly} // Disable if read-only
                               >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add New Business Type
-                              </CommandItem>
-                            </>
-                          )}
-                        </CommandGroup>
+                                + Add New Business Type
+                              </Button>
+                            </div>
+                          </CommandEmpty>
+                          <CommandGroup className="max-h-[300px] overflow-y-auto">
+                            {loadingBusinessTypes ? (
+                              <div className="flex justify-center p-4">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              </div>
+                            ) : (
+                              <>
+                                {businessTypes.map((type) => (
+                                  <CommandItem
+                                    key={type.id}
+                                    value={type.name}
+                                    onSelect={() =>
+                                      !isReadOnly && // Only allow selection if not read-only
+                                      handleChange(
+                                        "nature_of_business_id" as keyof EstablishmentFormData,
+                                        type.id.toString()
+                                      )
+                                    }
+                                    disabled={isReadOnly} // Disable if read-only
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        String(
+                                          formData.nature_of_business_id
+                                        ) === type.id.toString()
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {type.name}
+                                  </CommandItem>
+                                ))}
+                                <CommandSeparator className="mb-1" />
+                                <CommandItem
+                                  value="add-new"
+                                  onSelect={() =>
+                                    setIsBusinessTypeDialogOpen(true)
+                                  }
+                                  className="text-blue-600 font-medium"
+                                  disabled={isReadOnly} // Disable if read-only
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Add New Business Type
+                                </CommandItem>
+                              </>
+                            )}
+                          </CommandGroup>
+                        </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
@@ -524,9 +554,13 @@ export default function EditEstablishment({
                   <YearPicker
                     value={formData.year_established || ""}
                     onChange={(newYear) => {
-                      handleChange("year_established", newYear);
+                      if (!isReadOnly) {
+                        // Only allow change if not read-only
+                        handleChange("year_established", newYear);
+                      }
                     }}
                     error={!!errors.year_established}
+                    disabled={isReadOnly} // Disable if read-only
                   />
                 </div>
               </div>
@@ -553,6 +587,7 @@ export default function EditEstablishment({
                             className={`justify-between w-full ${getErrorClass(
                               "region"
                             )}`}
+                            disabled={isReadOnly} // Disable if read-only
                           >
                             {formData.region || "Select Region"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -561,28 +596,31 @@ export default function EditEstablishment({
                         <PopoverContent className="w-full p-0">
                           <Command>
                             <CommandInput placeholder="Search region..." />
-                            <CommandEmpty>No region found.</CommandEmpty>
-                            <CommandGroup className="max-h-[300px] overflow-y-auto">
-                              {regions.map((r: any) => (
-                                <CommandItem
-                                  key={r.name}
-                                  value={r.name}
-                                  onSelect={() =>
-                                    handleLocationChange("region", r.name)
-                                  }
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      formData.region === r.name
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {r.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                            <CommandList>
+                              <CommandEmpty>No region found.</CommandEmpty>
+                              <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                {regions.map((r: any) => (
+                                  <CommandItem
+                                    key={r.name}
+                                    value={r.name}
+                                    onSelect={() =>
+                                      handleLocationChange("region", r.name)
+                                    }
+                                    disabled={isReadOnly} // Disable if read-only
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.region === r.name
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {r.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
                           </Command>
                         </PopoverContent>
                       </Popover>
@@ -605,6 +643,7 @@ export default function EditEstablishment({
                             className={`justify-between w-full ${getErrorClass(
                               "province"
                             )}`}
+                            disabled={isReadOnly} // Disable if read-only
                           >
                             {formData.province || "Select Province"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -613,28 +652,31 @@ export default function EditEstablishment({
                         <PopoverContent className="w-full p-0">
                           <Command>
                             <CommandInput placeholder="Search province..." />
-                            <CommandEmpty>No province found.</CommandEmpty>
-                            <CommandGroup className="max-h-[300px] overflow-y-auto">
-                              {provinces.map((p: any) => (
-                                <CommandItem
-                                  key={p.name}
-                                  value={p.name}
-                                  onSelect={() =>
-                                    handleLocationChange("province", p.name)
-                                  }
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      formData.province === p.name
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {p.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                            <CommandList>
+                              <CommandEmpty>No province found.</CommandEmpty>
+                              <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                {provinces.map((p: any) => (
+                                  <CommandItem
+                                    key={p.name}
+                                    value={p.name}
+                                    onSelect={() =>
+                                      handleLocationChange("province", p.name)
+                                    }
+                                    disabled={isReadOnly} // Disable if read-only
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.province === p.name
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {p.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
                           </Command>
                         </PopoverContent>
                       </Popover>
@@ -657,6 +699,7 @@ export default function EditEstablishment({
                             className={`justify-between w-full ${getErrorClass(
                               "city"
                             )}`}
+                            disabled={isReadOnly} // Disable if read-only
                           >
                             {formData.city || "Select City"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -665,28 +708,31 @@ export default function EditEstablishment({
                         <PopoverContent className="w-full p-0">
                           <Command>
                             <CommandInput placeholder="Search city..." />
-                            <CommandEmpty>No city found.</CommandEmpty>
-                            <CommandGroup className="max-h-[300px] overflow-y-auto">
-                              {cities.map((c: any) => (
-                                <CommandItem
-                                  key={c.name}
-                                  value={c.name}
-                                  onSelect={() =>
-                                    handleLocationChange("city", c.name)
-                                  }
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      formData.city === c.name
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {c.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                            <CommandList>
+                              <CommandEmpty>No city found.</CommandEmpty>
+                              <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                {cities.map((c: any) => (
+                                  <CommandItem
+                                    key={c.name}
+                                    value={c.name}
+                                    onSelect={() =>
+                                      handleLocationChange("city", c.name)
+                                    }
+                                    disabled={isReadOnly} // Disable if read-only
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.city === c.name
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {c.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
                           </Command>
                         </PopoverContent>
                       </Popover>
@@ -709,6 +755,7 @@ export default function EditEstablishment({
                             className={`justify-between w-full ${getErrorClass(
                               "barangay"
                             )}`}
+                            disabled={isReadOnly} // Disable if read-only
                           >
                             {formData.barangay || "Select Barangay"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -717,28 +764,31 @@ export default function EditEstablishment({
                         <PopoverContent className="w-full p-0">
                           <Command>
                             <CommandInput placeholder="Search barangay..." />
-                            <CommandEmpty>No barangay found.</CommandEmpty>
-                            <CommandGroup className="max-h-[300px] overflow-y-auto">
-                              {barangays.map((b: any) => (
-                                <CommandItem
-                                  key={b}
-                                  value={b}
-                                  onSelect={() =>
-                                    handleLocationChange("barangay", b)
-                                  }
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      formData.barangay === b
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {b}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
+                            <CommandList>
+                              <CommandEmpty>No barangay found.</CommandEmpty>
+                              <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                {barangays.map((b: any) => (
+                                  <CommandItem
+                                    key={b}
+                                    value={b}
+                                    onSelect={() =>
+                                      handleLocationChange("barangay", b)
+                                    }
+                                    disabled={isReadOnly} // Disable if read-only
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.barangay === b
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    {b}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
                           </Command>
                         </PopoverContent>
                       </Popover>
@@ -760,6 +810,7 @@ export default function EditEstablishment({
                       }
                       className={getErrorClass("address_line")}
                       required
+                      disabled={isReadOnly} // Disable if read-only
                     />
                   </div>
 
@@ -772,10 +823,13 @@ export default function EditEstablishment({
                     <Input
                       value={formData.postal_code}
                       onChange={(e) => {
-                        const value = e.target.value
-                          .replace(/\D/g, "")
-                          .slice(0, 4);
-                        handleChange("postal_code", value);
+                        if (!isReadOnly) {
+                          // Only allow change if not read-only
+                          const value = e.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 4);
+                          handleChange("postal_code", value);
+                        }
                       }}
                       className={getErrorClass("postal_code")}
                       placeholder="4-digit postal code"
@@ -783,6 +837,7 @@ export default function EditEstablishment({
                       inputMode="numeric"
                       pattern="\d{4}"
                       required
+                      disabled={isReadOnly} // Disable if read-only
                     />
                   </div>
                 </div>
@@ -794,14 +849,14 @@ export default function EditEstablishment({
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
-                  disabled={isSubmitting}
-                  className="capitalize min-w-[120px]"
+                  disabled={isSubmitting || isReadOnly} // Disable if read-only
+                  className="capitalize min-w-[120px] bg-transparent"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSave}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isReadOnly} // Disable if read-only
                   className="capitalize min-w-[180px]"
                 >
                   {isSubmitting ? (
@@ -837,7 +892,8 @@ export default function EditEstablishment({
                       (!formData.barangay &&
                         !formData.city &&
                         !formData.province) ||
-                      isFetchingCoords
+                      isFetchingCoords ||
+                      isReadOnly // Disable if read-only
                     }
                   >
                     {isFetchingCoords ? (
@@ -856,6 +912,7 @@ export default function EditEstablishment({
                       placeholder="Latitude"
                       className={getErrorClass("latitude")}
                       required
+                      disabled={isReadOnly} // Disable if read-only
                     />
                   </div>
                   <div className="space-y-1">
@@ -868,6 +925,7 @@ export default function EditEstablishment({
                       placeholder="Longitude"
                       className={getErrorClass("longitude")}
                       required
+                      disabled={isReadOnly} // Disable if read-only
                     />
                   </div>
                 </div>
@@ -883,9 +941,13 @@ export default function EditEstablishment({
                   latitude={formData.latitude || ""}
                   longitude={formData.longitude || ""}
                   onCoordinatesChange={(lat, lng) => {
-                    handleChange("latitude", lat.toString());
-                    handleChange("longitude", lng.toString());
+                    if (!isReadOnly) {
+                      // Only allow change if not read-only
+                      handleChange("latitude", lat.toString());
+                      handleChange("longitude", lng.toString());
+                    }
                   }}
+                  isReadOnly={isReadOnly} // Pass isReadOnly to map preview
                 />
               </div>
             </div>
@@ -918,7 +980,7 @@ export default function EditEstablishment({
                   })
                 }
                 required
-                disabled={isCreatingBusinessType}
+                disabled={isCreatingBusinessType || isReadOnly} // Disable if read-only
                 placeholder="Enter business type name"
               />
             </div>
@@ -938,7 +1000,7 @@ export default function EditEstablishment({
                     description: e.target.value,
                   })
                 }
-                disabled={isCreatingBusinessType}
+                disabled={isCreatingBusinessType || isReadOnly} // Disable if read-only
                 placeholder="Enter description (optional)"
               />
             </div>
@@ -947,10 +1009,14 @@ export default function EditEstablishment({
                 variant="outline"
                 onClick={() => setIsBusinessTypeDialogOpen(false)}
                 type="button"
+                disabled={isReadOnly} // Disable if read-only
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isCreatingBusinessType}>
+              <Button
+                type="submit"
+                disabled={isCreatingBusinessType || isReadOnly}
+              >
                 {isCreatingBusinessType
                   ? "Creating..."
                   : "Create Business Type"}
@@ -970,8 +1036,11 @@ export default function EditEstablishment({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSave} disabled={isSubmitting}>
+            <AlertDialogCancel disabled={isReadOnly}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSave}
+              disabled={isSubmitting || isReadOnly}
+            >
               {isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
               ) : null}
@@ -991,8 +1060,10 @@ export default function EditEstablishment({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Continue Editing</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCancel}>
+            <AlertDialogCancel disabled={isReadOnly}>
+              Continue Editing
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancel} disabled={isReadOnly}>
               Discard Changes
             </AlertDialogAction>
           </AlertDialogFooter>

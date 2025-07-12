@@ -1,4 +1,4 @@
-import { RoleBasedDashboard } from "@/features/dashboard/role-based-dashboard";
+import { RoleBasedDashboard } from "@/features/dashboard";
 
 export default function DashboardPage() {
   return (
