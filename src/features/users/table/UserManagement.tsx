@@ -2,10 +2,11 @@
 
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { getUsers } from "@/lib/api";
 import { useAuth } from "@/contexts/useAuth";
 import type { User, UserLevel } from "@/types";
 import { ResetPassword } from "@/features/users/form/reset-password-form";
+import { useUsers } from "@/hooks/useUsers"; // Import the new hook
+import { useQueryClient } from "@tanstack/react-query"; // Import useQueryClient
 
 import {
   Table,
@@ -60,6 +61,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { EditUserForm } from "@/features/users/form/edit-user-form";
 import { ChangeStatus } from "@/features/users/form/change-status-form";
+import { toast } from "sonner";
 
 const USER_LEVELS: UserLevel[] = [
   "division_chief",
@@ -85,14 +87,19 @@ const UsersListTable = ({
   onSelectionChange,
   onUsersData,
 }: UsersListTableProps) => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient(); // Initialize query client
+  const { isAuthenticated } = useAuth();
+  const {
+    data: users,
+    isLoading: loading,
+    isFetching: refreshing,
+    error,
+    refetch,
+  } = useUsers(); // Use the useUsers hook
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const { isAuthenticated } = useAuth();
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string[]>([
@@ -103,22 +110,16 @@ const UsersListTable = ({
     useState<UserLevel[]>(USER_LEVELS);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchUsers();
-    }
-  }, [isAuthenticated]);
-
-  useEffect(() => {
     if (onSelectionChange) {
       onSelectionChange(selectedUserIds);
     }
-  }, [selectedUserIds]);
+  }, [selectedUserIds, onSelectionChange]);
 
   useEffect(() => {
-    if (onUsersData) {
+    if (onUsersData && users) {
       onUsersData(users);
     }
-  }, [users]);
+  }, [users, onUsersData]);
 
   // Debounced search effect
   useEffect(() => {
@@ -133,33 +134,11 @@ const UsersListTable = ({
     }
   }, [searchTerm]);
 
-  const fetchUsers = async (isRefresh = false) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      const data = await getUsers();
-      setUsers(data);
-      setError("");
-    } catch (err) {
-      setError(
-        "You don't have permission to view users. Admin access required."
-      );
-      console.error("Error fetching users:", err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
   const handleRefresh = () => {
-    fetchUsers(true);
+    refetch(); // Use refetch from useQuery
   };
 
-  const filteredUsers = users.filter(
+  const filteredUsers = (users || []).filter(
     (user) =>
       `${user.first_name} ${user.last_name} ${user.email}`
         .toLowerCase()
@@ -198,26 +177,38 @@ const UsersListTable = ({
   };
 
   const UserActionsDropdown = ({ userId }: { userId: number }) => {
-    const user = users.find((u) => u.id === userId);
+    const user = users?.find((u) => u.id === userId);
     const [editOpen, setEditOpen] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
 
     if (!user) return null;
 
-    const handleStatusChanged = () => {
+    const handleStatusChanged = async () => {
       setActionLoading(true);
-      setTimeout(() => {
-        fetchUsers();
+      try {
+        // Invalidate and refetch users after status change
+        await queryClient.invalidateQueries({ queryKey: ["users"] });
+        toast.success("User status updated successfully.");
+      } catch (error) {
+        toast.error("Failed to update user status.");
+        console.error("Error updating user status:", error);
+      } finally {
         setActionLoading(false);
-      }, 500);
+      }
     };
 
-    const handleUserUpdated = () => {
+    const handleUserUpdated = async () => {
       setActionLoading(true);
-      setTimeout(() => {
-        fetchUsers();
+      try {
+        // Invalidate and refetch users after user update
+        await queryClient.invalidateQueries({ queryKey: ["users"] });
+        toast.success("User profile updated successfully.");
+      } catch (error) {
+        toast.error("Failed to update user profile.");
+        console.error("Error updating user profile:", error);
+      } finally {
         setActionLoading(false);
-      }, 500);
+      }
     };
 
     return (
@@ -501,7 +492,7 @@ const UsersListTable = ({
           >
             <ShieldAlert className="h-4 w-4" />
             <AlertTitle>Access Denied</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{error.message}</AlertDescription>
           </Alert>
         )}
       </CardHeader>

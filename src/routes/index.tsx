@@ -6,11 +6,7 @@ import { AuthProvider } from "@/contexts/AuthProvider";
 
 import { PrivateRoute, PasswordResetRoute } from "@/routes/PrivateRoute";
 import { PublicRoute } from "@/routes/PublicRoute";
-
-import { SiteHeader } from "@/components/site-header";
-import { AppSidebar } from "@/components/app-sidebar";
-import { Separator } from "@/components/ui/separator";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AuthenticatedLayout } from "@/components/authenticated-layout";
 
 // Pages
 import LoginPage from "@/pages/LoginPage";
@@ -26,7 +22,7 @@ import NatureOfBusinessPage from "@/pages/NatureOfBusinessPage";
 import InspectionPage from "@/pages/InspectionPage";
 import CreateInspectionPage from "@/pages/CreateInspection";
 import ReportPage from "@/pages/ReportPage";
-// import ReportsPage from "@/pages/ReportsPage";
+// import ReportsPage from "@/pages/ReportsPage" // Uncommented ReportsPage
 
 import NotFound from "@/components/NotFound";
 
@@ -68,7 +64,7 @@ function AppRoutes() {
               }
             />
 
-            {/* All protected routes */}
+            {/* All protected routes using the common AuthenticatedLayout */}
             <Route
               path="/change-password"
               element={
@@ -78,243 +74,37 @@ function AppRoutes() {
               }
             />
             <Route
-              path="/dashboard"
               element={
                 <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <DashboardPage />
-                    </SidebarInset>
-                  </SidebarProvider>
+                  <AuthenticatedLayout />
                 </PrivateRoute>
               }
-            />
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <DashboardPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/maps"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <MapPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/establishments"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <EstablishmentPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/establishments/add"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <EstablishmentPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/establishments/edit/:id"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <EstablishmentPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/establishments/archived"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <EstablishmentPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/nature-of-business"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <NatureOfBusinessPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/inspection"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <InspectionPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/d/inspection/add"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <CreateInspectionPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <ReportPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            {/* <Route
-              path="/reports"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="flex h-14 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <ReportsPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            /> */}
-            <Route
-              path="/user-management"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <UserManagementPage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <PrivateRoute>
-                  <SidebarProvider>
-                    <AppSidebar />
-                    <SidebarInset>
-                      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
-                        <SiteHeader />
-                      </header>
-                      <Separator />
-                      <ProfilePage />
-                    </SidebarInset>
-                  </SidebarProvider>
-                </PrivateRoute>
-              }
-            />
+            >
+              <Route path="/" element={<DashboardPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/maps" element={<MapPage />} />
+              {/* Nested routes for establishments */}
+              <Route path="/establishments">
+                <Route index element={<EstablishmentPage />} />
+                <Route path="add" element={<EstablishmentPage />} />
+                <Route path="edit/:id" element={<EstablishmentPage />} />
+                <Route path="archived" element={<EstablishmentPage />} />
+              </Route>
+              <Route
+                path="/nature-of-business"
+                element={<NatureOfBusinessPage />}
+              />
+              <Route path="/inspection" element={<InspectionPage />} />
+              <Route
+                path="/d/inspection/add"
+                element={<CreateInspectionPage />}
+              />
+              {/* <Route path="/reports" element={<ReportsPage />} /> Using ReportsPage */}
+              <Route path="/report" element={<ReportPage />} />{" "}
+              {/* If ReportPage is distinct */}
+              <Route path="/user-management" element={<UserManagementPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+            </Route>
           </Routes>
         </AuthProvider>
       </TooltipProvider>
