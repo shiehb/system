@@ -58,6 +58,7 @@
     "react-hook-form": "^7.56.4",
     "react-image-crop": "^11.0.10",
     "react-leaflet": "^5.0.0",
+    "react-leaflet-draw": "^0.20.6",
     "react-router-dom": "^7.6.3",
     "react-timezone-select": "^3.2.8",
     "recharts": "^2.15.3",

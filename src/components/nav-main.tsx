@@ -38,11 +38,11 @@ const NavItemComponent = memo(
             <CollapsibleTrigger asChild>
               <SidebarMenuButton
                 tooltip={item.title}
-                className="cursor-pointer w-full"
+                className="cursor-pointer w-full text-lg font-medium" // Increased to text-lg and added font-medium
               >
-                {item.icon && <item.icon className="w-4 h-4" />}
+                {item.icon && <item.icon className="w-5 h-5" />}
                 <span className="flex-1 text-left">{item.title}</span>
-                <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180 w-5 h-5" />
               </SidebarMenuButton>
             </CollapsibleTrigger>
             <CollapsibleContent asChild>
@@ -56,10 +56,12 @@ const NavItemComponent = memo(
                       <SidebarMenuSubButton
                         asChild
                         onClick={() => navigate(subItem.url)}
-                        className="cursor-pointer"
+                        className="cursor-pointer text-lg font-normal" // Sub-items slightly smaller (text-base)
                       >
-                        <div className="flex items-center gap-2">
-                          {subItem.icon && <subItem.icon className="w-4 h-4" />}
+                        <div className="flex items-center gap-3">
+                          {" "}
+                          {/* Increased gap */}
+                          {subItem.icon && <subItem.icon className="w-5 h-5" />}
                           <span>{subItem.title}</span>
                         </div>
                       </SidebarMenuSubButton>
@@ -74,9 +76,9 @@ const NavItemComponent = memo(
         <SidebarMenuButton
           tooltip={item.title}
           onClick={() => navigate(item.url)}
-          className="cursor-pointer"
+          className="cursor-pointer text-lg font-medium" // Increased to text-lg and added font-medium
         >
-          {item.icon && <item.icon className="w-4 h-4" />}
+          {item.icon && <item.icon className="w-5 h-5" />}
           <span>{item.title}</span>
         </SidebarMenuButton>
       )}
@@ -92,8 +94,12 @@ export function NavMain({ items, managementItems }: NavMainProps) {
   return (
     <>
       <SidebarGroup>
-        <SidebarGroupLabel>MAIN</SidebarGroupLabel>
-        <SidebarMenu>
+        <SidebarGroupLabel className="text-base tracking-wide uppercase">
+          MAIN
+        </SidebarGroupLabel>
+        <SidebarMenu className="space-y-1">
+          {" "}
+          {/* Added spacing between items */}
           {items.map((item) => (
             <NavItemComponent
               key={`main-${item.title}`}
@@ -106,8 +112,12 @@ export function NavMain({ items, managementItems }: NavMainProps) {
 
       {managementItems && managementItems.length > 0 && (
         <SidebarGroup>
-          <SidebarGroupLabel>MANAGEMENT</SidebarGroupLabel>
-          <SidebarMenu>
+          <SidebarGroupLabel className="text-base  tracking-wide uppercase">
+            MANAGEMENT
+          </SidebarGroupLabel>
+          <SidebarMenu className="space-y-1">
+            {" "}
+            {/* Added spacing between items */}
             {managementItems.map((item) => (
               <NavItemComponent
                 key={`mgmt-${item.title}`}

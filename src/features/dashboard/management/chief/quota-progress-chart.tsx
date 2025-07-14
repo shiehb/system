@@ -115,7 +115,7 @@ export function QuotaProgressChart({ data }: QuotaProgressChartProps) {
               <Tooltip
                 formatter={(value, name) => [
                   value,
-                  name === "completed" ? "Completed" : "In Progress",
+                  name === "Completed" ? "Completed" : "In Progress",
                 ]}
                 labelFormatter={(label) => `Section: ${label}`}
               />
